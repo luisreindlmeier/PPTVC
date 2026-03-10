@@ -650,37 +650,7 @@ ul {
   opacity: 1;
 }
 
-/* Add tag button */
-.pptvc-version-tag-add {
-  border: 1px dashed var(--color-border);
-  border-radius: 3px;
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-family: var(--font-sans);
-  padding: 1px 6px;
-  cursor: pointer;
-  transition:
-    border-color 0.12s,
-    color 0.12s;
-}
 
-.pptvc-version-tag-add:hover {
-  border-color: var(--color-border-focus);
-  color: var(--color-text);
-}
-
-/* Tag picker row */
-.pptvc-version-tag-picker {
-  display: -ms-flexbox;
-  display: flex;
-  -ms-flex-wrap: wrap;
-  flex-wrap: wrap;
-  -ms-flex-align: center;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 0;
-}
 
 /* Header right-side action group (diff + restore + delete) */
 .pptvc-version-header-actions {
@@ -832,29 +802,30 @@ ul {
 }
 
 /* Close button inside version tag picker */
-.pptvc-version-tag-picker-close {
-  border: none;
-  background: none;
-  color: var(--color-text-muted);
-  font-size: 14px;
-  line-height: 1;
-  padding: 0 2px;
-  cursor: pointer;
-  font-family: var(--font-sans);
-  margin-left: 2px;
-}
-
-.pptvc-version-tag-picker-close:hover {
-  color: var(--color-text);
-}
-
-/* Version count in list header */
+/* Version count badge — same chip style as Tags toggle */
 .pptvc-list-count {
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -ms-flex-align: center;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--color-tag-bg);
+  border-radius: 3px;
+  background: transparent;
+  padding: 1px 7px 1px 5px;
   font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--color-text-muted);
-  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-green-active);
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.pptvc-list-count svg {
+  width: 11px;
+  height: 11px;
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
 }
 
 /* ════════════════════════════════════════════
