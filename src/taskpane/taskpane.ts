@@ -89,9 +89,8 @@ function formatTimestamp(timestamp: number): string {
 
 // ── Helpers ───────────────────────────────────────────────────
 
-function setTagsToggleLabel(btn: HTMLButtonElement, count: number, open: boolean): void {
-  const chevron = open ? "▴" : "▾";
-  const label = count > 0 ? `tags (${count}) ${chevron}` : `tags ${chevron}`;
+function setTagsToggleLabel(btn: HTMLButtonElement, count: number): void {
+  const label = count > 0 ? `Tags (${count})` : `Tags`;
   btn.innerHTML = `${ICON_TAG}<span>${label}</span>`;
 }
 
@@ -274,7 +273,7 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
   tagsToggle.type = "button";
   tagsToggle.className = "pptvc-tags-toggle";
   const existingTags = versionTagsMap.get(version.id) ?? [];
-  setTagsToggleLabel(tagsToggle, existingTags.length, false);
+  setTagsToggleLabel(tagsToggle, existingTags.length);
   meta.appendChild(tagsToggle);
 
   li.appendChild(meta);
@@ -289,11 +288,11 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
     if (isOpen) {
       hide(tagsRow);
       const current = versionTagsMap.get(version.id) ?? [];
-      setTagsToggleLabel(tagsToggle, current.length, false);
+      setTagsToggleLabel(tagsToggle, current.length);
     } else {
       renderVersionTags(version.id, tagsRow);
       show(tagsRow);
-      setTagsToggleLabel(tagsToggle, (versionTagsMap.get(version.id) ?? []).length, true);
+      setTagsToggleLabel(tagsToggle, (versionTagsMap.get(version.id) ?? []).length);
     }
   });
 

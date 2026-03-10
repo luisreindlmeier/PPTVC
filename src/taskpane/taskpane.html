@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>PPTVC</title>
 
-    <!-- Fonts: Plus Jakarta Sans + Bacasime Antique -->
+    <!-- Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bacasime+Antique&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
 
@@ -24,7 +24,6 @@
   </head>
 
   <body>
-    <!-- Shown before Office initialises -->
     <section id="sideload-msg" class="pptvc-sideload">
       <p>
         Please
@@ -45,36 +44,30 @@
         <p class="pptvc-subtitle">Version Control for PowerPoint</p>
       </header>
 
-      <!-- ── Scope tabs: Presentation / Current Slide ── -->
-      <div class="pptvc-scope-bar" role="tablist" aria-label="Version scope">
+      <!-- ── Tabs: History / Diff ── -->
+      <div class="pptvc-scope-bar" role="tablist" aria-label="View">
         <button
           type="button"
           role="tab"
-          id="tab-presentation"
+          id="tab-history"
           class="pptvc-scope-tab pptvc-scope-tab--active"
           aria-selected="true"
         >
-          Presentation
+          History
         </button>
         <button
           type="button"
           role="tab"
-          id="tab-slide"
+          id="tab-diff"
           class="pptvc-scope-tab"
           aria-selected="false"
         >
-          Current Slide
+          Diff
         </button>
       </div>
 
-      <!-- ── Slide scope placeholder ── -->
-      <div id="slide-placeholder" class="pptvc-coming-soon pptvc-hidden">
-        <span class="pptvc-coming-soon__icon">◱</span>
-        <p class="pptvc-coming-soon__text">Slide-level versioning is coming soon.</p>
-      </div>
-
-      <!-- ── Presentation scope ── -->
-      <div id="presentation-scope">
+      <!-- ── History scope ── -->
+      <div id="history-scope">
         <!-- Save panel -->
         <section class="pptvc-save-panel">
           <input
@@ -86,9 +79,9 @@
             aria-label="Version name"
           />
 
-          <!-- Tag picker (predefined tags) -->
+          <!-- Tag picker (predefined, max 3) -->
           <div class="pptvc-tag-picker-area" role="group" aria-label="Tags">
-            <span class="pptvc-tag-picker-label">Tags</span>
+            <span class="pptvc-tag-picker-label">Tags (max 3)</span>
             <div id="save-tag-picker" class="pptvc-save-tag-picker"></div>
           </div>
 
@@ -101,10 +94,10 @@
         <!-- Status message -->
         <div id="status-msg" class="pptvc-status" role="status" aria-live="polite"></div>
 
-        <!-- Versions list -->
+        <!-- Versions list (timeline) -->
         <section class="pptvc-list-section">
           <h2 id="versions-title" class="pptvc-list-title">
-            Saved Versions <span class="pptvc-list-count"></span>
+            History <span class="pptvc-list-count"></span>
           </h2>
 
           <div id="versions-loading" class="pptvc-loading pptvc-hidden">
@@ -115,6 +108,11 @@
 
           <p id="versions-empty" class="pptvc-empty pptvc-hidden">No versions saved yet.</p>
         </section>
+      </div>
+
+      <!-- ── Diff scope ── -->
+      <div id="diff-scope" class="pptvc-hidden">
+        <div id="diff-content" class="pptvc-diff-scope"></div>
       </div>
     </main>
   </body>

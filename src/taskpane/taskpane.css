@@ -5,7 +5,6 @@
 :root {
   /* Typography */
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-  --font-serif: "Bacasime Antique", Georgia, "Times New Roman", serif;
 
   /* Beige palette */
   --color-bg: #f3ede2;
@@ -113,7 +112,7 @@ ul {
 
 .pptvc-title {
   margin: 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 22px;
   font-weight: 400;
   color: var(--color-text);
@@ -281,7 +280,7 @@ ul {
   background: var(--color-tag-bg);
 }
 
-/* Icon-only (delete) */
+/* Icon-only (delete) — same dimensions as .pptvc-btn-icon-action for alignment */
 .pptvc-btn-icon {
   display: -ms-inline-flexbox;
   display: inline-flex;
@@ -289,8 +288,8 @@ ul {
   align-items: center;
   -ms-flex-pack: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   border: none;
   border-radius: var(--radius-xs);
   background: transparent;
@@ -369,7 +368,7 @@ ul {
 
 .pptvc-list-title {
   margin: 0 0 6px;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 17px;
   font-weight: 400;
   color: var(--color-text-muted);
@@ -433,7 +432,7 @@ ul {
   content: "";
   position: absolute;
   top: 0;
-  height: 14px; /* dot center: 7px header padding + 7px half-dot */
+  height: 17px; /* dot center: 7px padding + 7px half-dot + ~3px text-center offset = 17px */
   left: -12px;
   width: 2px;
   background: var(--color-border);
@@ -443,7 +442,7 @@ ul {
 .pptvc-version-item::after {
   content: "";
   position: absolute;
-  top: 14px;
+  top: 17px;
   bottom: -4px; /* extend through margin-bottom:4px to reach next li top */
   left: -12px;
   width: 2px;
@@ -463,7 +462,7 @@ ul {
 /* Timeline dot — 14px, centered on the name text line */
 .pptvc-version-dot {
   position: absolute;
-  top: 7px; /* header padding-top 7px; dot top-aligns with padding start, center at 7+7=14px */
+  top: 10px; /* center at 17px aligns with name text center (7px padding + ~10px half line-height) */
   left: -18px; /* dot left edge at list-left + 2px → (2 - 20) = -18px from li */
   width: 14px;
   height: 14px;
@@ -559,9 +558,11 @@ ul {
   padding: 0;
   font-family: var(--font-sans);
   font-size: 10px;
+  font-weight: 500;
   color: var(--color-text-muted);
   cursor: pointer;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   transition: color 0.12s;
 }
 
