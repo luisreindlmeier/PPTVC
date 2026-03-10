@@ -5,62 +5,122 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>PPTVC</title>
 
+    <!-- Fonts: Plus Jakarta Sans + Bacasime Antique -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bacasime+Antique&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
     <!-- Office JavaScript API -->
     <script
       type="text/javascript"
       src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"
     ></script>
 
-    <!-- Fluent UI Fabric Core -->
-    <link
-      rel="stylesheet"
-      href="https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/office-ui-fabric-core/11.1.0/css/fabric.min.css"
-    />
-
     <!-- Task pane styles -->
     <link href="taskpane.css" rel="stylesheet" type="text/css" />
   </head>
 
-  <body class="ms-font-m ms-Fabric">
+  <body>
+    <!-- Shown before Office initialises -->
     <section id="sideload-msg" class="pptvc-sideload">
-      <p class="ms-font-m">
+      <p>
         Please
         <a
           target="_blank"
           rel="noopener noreferrer"
           href="https://learn.microsoft.com/office/dev/add-ins/testing/test-debug-office-add-ins#sideload-an-office-add-in-for-testing"
+          >sideload</a
         >
-          sideload
-        </a>
         the add-in to continue.
       </p>
     </section>
 
-    <main id="app-body" class="pptvc-app-body pptvc-hidden">
+    <main id="app-body" class="pptvc-app pptvc-hidden">
+      <!-- ── Header ── -->
       <header class="pptvc-header">
         <h1 class="pptvc-title">PPTVC</h1>
-        <p class="pptvc-subtitle ms-font-s">Version Control for PowerPoint</p>
+        <p class="pptvc-subtitle">Version Control for PowerPoint</p>
       </header>
 
-      <section class="pptvc-section">
-        <button id="btn-save" type="button" class="pptvc-btn pptvc-btn--primary ms-font-m">
-          <span class="btn-label">Save Version</span>
-          <span class="btn-spinner pptvc-hidden" aria-hidden="true"></span>
+      <!-- ── Scope tabs: Presentation / Current Slide ── -->
+      <div class="pptvc-scope-bar" role="tablist" aria-label="Version scope">
+        <button
+          type="button"
+          role="tab"
+          id="tab-presentation"
+          class="pptvc-scope-tab pptvc-scope-tab--active"
+          aria-selected="true"
+        >
+          Presentation
         </button>
+        <button
+          type="button"
+          role="tab"
+          id="tab-slide"
+          class="pptvc-scope-tab"
+          aria-selected="false"
+        >
+          Current Slide
+        </button>
+      </div>
+
+      <!-- ── Slide scope placeholder ── -->
+      <div id="slide-placeholder" class="pptvc-coming-soon pptvc-hidden">
+        <span class="pptvc-coming-soon__icon">◱</span>
+        <p class="pptvc-coming-soon__text">Slide-level versioning is coming soon.</p>
+      </div>
+
+      <!-- ── Presentation scope ── -->
+      <div id="presentation-scope">
+        <!-- Save panel -->
+        <section class="pptvc-save-panel">
+          <input
+            id="version-name-input"
+            type="text"
+            class="pptvc-text-input"
+            placeholder="Version name (optional)"
+            maxlength="60"
+            aria-label="Version name"
+          />
+
+          <!-- Tag input -->
+          <div class="pptvc-tag-input-area" role="group" aria-label="Tags">
+            <div id="pending-tags-list" class="pptvc-tag-list"></div>
+            <input
+              id="tag-input"
+              type="text"
+              class="pptvc-tag-input-field"
+              placeholder="Add tag, press Enter"
+              maxlength="30"
+              aria-label="Add tag"
+            />
+          </div>
+
+          <button id="btn-save" type="button" class="pptvc-btn pptvc-btn--primary">
+            <span class="btn-label">Save Version</span>
+            <span class="btn-spinner pptvc-hidden" aria-hidden="true"></span>
+          </button>
+        </section>
+
+        <!-- Status message -->
         <div id="status-msg" class="pptvc-status" role="status" aria-live="polite"></div>
-      </section>
 
-      <section class="pptvc-section pptvc-section--list">
-        <h2 class="pptvc-section-title ms-font-xs">Versions</h2>
+        <!-- Versions list -->
+        <section class="pptvc-list-section">
+          <h2 class="pptvc-list-title">Saved Versions</h2>
 
-        <div id="versions-loading" class="pptvc-loading pptvc-hidden">
-          <div class="pptvc-spinner"></div>
-        </div>
+          <div id="versions-loading" class="pptvc-loading pptvc-hidden">
+            <div class="pptvc-spinner"></div>
+          </div>
 
-        <ul id="versions-list" class="pptvc-versions-list" role="list"></ul>
+          <ul id="versions-list" class="pptvc-versions-list" role="list"></ul>
 
-        <p id="versions-empty" class="pptvc-empty ms-font-s pptvc-hidden">No versions saved yet.</p>
-      </section>
+          <p id="versions-empty" class="pptvc-empty pptvc-hidden">No versions saved yet.</p>
+        </section>
+      </div>
     </main>
   </body>
 </html>

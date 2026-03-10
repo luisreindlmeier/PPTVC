@@ -1,28 +1,99 @@
+/* ════════════════════════════════════════════
+   PPTVC — Design Tokens
+   ════════════════════════════════════════════ */
+
+:root {
+  /* Typography */
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-serif: "Bacasime Antique", Georgia, "Times New Roman", serif;
+
+  /* Beige palette */
+  --color-bg: #f3ede2;
+  --color-surface: #faf6ef;
+  --color-surface-raised: #ffffff;
+  --color-border: #e0d8c8;
+  --color-border-focus: #b8a888;
+  --color-text: #2c2820;
+  --color-text-muted: #7a7060;
+  --color-text-placeholder: #b0a898;
+
+  /* Green palette */
+  --color-green: #79ad74;
+  --color-green-hover: #669a61;
+  --color-green-active: #538050;
+  --color-green-light: #eaf3e8;
+  --color-tag-bg: #d4e8ce;
+  --color-tag-text: #3a6035;
+
+  /* Danger — warm terracotta, stays in palette */
+  --color-danger: #b87050;
+  --color-danger-hover: #9a5c40;
+  --color-danger-light: #f5ece6;
+
+  /* Geometry */
+  --radius: 8px;
+  --radius-sm: 5px;
+  --radius-xs: 3px;
+  --radius-full: 999px;
+}
+
+/* ════════════════════════════════════════════
+   Reset & Base
+   ════════════════════════════════════════════ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html,
 body {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
-  background: #faf9f8;
-  color: #323130;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ── Utility ── */
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ════════════════════════════════════════════
+   Utility
+   ════════════════════════════════════════════ */
 
 .pptvc-hidden {
   display: none !important;
 }
 
-/* ── Sideload message ── */
+/* ════════════════════════════════════════════
+   Sideload message
+   ════════════════════════════════════════════ */
 
 .pptvc-sideload {
   padding: 20px;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
 }
 
-/* ── App body ── */
+.pptvc-sideload a {
+  color: var(--color-green);
+}
 
-.pptvc-app-body {
+/* ════════════════════════════════════════════
+   App wrapper
+   ════════════════════════════════════════════ */
+
+.pptvc-app {
   display: -ms-flexbox;
   display: flex;
   -ms-flex-direction: column;
@@ -30,48 +101,223 @@ body {
   min-height: 100vh;
 }
 
-/* ── Header ── */
+/* ════════════════════════════════════════════
+   Header
+   ════════════════════════════════════════════ */
 
 .pptvc-header {
-  padding: 14px 16px 12px;
-  border-bottom: 1px solid #edebe9;
-  background: #fff;
+  padding: 16px 16px 12px;
+  background: var(--color-surface-raised);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .pptvc-title {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #323130;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--color-text);
+  letter-spacing: 0.02em;
 }
 
 .pptvc-subtitle {
-  margin: 2px 0 0;
-  color: #605e5c;
-}
-
-/* ── Sections ── */
-
-.pptvc-section {
-  padding: 14px 16px;
-}
-
-.pptvc-section--list {
-  -ms-flex: 1 0 0;
-  flex: 1 0 0;
-  padding-top: 10px;
-}
-
-.pptvc-section-title {
-  margin: 0 0 10px;
-  font-weight: 600;
-  color: #605e5c;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  margin: 3px 0 0;
+  font-family: var(--font-sans);
   font-size: 11px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.01em;
 }
 
-/* ── Buttons ── */
+/* ════════════════════════════════════════════
+   Scope tabs (Presentation / Current Slide)
+   ════════════════════════════════════════════ */
+
+.pptvc-scope-bar {
+  display: -ms-flexbox;
+  display: flex;
+  background: var(--color-surface-raised);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 12px;
+}
+
+.pptvc-scope-tab {
+  -ms-flex: 1 1 0;
+  flex: 1 1 0;
+  padding: 9px 8px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+  letter-spacing: 0.01em;
+}
+
+.pptvc-scope-tab:hover {
+  color: var(--color-text);
+}
+
+.pptvc-scope-tab--active {
+  color: var(--color-green);
+  border-bottom-color: var(--color-green);
+}
+
+/* ════════════════════════════════════════════
+   Coming soon placeholder (slide scope)
+   ════════════════════════════════════════════ */
+
+.pptvc-coming-soon {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.pptvc-coming-soon__icon {
+  font-size: 36px;
+  color: var(--color-border);
+  margin-bottom: 12px;
+  display: block;
+}
+
+.pptvc-coming-soon__text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ════════════════════════════════════════════
+   Save panel
+   ════════════════════════════════════════════ */
+
+.pptvc-save-panel {
+  padding: 14px 14px 10px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: column;
+  flex-direction: column;
+}
+
+/* ── Text input (version name) ── */
+
+.pptvc-text-input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.15s;
+  margin-bottom: 8px;
+}
+
+.pptvc-text-input::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.pptvc-text-input:focus {
+  border-color: var(--color-border-focus);
+}
+
+/* ── Tag input area ── */
+
+.pptvc-tag-input-area {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  padding: 5px 8px;
+  margin-bottom: 10px;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  -ms-flex-align: center;
+  align-items: center;
+  gap: 4px;
+  transition: border-color 0.15s;
+  min-height: 34px;
+}
+
+.pptvc-tag-input-area:focus-within {
+  border-color: var(--color-border-focus);
+}
+
+.pptvc-tag-list {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pptvc-tag-chip {
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -ms-flex-align: center;
+  align-items: center;
+  padding: 2px 7px 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-tag-bg);
+  color: var(--color-tag-text);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pptvc-tag-chip__remove {
+  margin-left: 4px;
+  border: none;
+  background: none;
+  color: var(--color-tag-text);
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.6;
+  font-family: var(--font-sans);
+}
+
+.pptvc-tag-chip__remove:hover {
+  opacity: 1;
+}
+
+.pptvc-tag-input-field {
+  -ms-flex: 1 1 60px;
+  flex: 1 1 60px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--color-text);
+  min-width: 60px;
+  padding: 1px 0;
+}
+
+.pptvc-tag-input-field::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+/* ════════════════════════════════════════════
+   Buttons
+   ════════════════════════════════════════════ */
 
 .pptvc-btn {
   display: -ms-inline-flexbox;
@@ -81,91 +327,172 @@ body {
   -ms-flex-pack: center;
   justify-content: center;
   border: none;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-family: inherit;
-  transition: background 0.1s;
-}
-
-.pptvc-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.pptvc-btn--primary {
-  width: 100%;
-  padding: 10px 16px;
-  background: #0078d4;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.pptvc-btn--primary:hover:not(:disabled) {
-  background: #106ebe;
-}
-
-.pptvc-btn--primary:active:not(:disabled) {
-  background: #005a9e;
-}
-
-.pptvc-btn--secondary {
-  padding: 4px 10px;
-  background: #fff;
-  color: #0078d4;
-  border: 1px solid #0078d4;
-  font-size: 12px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  transition:
+    background 0.12s,
+    color 0.12s,
+    border-color 0.12s;
   white-space: nowrap;
 }
 
-.pptvc-btn--secondary:hover:not(:disabled) {
-  background: #f3f9fd;
+.pptvc-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-/* ── Spinner inside save button ── */
+/* Primary (green, full-width in save panel) */
+.pptvc-btn--primary {
+  width: 100%;
+  padding: 9px 16px;
+  background: var(--color-green);
+  color: #fff;
+  font-size: 13px;
+}
 
+.pptvc-btn--primary:hover:not(:disabled) {
+  background: var(--color-green-hover);
+}
+
+.pptvc-btn--primary:active:not(:disabled) {
+  background: var(--color-green-active);
+}
+
+/* Ghost (diff button) */
+.pptvc-btn--ghost {
+  padding: 4px 9px;
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  font-size: 11px;
+  border-radius: var(--radius-sm);
+}
+
+.pptvc-btn--ghost:hover:not(:disabled) {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border-focus);
+}
+
+/* Restore button */
+.pptvc-btn--restore {
+  padding: 4px 10px;
+  background: var(--color-green-light);
+  color: var(--color-green-active);
+  border: 1px solid var(--color-tag-bg);
+  font-size: 11px;
+  border-radius: var(--radius-sm);
+}
+
+.pptvc-btn--restore:hover:not(:disabled) {
+  background: var(--color-tag-bg);
+}
+
+/* Icon-only (delete) */
+.pptvc-btn-icon {
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s;
+  font-family: var(--font-sans);
+  padding: 0;
+}
+
+.pptvc-btn-icon:hover {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+/* Delete confirm state */
+.pptvc-btn-icon--confirm {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  font-size: 10px;
+  font-weight: 600;
+  width: auto;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+}
+
+/* Spinner inside save button */
 .btn-spinner {
   width: 14px;
   height: 14px;
-  margin-left: 6px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.35);
   border-top-color: #fff;
   border-radius: 50%;
   animation: pptvc-spin 0.6s linear infinite;
 }
 
-/* ── Status message ── */
+/* ════════════════════════════════════════════
+   Status message
+   ════════════════════════════════════════════ */
 
 .pptvc-status {
-  min-height: 20px;
-  margin-top: 8px;
-  font-size: 13px;
-  text-align: center;
+  min-height: 18px;
+  margin: 8px 14px 2px;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  border-radius: var(--radius-xs);
 }
 
 .pptvc-status--success {
-  color: #107c10;
+  color: var(--color-green-active);
 }
 
 .pptvc-status--error {
-  color: #a4262c;
+  color: var(--color-danger);
 }
 
-/* ── List loading spinner ── */
+/* ════════════════════════════════════════════
+   Versions list section
+   ════════════════════════════════════════════ */
 
+.pptvc-list-section {
+  -ms-flex: 1 0 0;
+  flex: 1 0 0;
+  padding: 12px 14px 20px;
+}
+
+.pptvc-list-title {
+  margin: 0 0 10px;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  letter-spacing: 0.03em;
+}
+
+/* Loading spinner */
 .pptvc-loading {
   display: -ms-flexbox;
   display: flex;
   -ms-flex-pack: center;
   justify-content: center;
-  padding: 20px 0;
+  padding: 24px 0;
 }
 
 .pptvc-spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid #edebe9;
-  border-top-color: #0078d4;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-green);
   border-radius: 50%;
   animation: pptvc-spin 0.6s linear infinite;
 }
@@ -176,56 +503,259 @@ body {
   }
 }
 
-/* ── Versions list ── */
+/* Empty state */
+.pptvc-empty {
+  margin: 0;
+  padding: 32px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ════════════════════════════════════════════
+   Version list items
+   ════════════════════════════════════════════ */
 
 .pptvc-versions-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.pptvc-version-item {
-  display: -ms-flexbox;
-  display: flex;
-  -ms-flex-align: center;
-  align-items: center;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid #edebe9;
-}
-
-.pptvc-version-item:last-child {
-  border-bottom: none;
-}
-
-.pptvc-version-info {
   display: -ms-flexbox;
   display: flex;
   -ms-flex-direction: column;
   flex-direction: column;
-  min-width: 0;
-  margin-right: 8px;
 }
 
-.pptvc-version-name {
-  font-weight: 600;
-  color: #323130;
-  white-space: nowrap;
+.pptvc-version-item {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
   overflow: hidden;
-  text-overflow: ellipsis;
+  transition: border-color 0.15s;
 }
 
+.pptvc-version-item:hover {
+  border-color: var(--color-border-focus);
+}
+
+/* Top row: name input + delete */
+.pptvc-version-top {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  padding: 10px 10px 4px;
+}
+
+.pptvc-version-name-input {
+  -ms-flex: 1 1 0;
+  flex: 1 1 0;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  padding: 1px 4px;
+  border-radius: var(--radius-xs);
+  min-width: 0;
+  outline: none;
+  transition: background 0.12s;
+}
+
+.pptvc-version-name-input:hover {
+  background: var(--color-bg);
+}
+
+.pptvc-version-name-input:focus {
+  background: var(--color-bg);
+  box-shadow: 0 0 0 1px var(--color-border-focus);
+}
+
+/* Timestamp */
 .pptvc-version-time {
-  margin-top: 2px;
-  color: #605e5c;
+  display: block;
+  padding: 0 14px 6px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
 }
 
-/* ── Empty state ── */
+/* Tags row */
+.pptvc-version-tags {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  -ms-flex-align: center;
+  align-items: center;
+  padding: 0 10px 8px;
+  gap: 4px;
+}
 
-.pptvc-empty {
-  color: #605e5c;
+.pptvc-version-tag-chip {
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -ms-flex-align: center;
+  align-items: center;
+  padding: 1px 7px 1px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-tag-bg);
+  color: var(--color-tag-text);
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+}
+
+.pptvc-version-tag-chip__remove {
+  margin-left: 3px;
+  border: none;
+  background: none;
+  color: var(--color-tag-text);
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.55;
+  font-family: var(--font-sans);
+}
+
+.pptvc-version-tag-chip__remove:hover {
+  opacity: 1;
+}
+
+/* Add tag button */
+.pptvc-version-tag-add {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-family: var(--font-sans);
+  padding: 1px 7px;
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    color 0.12s;
+}
+
+.pptvc-version-tag-add:hover {
+  border-color: var(--color-border-focus);
+  color: var(--color-text);
+}
+
+/* Inline tag input (appears when adding tag to existing version) */
+.pptvc-version-tag-input {
+  border: 1px solid var(--color-border-focus);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-raised);
+  font-size: 10px;
+  font-family: var(--font-sans);
+  padding: 1px 7px;
+  outline: none;
+  width: 80px;
+  color: var(--color-text);
+}
+
+/* Actions row */
+.pptvc-version-actions {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: end;
+  justify-content: flex-end;
+  padding: 4px 10px 10px;
+  gap: 6px;
+  border-top: 1px solid var(--color-bg);
+}
+
+/* ════════════════════════════════════════════
+   Diff panel
+   ════════════════════════════════════════════ */
+
+.pptvc-diff-panel {
+  border-top: 1px solid var(--color-border);
+  padding: 12px;
+  background: var(--color-bg);
+}
+
+.pptvc-diff-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+  font-family: var(--font-sans);
+}
+
+.pptvc-diff-select {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--color-text);
+  outline: none;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.pptvc-diff-select:focus {
+  border-color: var(--color-border-focus);
+}
+
+/* Placeholder diff visualization */
+.pptvc-diff-placeholder {
+  display: -ms-flexbox;
+  display: flex;
+  gap: 8px;
+}
+
+.pptvc-diff-col {
+  -ms-flex: 1 1 0;
+  flex: 1 1 0;
+}
+
+.pptvc-diff-col__label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin-bottom: 5px;
+  font-family: var(--font-sans);
+}
+
+.pptvc-diff-slide {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  margin-bottom: 4px;
+}
+
+.pptvc-diff-slide__bar {
+  height: 6px;
+  border-radius: var(--radius-xs);
+  background: var(--color-border);
+  margin-bottom: 4px;
+}
+
+.pptvc-diff-slide__bar--changed {
+  background: var(--color-tag-bg);
+}
+
+.pptvc-diff-slide__bar--short {
+  width: 60%;
+}
+
+.pptvc-diff-engine-note {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-family: var(--font-sans);
   text-align: center;
-  padding: 24px 0;
-  margin: 0;
 }
