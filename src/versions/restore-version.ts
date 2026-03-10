@@ -1,0 +1,50 @@
+/* global PowerPoint, btoa */
+
+import { createStorageAdapter } from "../storage";
+
+const VERSION_ROOT_PATH = "versions";
+const SNAPSHOT_FILE_NAME = "snapshot.pptx";
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+
+  for (let i = 0; i < bytes.byteLength; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+
+  return btoa(binary);
+}
+
+export async function restoreVersion(id: string): Promise<void> {
+  const storage = createStorageAdapter();
+
+  const existingVersionIds = await storage.listDirectory(VERSION_ROOT_PATH);
+  if (!existingVersionIds.includes(id)) {
+    throw new Error(`Version "${id}" does not exist.`);
+  }
+
+  const snapshotPath = `${VERSION_ROOT_PATH}/${id}/${SNAPSHOT_FILE_NAME}`;
+  const blob = await storage.readBlob(snapshotPath);
+  const base64 = arrayBufferToBase64(await blob.arrayBuffer());
+
+  await PowerPoint.run(async (context) => {
+    const existingSlides = context.presentation.slides;
+    existingSlides.load("id");
+    await context.sync();
+
+    const existingSlideIds = existingSlides.items.map((slide) => slide.id);
+
+    context.presentation.insertSlidesFromBase64(base64, {
+      formatting: PowerPoint.InsertSlideFormatting.keepSourceFormatting,
+    });
+
+    await context.sync();
+
+    for (const slideId of existingSlideIds) {
+      context.presentation.slides.getItem(slideId).delete();
+    }
+
+    await context.sync();
+  });
+}

@@ -57,22 +57,22 @@ export class OpfsStorageAdapter implements StorageAdapter {
     return currentHandle;
   }
 
-  private async getParentDirectoryHandle(path: string): Promise<{
-    parentHandle: FileSystemDirectoryHandle;
-    fileName: string;
-  }> {
+  private async getParentDirectoryHandle(
+    path: string,
+    create: boolean
+  ): Promise<{ parentHandle: FileSystemDirectoryHandle; fileName: string }> {
     const { parentSegments, fileName } = getParentPath(path);
     let parentHandle = await this.getRootHandle();
 
     for (const segment of parentSegments) {
-      parentHandle = await parentHandle.getDirectoryHandle(segment, { create: true });
+      parentHandle = await parentHandle.getDirectoryHandle(segment, { create });
     }
 
     return { parentHandle, fileName };
   }
 
   async writeBlob(path: string, blob: Blob): Promise<void> {
-    const { parentHandle, fileName } = await this.getParentDirectoryHandle(path);
+    const { parentHandle, fileName } = await this.getParentDirectoryHandle(path, true);
     const fileHandle = await parentHandle.getFileHandle(fileName, { create: true });
     const writable = await fileHandle.createWritable();
 
@@ -89,6 +89,18 @@ export class OpfsStorageAdapter implements StorageAdapter {
     });
 
     await this.writeBlob(path, jsonBlob);
+  }
+
+  async readBlob(path: string): Promise<Blob> {
+    const { parentHandle, fileName } = await this.getParentDirectoryHandle(path, false);
+    const fileHandle = await parentHandle.getFileHandle(fileName, { create: false });
+    return fileHandle.getFile();
+  }
+
+  async readJson<T>(path: string): Promise<T> {
+    const blob = await this.readBlob(path);
+    const text = await blob.text();
+    return JSON.parse(text) as T;
   }
 
   async listDirectory(path: string): Promise<string[]> {
