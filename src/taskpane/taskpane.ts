@@ -15,12 +15,15 @@ const PREDEFINED_TAGS = [
 ] as const;
 type PresetTag = (typeof PREDEFINED_TAGS)[number];
 
+const MAX_TAGS = 3;
+
 // ── In-memory state ───────────────────────────────────────────
 // Names and tags are UI-only for now — backend persistence coming soon.
 
 const pendingTags: PresetTag[] = [];
 const versionNameOverrides = new Map<string, string>();
 const versionTagsMap = new Map<string, PresetTag[]>();
+let loadedVersions: Version[] = [];
 
 // ── Boot ──────────────────────────────────────────────────────
 
@@ -32,11 +35,11 @@ Office.onReady((info) => {
     document.getElementById("btn-save")!.addEventListener("click", () => {
       void onSaveClick();
     });
-    document.getElementById("tab-presentation")!.addEventListener("click", () => {
-      switchScope("presentation");
+    document.getElementById("tab-history")!.addEventListener("click", () => {
+      switchScope("history");
     });
-    document.getElementById("tab-slide")!.addEventListener("click", () => {
-      switchScope("slide");
+    document.getElementById("tab-diff")!.addEventListener("click", () => {
+      switchScope("diff");
     });
 
     renderSaveTagPicker();
@@ -80,24 +83,25 @@ function formatTimestamp(timestamp: number): string {
 
 // ── Scope tabs ────────────────────────────────────────────────
 
-function switchScope(scope: "presentation" | "slide"): void {
-  const tabPresentation = getEl<HTMLButtonElement>("tab-presentation");
-  const tabSlide = getEl<HTMLButtonElement>("tab-slide");
-  const presentationScope = getEl<HTMLDivElement>("presentation-scope");
-  const slidePlaceholder = getEl<HTMLDivElement>("slide-placeholder");
-  const isPresentation = scope === "presentation";
+// pptvc-hidden uses !important — must use classList, not style.display
+function switchScope(scope: "history" | "diff"): void {
+  const tabHistory = getEl<HTMLButtonElement>("tab-history");
+  const tabDiff = getEl<HTMLButtonElement>("tab-diff");
+  const historyScope = getEl<HTMLDivElement>("history-scope");
+  const diffScope = getEl<HTMLDivElement>("diff-scope");
+  const isHistory = scope === "history";
 
-  tabPresentation.classList.toggle("pptvc-scope-tab--active", isPresentation);
-  tabPresentation.setAttribute("aria-selected", String(isPresentation));
-  tabSlide.classList.toggle("pptvc-scope-tab--active", !isPresentation);
-  tabSlide.setAttribute("aria-selected", String(!isPresentation));
+  tabHistory.classList.toggle("pptvc-scope-tab--active", isHistory);
+  tabHistory.setAttribute("aria-selected", String(isHistory));
+  tabDiff.classList.toggle("pptvc-scope-tab--active", !isHistory);
+  tabDiff.setAttribute("aria-selected", String(!isHistory));
 
-  if (isPresentation) {
-    show(presentationScope);
-    hide(slidePlaceholder);
+  if (isHistory) {
+    show(historyScope);
+    hide(diffScope);
   } else {
-    hide(presentationScope);
-    show(slidePlaceholder);
+    hide(historyScope);
+    show(diffScope);
   }
 }
 
@@ -113,10 +117,18 @@ function renderSaveTagPicker(): void {
     chip.type = "button";
     chip.className = `pptvc-tag-option${selected ? " pptvc-tag-option--selected" : ""}`;
     chip.textContent = tag;
+
+    // Disable unselected tags when max is reached
+    if (!selected && pendingTags.length >= MAX_TAGS) {
+      chip.disabled = true;
+    }
+
     chip.addEventListener("click", () => {
       const idx = pendingTags.indexOf(tag);
       if (idx === -1) {
-        pendingTags.push(tag);
+        if (pendingTags.length < MAX_TAGS) {
+          pendingTags.push(tag);
+        }
       } else {
         pendingTags.splice(idx, 1);
       }
@@ -138,14 +150,14 @@ async function loadVersionList(): Promise<void> {
   hide(emptyEl);
 
   try {
-    const versions = await listVersions();
-    updateVersionCount(versions.length);
+    loadedVersions = await listVersions();
+    updateVersionCount(loadedVersions.length);
 
-    if (versions.length === 0) {
+    if (loadedVersions.length === 0) {
       show(emptyEl);
     } else {
-      for (const version of versions) {
-        listEl.appendChild(createVersionItem(version, versions));
+      for (const version of loadedVersions) {
+        listEl.appendChild(createVersionItem(version, loadedVersions));
       }
     }
   } catch (err) {
@@ -169,9 +181,14 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
   const li = document.createElement("li");
   li.className = "pptvc-version-item";
 
-  // Top row: editable name + delete button
-  const top = document.createElement("div");
-  top.className = "pptvc-version-top";
+  // Timeline dot
+  const dot = document.createElement("div");
+  dot.className = `pptvc-version-dot${allVersions[0].id === version.id ? " pptvc-version-dot--latest" : ""}`;
+  li.appendChild(dot);
+
+  // Header row: editable name + delete button
+  const header = document.createElement("div");
+  header.className = "pptvc-version-header";
 
   const nameInput = document.createElement("input");
   nameInput.type = "text";
@@ -194,30 +211,38 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
   deleteBtn.setAttribute("aria-label", "Delete version");
   deleteBtn.addEventListener("click", () => showDeletePopup(version.id, li));
 
-  top.appendChild(nameInput);
-  top.appendChild(deleteBtn);
-  li.appendChild(top);
+  header.appendChild(nameInput);
+  header.appendChild(deleteBtn);
+  li.appendChild(header);
 
-  // Timestamp
+  // Meta row: timestamp + tags inline (max 3)
+  const meta = document.createElement("div");
+  meta.className = "pptvc-version-meta";
+
   const time = document.createElement("span");
   time.className = "pptvc-version-time";
   time.textContent = formatTimestamp(version.timestamp);
-  li.appendChild(time);
+  meta.appendChild(time);
 
-  // Tags row
   const tagsRow = document.createElement("div");
   tagsRow.className = "pptvc-version-tags";
   renderVersionTags(version.id, tagsRow);
-  li.appendChild(tagsRow);
+  meta.appendChild(tagsRow);
 
-  // Actions row
+  li.appendChild(meta);
+
+  // Actions row: View diff + Restore
   const actions = document.createElement("div");
   actions.className = "pptvc-version-actions";
 
-  const diffBtn = document.createElement("button");
-  diffBtn.type = "button";
-  diffBtn.className = "pptvc-btn pptvc-btn--ghost";
-  diffBtn.textContent = "Diff ▾";
+  const viewDiffBtn = document.createElement("button");
+  viewDiffBtn.type = "button";
+  viewDiffBtn.className = "pptvc-btn pptvc-btn--ghost";
+  viewDiffBtn.textContent = "View diff";
+  viewDiffBtn.addEventListener("click", () => {
+    loadDiffScope(version.id);
+    switchScope("diff");
+  });
 
   const restoreBtn = document.createElement("button");
   restoreBtn.type = "button";
@@ -227,31 +252,14 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
     void onRestoreClick(version.id, restoreBtn);
   });
 
-  actions.appendChild(diffBtn);
+  actions.appendChild(viewDiffBtn);
   actions.appendChild(restoreBtn);
   li.appendChild(actions);
-
-  // Diff panel (hidden until toggled)
-  const diffPanel = document.createElement("div");
-  diffPanel.className = "pptvc-diff-panel pptvc-hidden";
-  buildDiffPanel(diffPanel, version.id, allVersions);
-  li.appendChild(diffPanel);
-
-  diffBtn.addEventListener("click", () => {
-    const isOpen = !diffPanel.classList.contains("pptvc-hidden");
-    if (isOpen) {
-      hide(diffPanel);
-      diffBtn.textContent = "Diff ▾";
-    } else {
-      show(diffPanel);
-      diffBtn.textContent = "Diff ▴";
-    }
-  });
 
   return li;
 }
 
-// ── Per-item tags (predefined picker) ────────────────────────
+// ── Per-item tags (predefined picker, max 3) ──────────────────
 
 function renderVersionTags(id: string, container: HTMLDivElement): void {
   container.innerHTML = "";
@@ -280,8 +288,9 @@ function renderVersionTags(id: string, container: HTMLDivElement): void {
     container.appendChild(chip);
   }
 
-  // Show "+ tag" only if there are still unselected predefined tags
+  // Show "+ tag" only if under max and unselected tags remain
   const used = versionTagsMap.get(id) ?? [];
+  if (used.length >= MAX_TAGS) return;
   const available = PREDEFINED_TAGS.filter((t) => !used.includes(t));
   if (available.length === 0) return;
 
@@ -313,8 +322,10 @@ function showVersionTagPicker(
     chip.textContent = tag;
     chip.addEventListener("click", () => {
       const current = versionTagsMap.get(id) ?? [];
-      current.push(tag);
-      versionTagsMap.set(id, current);
+      if (current.length < MAX_TAGS) {
+        current.push(tag);
+        versionTagsMap.set(id, current);
+      }
       renderVersionTags(id, container);
     });
     picker.appendChild(chip);
@@ -335,7 +346,6 @@ function showVersionTagPicker(
 // ── Delete popup ──────────────────────────────────────────────
 
 function showDeletePopup(id: string, li: HTMLLIElement): void {
-  // Toggle: if popup already open, close it
   const existing = li.querySelector(".pptvc-delete-popup");
   if (existing) {
     existing.remove();
@@ -375,74 +385,173 @@ function showDeletePopup(id: string, li: HTMLLIElement): void {
   li.appendChild(popup);
 }
 
-// ── Diff panel ────────────────────────────────────────────────
+// ── Diff scope ────────────────────────────────────────────────
 
-function buildDiffPanel(panel: HTMLDivElement, currentId: string, allVersions: Version[]): void {
-  const others = allVersions.filter((v) => v.id !== currentId);
+function loadDiffScope(preselectedId?: string): void {
+  const container = getEl<HTMLDivElement>("diff-content");
+  container.innerHTML = "";
 
-  const label = document.createElement("span");
-  label.className = "pptvc-diff-label";
-  label.textContent = "Compare with";
-  panel.appendChild(label);
-
-  if (others.length === 0) {
-    const note = document.createElement("p");
-    note.className = "pptvc-diff-engine-note";
-    note.textContent = "Save at least two versions to compare.";
-    panel.appendChild(note);
+  if (loadedVersions.length < 2) {
+    const empty = document.createElement("p");
+    empty.className = "pptvc-diff-empty";
+    empty.textContent = "Save at least two versions to compare.";
+    container.appendChild(empty);
     return;
   }
 
-  const select = document.createElement("select");
-  select.className = "pptvc-diff-select";
-  select.setAttribute("aria-label", "Version to compare against");
-  for (const v of others) {
-    const opt = document.createElement("option");
-    opt.value = v.id;
-    opt.textContent = `${versionNameOverrides.get(v.id) ?? v.name} — ${formatTimestamp(v.timestamp)}`;
-    select.appendChild(opt);
-  }
-  panel.appendChild(select);
+  // COMPARING section
+  const comparing = document.createElement("div");
+  comparing.className = "pptvc-diff-comparing";
 
-  const placeholder = document.createElement("div");
-  placeholder.className = "pptvc-diff-placeholder";
-  placeholder.appendChild(buildDiffCol("Before", false));
-  placeholder.appendChild(buildDiffCol("After", true));
-  panel.appendChild(placeholder);
+  const sectionLabel = document.createElement("span");
+  sectionLabel.className = "pptvc-diff-section-label";
+  sectionLabel.textContent = "Comparing";
+  comparing.appendChild(sectionLabel);
+
+  const selectors = document.createElement("div");
+  selectors.className = "pptvc-diff-selectors";
+
+  const selectFrom = document.createElement("select");
+  selectFrom.className = "pptvc-diff-select";
+  selectFrom.setAttribute("aria-label", "From version");
+
+  const selectTo = document.createElement("select");
+  selectTo.className = "pptvc-diff-select";
+  selectTo.setAttribute("aria-label", "To version");
+
+  for (const v of loadedVersions) {
+    const label = `${versionNameOverrides.get(v.id) ?? v.name}`;
+
+    const optFrom = document.createElement("option");
+    optFrom.value = v.id;
+    optFrom.textContent = label;
+    selectFrom.appendChild(optFrom);
+
+    const optTo = document.createElement("option");
+    optTo.value = v.id;
+    optTo.textContent = label;
+    selectTo.appendChild(optTo);
+  }
+
+  // Pre-select: if a version was clicked, show it as "to"; compare with next version
+  if (preselectedId) {
+    const idx = loadedVersions.findIndex((v) => v.id === preselectedId);
+    selectTo.value = preselectedId;
+    // Select the version before it (older) as "from", or next if first
+    const fromIdx = idx + 1 < loadedVersions.length ? idx + 1 : 0;
+    selectFrom.value = loadedVersions[fromIdx].id;
+  } else {
+    selectFrom.value = loadedVersions[1].id;
+    selectTo.value = loadedVersions[0].id;
+  }
+
+  const arrow = document.createElement("span");
+  arrow.className = "pptvc-diff-arrow";
+  arrow.textContent = "→";
+
+  selectors.appendChild(selectFrom);
+  selectors.appendChild(arrow);
+  selectors.appendChild(selectTo);
+  comparing.appendChild(selectors);
+  container.appendChild(comparing);
+
+  // Summary badges
+  const summary = document.createElement("div");
+  summary.className = "pptvc-diff-summary";
+
+  const badgeChanges = document.createElement("span");
+  badgeChanges.className = "pptvc-diff-badge pptvc-diff-badge--changes";
+  badgeChanges.textContent = "— changes";
+
+  const badgeSlides = document.createElement("span");
+  badgeSlides.className = "pptvc-diff-badge";
+  badgeSlides.textContent = "— slides";
+
+  summary.appendChild(badgeChanges);
+  summary.appendChild(badgeSlides);
+  container.appendChild(summary);
+
+  // CHANGED SLIDES section
+  const slidesSection = document.createElement("div");
+  slidesSection.className = "pptvc-diff-slides-section";
+
+  const slidesHeader = document.createElement("div");
+  slidesHeader.className = "pptvc-diff-slides-header";
+
+  const slidesLabel = document.createElement("span");
+  slidesLabel.className = "pptvc-diff-section-label";
+  slidesLabel.style.marginBottom = "0";
+  slidesLabel.textContent = "Changed Slides";
+  slidesHeader.appendChild(slidesLabel);
+  slidesSection.appendChild(slidesHeader);
+
+  const slideList = document.createElement("ul");
+  slideList.className = "pptvc-diff-slide-list";
+
+  // Placeholder slides — diff engine not yet implemented
+  const placeholderSlides = [
+    { num: 1, name: "Title Slide" },
+    { num: 3, name: "Overview" },
+  ];
+
+  for (const slide of placeholderSlides) {
+    const item = document.createElement("li");
+    item.className = "pptvc-diff-slide-item";
+
+    const row = document.createElement("div");
+    row.className = "pptvc-diff-slide-row";
+
+    const numBox = document.createElement("div");
+    numBox.className = "pptvc-diff-slide-number";
+    numBox.textContent = String(slide.num);
+
+    const name = document.createElement("span");
+    name.className = "pptvc-diff-slide-name";
+    name.textContent = slide.name;
+
+    const dot = document.createElement("div");
+    dot.className = "pptvc-diff-slide-indicator";
+
+    row.appendChild(numBox);
+    row.appendChild(name);
+    row.appendChild(dot);
+    item.appendChild(row);
+
+    // Placeholder shape changes
+    const changeList = document.createElement("div");
+    changeList.className = "pptvc-diff-change-list";
+
+    const changeData = [
+      { name: "Title text box", delta: "modified" },
+      { name: "Body text", delta: "modified" },
+    ];
+    for (const change of changeData) {
+      const changeItem = document.createElement("div");
+      changeItem.className = "pptvc-diff-change-item";
+
+      const changeName = document.createElement("span");
+      changeName.className = "pptvc-diff-change-name";
+      changeName.textContent = change.name;
+
+      const changeDelta = document.createElement("span");
+      changeDelta.className = "pptvc-diff-change-delta";
+      changeDelta.textContent = change.delta;
+
+      changeItem.appendChild(changeName);
+      changeItem.appendChild(changeDelta);
+      changeList.appendChild(changeItem);
+    }
+    item.appendChild(changeList);
+    slideList.appendChild(item);
+  }
+
+  slidesSection.appendChild(slideList);
+  container.appendChild(slidesSection);
 
   const note = document.createElement("p");
-  note.className = "pptvc-diff-engine-note";
-  note.textContent = "Diff engine coming soon — slide changes will appear here.";
-  panel.appendChild(note);
-}
-
-function buildDiffCol(labelText: string, markChanged: boolean): HTMLDivElement {
-  const col = document.createElement("div");
-  col.className = "pptvc-diff-col";
-
-  const colLabel = document.createElement("span");
-  colLabel.className = "pptvc-diff-col__label";
-  colLabel.textContent = labelText;
-  col.appendChild(colLabel);
-  col.appendChild(makeDiffSlide(markChanged));
-  col.appendChild(makeDiffSlide(false));
-
-  return col;
-}
-
-function makeDiffSlide(changed: boolean): HTMLDivElement {
-  const slide = document.createElement("div");
-  slide.className = "pptvc-diff-slide";
-
-  const bar1 = document.createElement("div");
-  bar1.className = `pptvc-diff-slide__bar${changed ? " pptvc-diff-slide__bar--changed" : ""}`;
-
-  const bar2 = document.createElement("div");
-  bar2.className = `pptvc-diff-slide__bar pptvc-diff-slide__bar--short${changed ? " pptvc-diff-slide__bar--changed" : ""}`;
-
-  slide.appendChild(bar1);
-  slide.appendChild(bar2);
-  return slide;
+  note.className = "pptvc-diff-placeholder-note";
+  note.textContent = "Diff engine coming soon — actual changes will appear here.";
+  container.appendChild(note);
 }
 
 // ── Save ──────────────────────────────────────────────────────

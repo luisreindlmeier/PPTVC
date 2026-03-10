@@ -129,7 +129,7 @@ ul {
 }
 
 /* ════════════════════════════════════════════
-   Scope tabs (Presentation / Current Slide)
+   Scope tabs (History / Diff)
    ════════════════════════════════════════════ */
 
 .pptvc-scope-bar {
@@ -168,36 +168,6 @@ ul {
 }
 
 /* ════════════════════════════════════════════
-   Coming soon placeholder (slide scope)
-   ════════════════════════════════════════════ */
-
-.pptvc-coming-soon {
-  display: -ms-flexbox;
-  display: flex;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  -ms-flex-align: center;
-  align-items: center;
-  -ms-flex-pack: center;
-  justify-content: center;
-  padding: 48px 24px;
-  text-align: center;
-}
-
-.pptvc-coming-soon__icon {
-  font-size: 36px;
-  color: var(--color-border);
-  margin-bottom: 12px;
-  display: block;
-}
-
-.pptvc-coming-soon__text {
-  margin: 0;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-/* ════════════════════════════════════════════
    Save panel
    ════════════════════════════════════════════ */
 
@@ -233,86 +203,6 @@ ul {
 
 .pptvc-text-input:focus {
   border-color: var(--color-border-focus);
-}
-
-/* ── Tag input area ── */
-
-.pptvc-tag-input-area {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-raised);
-  padding: 5px 8px;
-  margin-bottom: 10px;
-  display: -ms-flexbox;
-  display: flex;
-  -ms-flex-wrap: wrap;
-  flex-wrap: wrap;
-  -ms-flex-align: center;
-  align-items: center;
-  gap: 4px;
-  transition: border-color 0.15s;
-  min-height: 34px;
-}
-
-.pptvc-tag-input-area:focus-within {
-  border-color: var(--color-border-focus);
-}
-
-.pptvc-tag-list {
-  display: -ms-flexbox;
-  display: flex;
-  -ms-flex-wrap: wrap;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.pptvc-tag-chip {
-  display: -ms-inline-flexbox;
-  display: inline-flex;
-  -ms-flex-align: center;
-  align-items: center;
-  padding: 2px 7px 2px 8px;
-  border-radius: var(--radius-full);
-  background: var(--color-tag-bg);
-  color: var(--color-tag-text);
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.pptvc-tag-chip__remove {
-  margin-left: 4px;
-  border: none;
-  background: none;
-  color: var(--color-tag-text);
-  font-size: 13px;
-  line-height: 1;
-  padding: 0;
-  cursor: pointer;
-  opacity: 0.6;
-  font-family: var(--font-sans);
-}
-
-.pptvc-tag-chip__remove:hover {
-  opacity: 1;
-}
-
-.pptvc-tag-input-field {
-  -ms-flex: 1 1 60px;
-  flex: 1 1 60px;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  color: var(--color-text);
-  min-width: 60px;
-  padding: 1px 0;
-}
-
-.pptvc-tag-input-field::placeholder {
-  color: var(--color-text-placeholder);
 }
 
 /* ════════════════════════════════════════════
@@ -360,7 +250,7 @@ ul {
   background: var(--color-green-active);
 }
 
-/* Ghost (diff button) */
+/* Ghost */
 .pptvc-btn--ghost {
   padding: 4px 9px;
   background: transparent;
@@ -398,13 +288,13 @@ ul {
   align-items: center;
   -ms-flex-pack: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border: none;
   border-radius: var(--radius-xs);
   background: transparent;
   color: var(--color-text-muted);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1;
   cursor: pointer;
   transition:
@@ -412,6 +302,8 @@ ul {
     color 0.12s;
   font-family: var(--font-sans);
   padding: 0;
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
 }
 
 .pptvc-btn-icon:hover {
@@ -419,15 +311,19 @@ ul {
   color: var(--color-danger);
 }
 
-/* Delete confirm state */
-.pptvc-btn-icon--confirm {
+/* Danger button (used in delete popup) */
+.pptvc-btn--danger {
+  padding: 4px 10px;
   background: var(--color-danger-light);
   color: var(--color-danger);
-  font-size: 10px;
-  font-weight: 600;
-  width: auto;
-  padding: 2px 6px;
-  border-radius: var(--radius-full);
+  border: 1px solid var(--color-danger);
+  font-size: 11px;
+  border-radius: var(--radius-sm);
+}
+
+.pptvc-btn--danger:hover:not(:disabled) {
+  background: var(--color-danger);
+  color: #fff;
 }
 
 /* Spinner inside save button */
@@ -513,15 +409,49 @@ ul {
 }
 
 /* ════════════════════════════════════════════
-   Version list items
+   Version list — timeline
    ════════════════════════════════════════════ */
 
 .pptvc-versions-list {
+  position: relative;
   display: -ms-flexbox;
   display: flex;
   -ms-flex-direction: column;
   flex-direction: column;
+  padding-left: 20px;
 }
+
+/* Vertical connecting line */
+.pptvc-versions-list::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 9px;
+  width: 2px;
+  background: var(--color-border);
+  border-radius: 1px;
+}
+
+/* Timeline dot (absolutely positioned relative to the list item) */
+.pptvc-version-dot {
+  position: absolute;
+  top: 15px;
+  left: -16px; /* centers dot on the line at list-left + 9px */
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-border);
+  border: 2px solid var(--color-bg);
+  z-index: 1;
+}
+
+.pptvc-version-dot--latest {
+  background: var(--color-green);
+  border-color: var(--color-green-light);
+}
+
+/* ── Version card ── */
 
 .pptvc-version-item {
   position: relative;
@@ -537,13 +467,13 @@ ul {
   box-shadow: 0 2px 10px rgba(44, 40, 32, 0.08);
 }
 
-/* Top row: name input + delete */
-.pptvc-version-top {
+/* Header row: name input + delete */
+.pptvc-version-header {
   display: -ms-flexbox;
   display: flex;
   -ms-flex-align: center;
   align-items: center;
-  padding: 10px 10px 4px;
+  padding: 9px 8px 3px 10px;
 }
 
 .pptvc-version-name-input {
@@ -571,16 +501,27 @@ ul {
   box-shadow: 0 0 0 1px var(--color-border-focus);
 }
 
-/* Timestamp */
+/* Meta row: date + tags inline */
+.pptvc-version-meta {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  padding: 0 10px 6px;
+  gap: 5px;
+}
+
 .pptvc-version-time {
-  display: block;
-  padding: 0 14px 6px;
   font-size: 11px;
   color: var(--color-text-muted);
   font-family: var(--font-sans);
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
 }
 
-/* Tags row */
+/* Tags row (inside meta) */
 .pptvc-version-tags {
   display: -ms-flexbox;
   display: flex;
@@ -588,7 +529,6 @@ ul {
   flex-wrap: wrap;
   -ms-flex-align: center;
   align-items: center;
-  padding: 0 10px 8px;
   gap: 4px;
 }
 
@@ -597,8 +537,8 @@ ul {
   display: inline-flex;
   -ms-flex-align: center;
   align-items: center;
-  padding: 1px 7px 1px 8px;
-  border-radius: var(--radius-full);
+  padding: 1px 6px 1px 7px;
+  border-radius: 3px;
   background: var(--color-tag-bg);
   color: var(--color-tag-text);
   font-size: 10px;
@@ -611,7 +551,7 @@ ul {
   border: none;
   background: none;
   color: var(--color-tag-text);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1;
   padding: 0;
   cursor: pointer;
@@ -626,12 +566,12 @@ ul {
 /* Add tag button */
 .pptvc-version-tag-add {
   border: 1px dashed var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: 3px;
   background: transparent;
   color: var(--color-text-muted);
   font-size: 10px;
   font-family: var(--font-sans);
-  padding: 1px 7px;
+  padding: 1px 6px;
   cursor: pointer;
   transition:
     border-color 0.12s,
@@ -643,7 +583,7 @@ ul {
   color: var(--color-text);
 }
 
-/* Tag picker row (shown when "+ tag" is clicked on a version item) */
+/* Tag picker row */
 .pptvc-version-tag-picker {
   display: -ms-flexbox;
   display: flex;
@@ -655,10 +595,23 @@ ul {
   padding: 2px 0;
 }
 
+/* Actions row */
+.pptvc-version-actions {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: end;
+  justify-content: flex-end;
+  padding: 4px 8px 8px;
+  gap: 5px;
+  border-top: 1px solid var(--color-bg);
+}
+
 /* Delete popup */
 .pptvc-delete-popup {
   position: absolute;
-  top: 38px;
+  top: 34px;
   right: 8px;
   z-index: 20;
   background: var(--color-surface-raised);
@@ -685,131 +638,10 @@ ul {
   gap: 6px;
 }
 
-/* Danger button (used in delete popup) */
-.pptvc-btn--danger {
-  padding: 4px 10px;
-  background: var(--color-danger-light);
-  color: var(--color-danger);
-  border: 1px solid var(--color-danger);
-  font-size: 11px;
-  border-radius: var(--radius-sm);
-}
-
-.pptvc-btn--danger:hover:not(:disabled) {
-  background: var(--color-danger);
-  color: #fff;
-}
-
-/* Actions row */
-.pptvc-version-actions {
-  display: -ms-flexbox;
-  display: flex;
-  -ms-flex-align: center;
-  align-items: center;
-  -ms-flex-pack: end;
-  justify-content: flex-end;
-  padding: 4px 10px 10px;
-  gap: 6px;
-  border-top: 1px solid var(--color-bg);
-}
-
-/* ════════════════════════════════════════════
-   Diff panel
-   ════════════════════════════════════════════ */
-
-.pptvc-diff-panel {
-  border-top: 1px solid var(--color-border);
-  padding: 12px;
-  background: var(--color-bg);
-}
-
-.pptvc-diff-label {
-  display: block;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  margin-bottom: 6px;
-  font-family: var(--font-sans);
-}
-
-.pptvc-diff-select {
-  width: 100%;
-  padding: 5px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-raised);
-  font-family: var(--font-sans);
-  font-size: 12px;
-  color: var(--color-text);
-  outline: none;
-  margin-bottom: 10px;
-  cursor: pointer;
-}
-
-.pptvc-diff-select:focus {
-  border-color: var(--color-border-focus);
-}
-
-/* Placeholder diff visualization */
-.pptvc-diff-placeholder {
-  display: -ms-flexbox;
-  display: flex;
-  gap: 8px;
-}
-
-.pptvc-diff-col {
-  -ms-flex: 1 1 0;
-  flex: 1 1 0;
-}
-
-.pptvc-diff-col__label {
-  display: block;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-muted);
-  margin-bottom: 5px;
-  font-family: var(--font-sans);
-}
-
-.pptvc-diff-slide {
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 8px;
-  margin-bottom: 4px;
-}
-
-.pptvc-diff-slide__bar {
-  height: 6px;
-  border-radius: var(--radius-xs);
-  background: var(--color-border);
-  margin-bottom: 4px;
-}
-
-.pptvc-diff-slide__bar--changed {
-  background: var(--color-tag-bg);
-}
-
-.pptvc-diff-slide__bar--short {
-  width: 60%;
-}
-
-.pptvc-diff-engine-note {
-  margin: 8px 0 0;
-  font-size: 11px;
-  color: var(--color-text-muted);
-  font-style: italic;
-  font-family: var(--font-sans);
-  text-align: center;
-}
-
 /* ════════════════════════════════════════════
    Tag picker (save form + version items)
    ════════════════════════════════════════════ */
 
-/* Save form tag picker wrapper */
 .pptvc-tag-picker-area {
   margin-bottom: 10px;
 }
@@ -835,9 +667,9 @@ ul {
 
 /* Individual tag option (toggle chip) */
 .pptvc-tag-option {
-  padding: 3px 10px;
+  padding: 3px 9px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: 3px;
   background: transparent;
   color: var(--color-text-muted);
   font-size: 11px;
@@ -867,6 +699,11 @@ ul {
   color: var(--color-tag-text);
 }
 
+.pptvc-tag-option:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 /* Close button inside version tag picker */
 .pptvc-version-tag-picker-close {
   border: none;
@@ -891,4 +728,247 @@ ul {
   font-weight: 400;
   color: var(--color-text-muted);
   margin-left: 6px;
+}
+
+/* ════════════════════════════════════════════
+   Diff scope (full Diff tab page)
+   ════════════════════════════════════════════ */
+
+.pptvc-diff-scope {
+  padding: 14px 14px 24px;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: column;
+  flex-direction: column;
+}
+
+/* COMPARING section */
+.pptvc-diff-comparing {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.pptvc-diff-section-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+  font-family: var(--font-sans);
+}
+
+/* Version selector row: [select] → [select] */
+.pptvc-diff-selectors {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.pptvc-diff-select {
+  -ms-flex: 1 1 0;
+  flex: 1 1 0;
+  padding: 5px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--color-text);
+  outline: none;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.pptvc-diff-select:focus {
+  border-color: var(--color-border-focus);
+}
+
+.pptvc-diff-arrow {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+}
+
+/* Summary badges */
+.pptvc-diff-summary {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.pptvc-diff-badge {
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -ms-flex-align: center;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 3px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+}
+
+.pptvc-diff-badge--changes {
+  background: var(--color-green-light);
+  border-color: var(--color-tag-bg);
+  color: var(--color-green-active);
+}
+
+/* Changed slides list */
+.pptvc-diff-slides-section {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.pptvc-diff-slides-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pptvc-diff-slide-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pptvc-diff-slide-item {
+  border-bottom: 1px solid var(--color-bg);
+}
+
+.pptvc-diff-slide-item:last-child {
+  border-bottom: none;
+}
+
+/* Slide row: number box + name + indicator */
+.pptvc-diff-slide-row {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.pptvc-diff-slide-row:hover {
+  background: var(--color-surface);
+}
+
+.pptvc-diff-slide-number {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+  margin-right: 10px;
+}
+
+.pptvc-diff-slide-name {
+  -ms-flex: 1 1 0;
+  flex: 1 1 0;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pptvc-diff-slide-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-green);
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* Per-slide shape changes (expandable) */
+.pptvc-diff-change-list {
+  padding: 0 14px 8px 48px;
+}
+
+.pptvc-diff-change-item {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  padding: 3px 0;
+  border-top: 1px solid var(--color-bg);
+}
+
+.pptvc-diff-change-name {
+  font-size: 11px;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  -ms-flex: 1 1 0;
+  flex: 1 1 0;
+}
+
+.pptvc-diff-change-delta {
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  color: var(--color-green-active);
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+  margin-left: 8px;
+  padding: 1px 5px;
+  background: var(--color-green-light);
+  border-radius: 3px;
+}
+
+/* Empty / placeholder state for diff */
+.pptvc-diff-empty {
+  padding: 40px 24px;
+  text-align: center;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.pptvc-diff-placeholder-note {
+  margin: 14px 0 0;
+  font-size: 11px;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  font-style: italic;
+  text-align: center;
 }
