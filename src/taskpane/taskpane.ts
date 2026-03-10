@@ -17,6 +17,12 @@ type PresetTag = (typeof PREDEFINED_TAGS)[number];
 
 const MAX_TAGS = 3;
 
+// ── Heroicons (inline SVG, 24px viewBox outline) ──────────────
+
+const ICON_DIFF = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 3M21 7.5H7.5" /></svg>`;
+const ICON_RESTORE = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" /></svg>`;
+const ICON_TAG = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.595.45a18.634 18.634 0 0 0 5.652-4.475 1.876 1.876 0 0 0-.45-2.594L10.455 3.659A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>`;
+
 // ── In-memory state ───────────────────────────────────────────
 // Names and tags are UI-only for now — backend persistence coming soon.
 
@@ -79,6 +85,14 @@ function formatTimestamp(timestamp: number): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+
+function setTagsToggleLabel(btn: HTMLButtonElement, count: number, open: boolean): void {
+  const chevron = open ? "▴" : "▾";
+  const label = count > 0 ? `tags (${count}) ${chevron}` : `tags ${chevron}`;
+  btn.innerHTML = `${ICON_TAG}<span>${label}</span>`;
 }
 
 // ── Scope tabs ────────────────────────────────────────────────
@@ -233,7 +247,7 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
   tagsToggle.type = "button";
   tagsToggle.className = "pptvc-tags-toggle";
   const existingTags = versionTagsMap.get(version.id) ?? [];
-  tagsToggle.textContent = existingTags.length > 0 ? `tags (${existingTags.length}) ▾` : "tags ▾";
+  setTagsToggleLabel(tagsToggle, existingTags.length, false);
   meta.appendChild(tagsToggle);
 
   li.appendChild(meta);
@@ -248,11 +262,11 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
     if (isOpen) {
       hide(tagsRow);
       const current = versionTagsMap.get(version.id) ?? [];
-      tagsToggle.textContent = current.length > 0 ? `tags (${current.length}) ▾` : "tags ▾";
+      setTagsToggleLabel(tagsToggle, current.length, false);
     } else {
       renderVersionTags(version.id, tagsRow);
       show(tagsRow);
-      tagsToggle.textContent = "tags ▴";
+      setTagsToggleLabel(tagsToggle, (versionTagsMap.get(version.id) ?? []).length, true);
     }
   });
 
@@ -264,16 +278,20 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
 
   const viewDiffBtn = document.createElement("button");
   viewDiffBtn.type = "button";
-  viewDiffBtn.className = "pptvc-btn pptvc-btn--ghost";
-  viewDiffBtn.textContent = "View diff";
+  viewDiffBtn.className = "pptvc-btn-icon-action";
+  viewDiffBtn.innerHTML = ICON_DIFF;
+  viewDiffBtn.setAttribute("aria-label", "View diff");
+  viewDiffBtn.title = "View diff";
   viewDiffBtn.addEventListener("click", () => {
     switchScope("diff", version.id);
   });
 
   const restoreBtn = document.createElement("button");
   restoreBtn.type = "button";
-  restoreBtn.className = "pptvc-btn pptvc-btn--restore";
-  restoreBtn.textContent = "Restore";
+  restoreBtn.className = "pptvc-btn-icon-action pptvc-btn-icon-action--restore";
+  restoreBtn.innerHTML = ICON_RESTORE;
+  restoreBtn.setAttribute("aria-label", "Restore this version");
+  restoreBtn.title = "Restore this version";
   restoreBtn.addEventListener("click", () => {
     void onRestoreClick(version.id, restoreBtn);
   });
@@ -620,9 +638,9 @@ async function onSaveClick(): Promise<void> {
 // ── Restore ───────────────────────────────────────────────────
 
 async function onRestoreClick(id: string, btn: HTMLButtonElement): Promise<void> {
-  const originalText = btn.textContent ?? "Restore";
+  const originalHTML = btn.innerHTML;
   btn.disabled = true;
-  btn.textContent = "Restoring…";
+  btn.innerHTML = "";
 
   try {
     await restoreVersion(id);
@@ -631,6 +649,6 @@ async function onRestoreClick(id: string, btn: HTMLButtonElement): Promise<void>
     showStatus(err instanceof Error ? err.message : "Failed to restore version.", true);
   } finally {
     btn.disabled = false;
-    btn.textContent = originalText;
+    btn.innerHTML = originalHTML;
   }
 }

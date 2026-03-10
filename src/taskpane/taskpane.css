@@ -472,7 +472,7 @@ ul {
   display: flex;
   -ms-flex-align: center;
   align-items: center;
-  padding: 9px 8px 3px 10px;
+  padding: 9px 6px 1px 10px;
 }
 
 .pptvc-version-name-input {
@@ -484,7 +484,7 @@ ul {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text);
-  padding: 1px 4px;
+  padding: 0;
   border-radius: var(--radius-xs);
   min-width: 0;
   outline: none;
@@ -500,7 +500,7 @@ ul {
   box-shadow: 0 0 0 1px var(--color-border-focus);
 }
 
-/* Meta row: date + tags inline */
+/* Meta row: date + tags toggle */
 .pptvc-version-meta {
   display: -ms-flexbox;
   display: flex;
@@ -508,8 +508,8 @@ ul {
   align-items: center;
   -ms-flex-wrap: wrap;
   flex-wrap: wrap;
-  padding: 0 10px 6px;
-  gap: 5px;
+  padding: 1px 6px 5px 10px;
+  gap: 6px;
 }
 
 .pptvc-version-time {
@@ -520,8 +520,13 @@ ul {
   flex-shrink: 0;
 }
 
-/* Tags toggle button (in meta row) */
+/* Tags toggle — icon + label style */
 .pptvc-tags-toggle {
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -ms-flex-align: center;
+  align-items: center;
+  gap: 3px;
   border: none;
   background: none;
   padding: 0;
@@ -533,8 +538,15 @@ ul {
   transition: color 0.12s;
 }
 
+.pptvc-tags-toggle svg {
+  width: 11px;
+  height: 11px;
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+}
+
 .pptvc-tags-toggle:hover {
-  color: var(--color-text);
+  color: var(--color-tag-text);
 }
 
 /* Tags expandable section (below meta, hidden by default) */
@@ -620,9 +632,50 @@ ul {
   align-items: center;
   -ms-flex-pack: end;
   justify-content: flex-end;
-  padding: 4px 8px 8px;
-  gap: 5px;
+  padding: 2px 8px 8px;
+  gap: 2px;
   border-top: 1px solid var(--color-bg);
+}
+
+/* Icon action buttons (View diff / Restore) */
+.pptvc-btn-icon-action {
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s;
+  padding: 0;
+}
+
+.pptvc-btn-icon-action svg {
+  width: 15px;
+  height: 15px;
+}
+
+.pptvc-btn-icon-action:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.pptvc-btn-icon-action--restore:hover {
+  background: var(--color-green-light);
+  color: var(--color-green-active);
+}
+
+.pptvc-btn-icon-action:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* Delete popup */
