@@ -4,8 +4,9 @@ import { saveVersion, listVersions, restoreVersion, type Version } from "../vers
 
 Office.onReady((info) => {
   if (info.host === Office.HostType.PowerPoint) {
+    // pptvc-hidden uses !important — must use classList, not style.display
     document.getElementById("sideload-msg")!.style.display = "none";
-    document.getElementById("app-body")!.style.display = "flex";
+    document.getElementById("app-body")!.classList.remove("pptvc-hidden");
     document.getElementById("btn-save")!.addEventListener("click", () => {
       void onSaveClick();
     });
@@ -15,6 +16,14 @@ Office.onReady((info) => {
 
 function getEl<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
+}
+
+function hide(el: HTMLElement): void {
+  el.classList.add("pptvc-hidden");
+}
+
+function show(el: HTMLElement): void {
+  el.classList.remove("pptvc-hidden");
 }
 
 function showStatus(message: string, isError: boolean): void {
@@ -32,14 +41,14 @@ async function loadVersionList(): Promise<void> {
   const listEl = getEl<HTMLUListElement>("versions-list");
   const emptyEl = getEl<HTMLParagraphElement>("versions-empty");
 
-  loadingEl.style.display = "flex";
+  show(loadingEl);
   listEl.innerHTML = "";
-  emptyEl.style.display = "none";
+  hide(emptyEl);
 
   try {
     const versions = await listVersions();
     if (versions.length === 0) {
-      emptyEl.style.display = "block";
+      show(emptyEl);
     } else {
       for (const version of versions) {
         listEl.appendChild(createVersionItem(version));
@@ -48,7 +57,7 @@ async function loadVersionList(): Promise<void> {
   } catch (err) {
     showStatus(err instanceof Error ? err.message : "Failed to load versions.", true);
   } finally {
-    loadingEl.style.display = "none";
+    hide(loadingEl);
   }
 }
 
@@ -100,8 +109,8 @@ async function onSaveClick(): Promise<void> {
   const spinner = btn.querySelector<HTMLSpanElement>(".btn-spinner")!;
 
   btn.disabled = true;
-  label.style.display = "none";
-  spinner.style.display = "inline-block";
+  hide(label);
+  show(spinner);
 
   try {
     const version = await saveVersion();
@@ -111,8 +120,8 @@ async function onSaveClick(): Promise<void> {
     showStatus(err instanceof Error ? err.message : "Failed to save version.", true);
   } finally {
     btn.disabled = false;
-    label.style.display = "";
-    spinner.style.display = "";
+    show(label);
+    hide(spinner);
   }
 }
 
