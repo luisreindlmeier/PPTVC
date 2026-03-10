@@ -86,17 +86,10 @@
             aria-label="Version name"
           />
 
-          <!-- Tag input -->
-          <div class="pptvc-tag-input-area" role="group" aria-label="Tags">
-            <div id="pending-tags-list" class="pptvc-tag-list"></div>
-            <input
-              id="tag-input"
-              type="text"
-              class="pptvc-tag-input-field"
-              placeholder="Add tag, press Enter"
-              maxlength="30"
-              aria-label="Add tag"
-            />
+          <!-- Tag picker (predefined tags) -->
+          <div class="pptvc-tag-picker-area" role="group" aria-label="Tags">
+            <span class="pptvc-tag-picker-label">Tags</span>
+            <div id="save-tag-picker" class="pptvc-save-tag-picker"></div>
           </div>
 
           <button id="btn-save" type="button" class="pptvc-btn pptvc-btn--primary">
@@ -110,7 +103,9 @@
 
         <!-- Versions list -->
         <section class="pptvc-list-section">
-          <h2 class="pptvc-list-title">Saved Versions</h2>
+          <h2 id="versions-title" class="pptvc-list-title">
+            Saved Versions <span class="pptvc-list-count"></span>
+          </h2>
 
           <div id="versions-loading" class="pptvc-loading pptvc-hidden">
             <div class="pptvc-spinner"></div>

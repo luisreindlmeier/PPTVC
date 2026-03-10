@@ -524,16 +524,17 @@ ul {
 }
 
 .pptvc-version-item {
+  position: relative;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   margin-bottom: 8px;
-  overflow: hidden;
-  transition: border-color 0.15s;
+  overflow: visible;
+  transition: box-shadow 0.15s;
 }
 
 .pptvc-version-item:hover {
-  border-color: var(--color-border-focus);
+  box-shadow: 0 2px 10px rgba(44, 40, 32, 0.08);
 }
 
 /* Top row: name input + delete */
@@ -642,17 +643,61 @@ ul {
   color: var(--color-text);
 }
 
-/* Inline tag input (appears when adding tag to existing version) */
-.pptvc-version-tag-input {
-  border: 1px solid var(--color-border-focus);
-  border-radius: var(--radius-full);
+/* Tag picker row (shown when "+ tag" is clicked on a version item) */
+.pptvc-version-tag-picker {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  -ms-flex-align: center;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+/* Delete popup */
+.pptvc-delete-popup {
+  position: absolute;
+  top: 38px;
+  right: 8px;
+  z-index: 20;
   background: var(--color-surface-raised);
-  font-size: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  box-shadow: 0 4px 18px rgba(44, 40, 32, 0.13);
+  min-width: 176px;
+}
+
+.pptvc-delete-popup__msg {
+  margin: 0 0 10px;
+  font-size: 12px;
   font-family: var(--font-sans);
-  padding: 1px 7px;
-  outline: none;
-  width: 80px;
   color: var(--color-text);
+  font-weight: 500;
+}
+
+.pptvc-delete-popup__actions {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-pack: end;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* Danger button (used in delete popup) */
+.pptvc-btn--danger {
+  padding: 4px 10px;
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  font-size: 11px;
+  border-radius: var(--radius-sm);
+}
+
+.pptvc-btn--danger:hover:not(:disabled) {
+  background: var(--color-danger);
+  color: #fff;
 }
 
 /* Actions row */
@@ -758,4 +803,92 @@ ul {
   font-style: italic;
   font-family: var(--font-sans);
   text-align: center;
+}
+
+/* ════════════════════════════════════════════
+   Tag picker (save form + version items)
+   ════════════════════════════════════════════ */
+
+/* Save form tag picker wrapper */
+.pptvc-tag-picker-area {
+  margin-bottom: 10px;
+}
+
+.pptvc-tag-picker-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+  font-family: var(--font-sans);
+}
+
+.pptvc-save-tag-picker {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+/* Individual tag option (toggle chip) */
+.pptvc-tag-option {
+  padding: 3px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s,
+    border-color 0.12s;
+}
+
+.pptvc-tag-option:hover {
+  border-color: var(--color-border-focus);
+  color: var(--color-text);
+}
+
+.pptvc-tag-option--selected {
+  background: var(--color-tag-bg);
+  border-color: var(--color-tag-bg);
+  color: var(--color-tag-text);
+}
+
+.pptvc-tag-option--selected:hover {
+  background: var(--color-tag-bg);
+  border-color: var(--color-border-focus);
+  color: var(--color-tag-text);
+}
+
+/* Close button inside version tag picker */
+.pptvc-version-tag-picker-close {
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  margin-left: 2px;
+}
+
+.pptvc-version-tag-picker-close:hover {
+  color: var(--color-text);
+}
+
+/* Version count in list header */
+.pptvc-list-count {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-left: 6px;
 }

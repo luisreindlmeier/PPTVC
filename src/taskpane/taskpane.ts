@@ -1,14 +1,26 @@
-/* global document, Office, setTimeout, HTMLElement, HTMLDivElement, HTMLUListElement, HTMLParagraphElement, HTMLLIElement, HTMLButtonElement, HTMLSpanElement, HTMLInputElement, KeyboardEvent */
+/* global document, Office, setTimeout, HTMLElement, HTMLDivElement, HTMLUListElement, HTMLParagraphElement, HTMLLIElement, HTMLButtonElement, HTMLSpanElement, HTMLInputElement, HTMLHeadingElement */
 
 import { saveVersion, listVersions, restoreVersion, type Version } from "../versions";
 
-// ── In-memory state ───────────────────────────────────────────
-// Names and tags are not yet persisted — backend support coming soon.
+// ── Constants ─────────────────────────────────────────────────
 
-const pendingTags: string[] = [];
+const PREDEFINED_TAGS = [
+  "draft",
+  "reviewed",
+  "final",
+  "sent",
+  "archived",
+  "important",
+  "wip",
+] as const;
+type PresetTag = (typeof PREDEFINED_TAGS)[number];
+
+// ── In-memory state ───────────────────────────────────────────
+// Names and tags are UI-only for now — backend persistence coming soon.
+
+const pendingTags: PresetTag[] = [];
 const versionNameOverrides = new Map<string, string>();
-const versionTagsMap = new Map<string, string[]>();
-const deleteConfirmSet = new Set<string>();
+const versionTagsMap = new Map<string, PresetTag[]>();
 
 // ── Boot ──────────────────────────────────────────────────────
 
@@ -27,7 +39,7 @@ Office.onReady((info) => {
       switchScope("slide");
     });
 
-    initTagInput();
+    renderSaveTagPicker();
     void loadVersionList();
   }
 });
@@ -73,7 +85,6 @@ function switchScope(scope: "presentation" | "slide"): void {
   const tabSlide = getEl<HTMLButtonElement>("tab-slide");
   const presentationScope = getEl<HTMLDivElement>("presentation-scope");
   const slidePlaceholder = getEl<HTMLDivElement>("slide-placeholder");
-
   const isPresentation = scope === "presentation";
 
   tabPresentation.classList.toggle("pptvc-scope-tab--active", isPresentation);
@@ -90,59 +101,29 @@ function switchScope(scope: "presentation" | "slide"): void {
   }
 }
 
-// ── Save form: tag input ──────────────────────────────────────
+// ── Save form: predefined tag picker ─────────────────────────
 
-function initTagInput(): void {
-  const input = getEl<HTMLInputElement>("tag-input");
-
-  input.addEventListener("keydown", (e: KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      const value = input.value.trim().replace(/,$/, "");
-      if (value) {
-        addPendingTag(value);
-        input.value = "";
-      }
-    }
-    if (e.key === "Backspace" && input.value === "" && pendingTags.length > 0) {
-      removePendingTag(pendingTags.length - 1);
-    }
-  });
-}
-
-function addPendingTag(tag: string): void {
-  if (pendingTags.includes(tag)) return;
-  pendingTags.push(tag);
-  renderPendingTags();
-}
-
-function removePendingTag(index: number): void {
-  pendingTags.splice(index, 1);
-  renderPendingTags();
-}
-
-function renderPendingTags(): void {
-  const container = getEl<HTMLDivElement>("pending-tags-list");
+function renderSaveTagPicker(): void {
+  const container = getEl<HTMLDivElement>("save-tag-picker");
   container.innerHTML = "";
-  pendingTags.forEach((tag, index) => {
-    container.appendChild(makePendingTagChip(tag, index));
-  });
-}
 
-function makePendingTagChip(tag: string, index: number): HTMLSpanElement {
-  const chip = document.createElement("span");
-  chip.className = "pptvc-tag-chip";
-  chip.textContent = tag;
-
-  const removeBtn = document.createElement("button");
-  removeBtn.type = "button";
-  removeBtn.className = "pptvc-tag-chip__remove";
-  removeBtn.textContent = "×";
-  removeBtn.setAttribute("aria-label", `Remove tag ${tag}`);
-  removeBtn.addEventListener("click", () => removePendingTag(index));
-
-  chip.appendChild(removeBtn);
-  return chip;
+  for (const tag of PREDEFINED_TAGS) {
+    const selected = pendingTags.includes(tag);
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = `pptvc-tag-option${selected ? " pptvc-tag-option--selected" : ""}`;
+    chip.textContent = tag;
+    chip.addEventListener("click", () => {
+      const idx = pendingTags.indexOf(tag);
+      if (idx === -1) {
+        pendingTags.push(tag);
+      } else {
+        pendingTags.splice(idx, 1);
+      }
+      renderSaveTagPicker();
+    });
+    container.appendChild(chip);
+  }
 }
 
 // ── Load version list ─────────────────────────────────────────
@@ -158,6 +139,8 @@ async function loadVersionList(): Promise<void> {
 
   try {
     const versions = await listVersions();
+    updateVersionCount(versions.length);
+
     if (versions.length === 0) {
       show(emptyEl);
     } else {
@@ -169,6 +152,14 @@ async function loadVersionList(): Promise<void> {
     showStatus(err instanceof Error ? err.message : "Failed to load versions.", true);
   } finally {
     hide(loadingEl);
+  }
+}
+
+function updateVersionCount(count: number): void {
+  const title = getEl<HTMLHeadingElement>("versions-title");
+  const span = title.querySelector<HTMLSpanElement>(".pptvc-list-count");
+  if (span) {
+    span.textContent = `(${count})`;
   }
 }
 
@@ -201,7 +192,7 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
   deleteBtn.className = "pptvc-btn-icon";
   deleteBtn.textContent = "✕";
   deleteBtn.setAttribute("aria-label", "Delete version");
-  deleteBtn.addEventListener("click", () => onDeleteClick(version.id, deleteBtn));
+  deleteBtn.addEventListener("click", () => showDeletePopup(version.id, li));
 
   top.appendChild(nameInput);
   top.appendChild(deleteBtn);
@@ -260,13 +251,13 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
   return li;
 }
 
-// ── Per-item tags ─────────────────────────────────────────────
+// ── Per-item tags (predefined picker) ────────────────────────
 
 function renderVersionTags(id: string, container: HTMLDivElement): void {
   container.innerHTML = "";
   const tags = versionTagsMap.get(id) ?? [];
 
-  tags.forEach((tag, index) => {
+  for (const tag of tags) {
     const chip = document.createElement("span");
     chip.className = "pptvc-version-tag-chip";
     chip.textContent = tag;
@@ -278,60 +269,110 @@ function renderVersionTags(id: string, container: HTMLDivElement): void {
     removeBtn.setAttribute("aria-label", `Remove tag ${tag}`);
     removeBtn.addEventListener("click", () => {
       const current = versionTagsMap.get(id) ?? [];
-      current.splice(index, 1);
-      versionTagsMap.set(id, current);
+      versionTagsMap.set(
+        id,
+        current.filter((t) => t !== tag)
+      );
       renderVersionTags(id, container);
     });
 
     chip.appendChild(removeBtn);
     container.appendChild(chip);
-  });
+  }
+
+  // Show "+ tag" only if there are still unselected predefined tags
+  const used = versionTagsMap.get(id) ?? [];
+  const available = PREDEFINED_TAGS.filter((t) => !used.includes(t));
+  if (available.length === 0) return;
 
   const addBtn = document.createElement("button");
   addBtn.type = "button";
   addBtn.className = "pptvc-version-tag-add";
   addBtn.textContent = "+ tag";
-  addBtn.addEventListener("click", () => showInlineTagInput(id, container, addBtn));
+  addBtn.addEventListener("click", () => showVersionTagPicker(id, container, addBtn));
   container.appendChild(addBtn);
 }
 
-function showInlineTagInput(
+function showVersionTagPicker(
   id: string,
   container: HTMLDivElement,
   addBtn: HTMLButtonElement
 ): void {
   hide(addBtn);
 
-  const input = document.createElement("input");
-  input.type = "text";
-  input.className = "pptvc-version-tag-input";
-  input.placeholder = "tag name…";
-  input.maxLength = 30;
-  container.appendChild(input);
-  input.focus();
+  const picker = document.createElement("div");
+  picker.className = "pptvc-version-tag-picker";
 
-  const commit = (): void => {
-    const value = input.value.trim();
-    if (value) {
+  const used = versionTagsMap.get(id) ?? [];
+  const available = PREDEFINED_TAGS.filter((t) => !used.includes(t));
+
+  for (const tag of available) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "pptvc-tag-option";
+    chip.textContent = tag;
+    chip.addEventListener("click", () => {
       const current = versionTagsMap.get(id) ?? [];
-      if (!current.includes(value)) {
-        current.push(value);
-        versionTagsMap.set(id, current);
-      }
-    }
-    renderVersionTags(id, container);
-  };
-
-  input.addEventListener("keydown", (e: KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      commit();
-    }
-    if (e.key === "Escape") {
+      current.push(tag);
+      versionTagsMap.set(id, current);
       renderVersionTags(id, container);
-    }
+    });
+    picker.appendChild(chip);
+  }
+
+  // Close button
+  const closeBtn = document.createElement("button");
+  closeBtn.type = "button";
+  closeBtn.className = "pptvc-version-tag-picker-close";
+  closeBtn.textContent = "×";
+  closeBtn.setAttribute("aria-label", "Close tag picker");
+  closeBtn.addEventListener("click", () => renderVersionTags(id, container));
+  picker.appendChild(closeBtn);
+
+  container.appendChild(picker);
+}
+
+// ── Delete popup ──────────────────────────────────────────────
+
+function showDeletePopup(id: string, li: HTMLLIElement): void {
+  // Toggle: if popup already open, close it
+  const existing = li.querySelector(".pptvc-delete-popup");
+  if (existing) {
+    existing.remove();
+    return;
+  }
+
+  const popup = document.createElement("div");
+  popup.className = "pptvc-delete-popup";
+
+  const msg = document.createElement("p");
+  msg.className = "pptvc-delete-popup__msg";
+  msg.textContent = "Delete this version?";
+
+  const actionsRow = document.createElement("div");
+  actionsRow.className = "pptvc-delete-popup__actions";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.className = "pptvc-btn pptvc-btn--ghost";
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.addEventListener("click", () => popup.remove());
+
+  const confirmBtn = document.createElement("button");
+  confirmBtn.type = "button";
+  confirmBtn.className = "pptvc-btn pptvc-btn--danger";
+  confirmBtn.textContent = "Delete";
+  confirmBtn.addEventListener("click", () => {
+    popup.remove();
+    // Stub — deleteVersion() backend coming soon
+    showStatus("Delete not yet implemented — coming soon.", false);
   });
-  input.addEventListener("blur", commit);
+
+  actionsRow.appendChild(cancelBtn);
+  actionsRow.appendChild(confirmBtn);
+  popup.appendChild(msg);
+  popup.appendChild(actionsRow);
+  li.appendChild(popup);
 }
 
 // ── Diff panel ────────────────────────────────────────────────
@@ -363,10 +404,8 @@ function buildDiffPanel(panel: HTMLDivElement, currentId: string, allVersions: V
   }
   panel.appendChild(select);
 
-  // Placeholder diff visualization (will be replaced by real diff engine)
   const placeholder = document.createElement("div");
   placeholder.className = "pptvc-diff-placeholder";
-
   placeholder.appendChild(buildDiffCol("Before", false));
   placeholder.appendChild(buildDiffCol("After", true));
   panel.appendChild(placeholder);
@@ -432,7 +471,7 @@ async function onSaveClick(): Promise<void> {
     showStatus(`Saved: ${customName || version.name}`, false);
     nameInput.value = "";
     pendingTags.splice(0, pendingTags.length);
-    renderPendingTags();
+    renderSaveTagPicker();
     await loadVersionList();
   } catch (err) {
     showStatus(err instanceof Error ? err.message : "Failed to save version.", true);
@@ -459,30 +498,4 @@ async function onRestoreClick(id: string, btn: HTMLButtonElement): Promise<void>
     btn.disabled = false;
     btn.textContent = originalText;
   }
-}
-
-// ── Delete (two-step confirm) ─────────────────────────────────
-
-function onDeleteClick(id: string, btn: HTMLButtonElement): void {
-  if (deleteConfirmSet.has(id)) {
-    deleteConfirmSet.delete(id);
-    // Stub: real delete wired once deleteVersion() exists in src/versions/
-    showStatus("Delete not yet implemented — coming soon.", false);
-    btn.textContent = "✕";
-    btn.classList.remove("pptvc-btn-icon--confirm");
-    return;
-  }
-
-  deleteConfirmSet.add(id);
-  btn.textContent = "Sure?";
-  btn.classList.add("pptvc-btn-icon--confirm");
-
-  // Auto-cancel after 3 s if no second click
-  setTimeout(() => {
-    if (deleteConfirmSet.has(id)) {
-      deleteConfirmSet.delete(id);
-      btn.textContent = "✕";
-      btn.classList.remove("pptvc-btn-icon--confirm");
-    }
-  }, 3000);
 }
