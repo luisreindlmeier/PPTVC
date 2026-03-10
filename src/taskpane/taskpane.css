@@ -29,11 +29,20 @@
   --color-danger-hover: #9a5c40;
   --color-danger-light: #f5ece6;
 
-  /* Geometry */
-  --radius: 8px;
-  --radius-sm: 5px;
-  --radius-xs: 3px;
+  /* Shadows (Kronos-inspired) */
+  --shadow-subtle: 0 1px 6px rgba(44, 40, 32, 0.07);
+  --shadow-card: 0 2px 10px rgba(44, 40, 32, 0.1);
+  --shadow-elevated: 0 4px 18px rgba(44, 40, 32, 0.14);
+  --shadow-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  /* Geometry — Kronos-inspired larger radii */
+  --radius: 10px;
+  --radius-sm: 7px;
+  --radius-xs: 4px;
   --radius-full: 999px;
+
+  /* Transition easing (Kronos-style) */
+  --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 /* ════════════════════════════════════════════
@@ -153,8 +162,8 @@ ul {
   color: var(--color-text-muted);
   cursor: pointer;
   transition:
-    color 0.15s,
-    border-color 0.15s;
+    color 0.15s var(--ease),
+    border-color 0.15s var(--ease);
   letter-spacing: 0.01em;
 }
 
@@ -250,6 +259,7 @@ ul {
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-subtle), var(--shadow-inset-highlight);
 }
 
 /* ── Text input (version name) ── */
@@ -274,6 +284,7 @@ ul {
 
 .pptvc-text-input:focus {
   border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(121, 173, 116, 0.14);
 }
 
 /* ════════════════════════════════════════════
@@ -293,9 +304,11 @@ ul {
   font-family: var(--font-sans);
   font-weight: 500;
   transition:
-    background 0.12s,
-    color 0.12s,
-    border-color 0.12s;
+    background 0.15s var(--ease),
+    color 0.15s var(--ease),
+    border-color 0.15s var(--ease),
+    box-shadow 0.15s var(--ease),
+    transform 0.15s var(--ease);
   white-space: nowrap;
 }
 
@@ -315,10 +328,14 @@ ul {
 
 .pptvc-btn--primary:hover:not(:disabled) {
   background: var(--color-green-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
 }
 
 .pptvc-btn--primary:active:not(:disabled) {
   background: var(--color-green-active);
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 /* Ghost */
@@ -335,6 +352,7 @@ ul {
   background: var(--color-surface);
   color: var(--color-text);
   border-color: var(--color-border-focus);
+  transform: translateY(-1px);
 }
 
 /* Restore button */
@@ -349,6 +367,7 @@ ul {
 
 .pptvc-btn--restore:hover:not(:disabled) {
   background: var(--color-tag-bg);
+  transform: translateY(-1px);
 }
 
 /* Icon-only (delete) — same dimensions as .pptvc-btn-icon-action for alignment */
@@ -572,18 +591,27 @@ ul {
   border-color: var(--color-green-light);
 }
 
-/* ── Version item — no card box, flat on background ── */
+/* ── Version item — card, Kronos-style ── */
 
 .pptvc-version-item {
   position: relative;
-  margin-bottom: 4px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 8px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-subtle), var(--shadow-inset-highlight);
   overflow: visible;
+  transition:
+    box-shadow 0.2s var(--ease),
+    transform 0.15s var(--ease);
+}
+
+.pptvc-version-item:hover {
+  box-shadow: var(--shadow-card), var(--shadow-inset-highlight);
+  transform: translateY(-1px);
 }
 
 .pptvc-version-item:last-child {
-  border-bottom: none;
   margin-bottom: 0;
 }
 
@@ -750,8 +778,9 @@ ul {
   color: var(--color-text-muted);
   cursor: pointer;
   transition:
-    background 0.12s,
-    color 0.12s;
+    background 0.15s var(--ease),
+    color 0.15s var(--ease),
+    transform 0.15s var(--ease);
   padding: 0;
 }
 
@@ -763,11 +792,13 @@ ul {
 .pptvc-btn-icon-action:hover {
   background: var(--color-surface);
   color: var(--color-text);
+  transform: translateY(-1px);
 }
 
 .pptvc-btn-icon-action--restore:hover {
   background: var(--color-green-light);
   color: var(--color-green-active);
+  transform: translateY(-1px);
 }
 
 .pptvc-btn-icon-action:disabled {
@@ -785,7 +816,7 @@ ul {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 12px 14px;
-  box-shadow: 0 4px 18px rgba(44, 40, 32, 0.13);
+  box-shadow: var(--shadow-elevated);
   min-width: 176px;
 }
 
