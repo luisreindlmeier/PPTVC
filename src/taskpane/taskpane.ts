@@ -135,6 +135,7 @@ async function onRestoreClick(id: string, btn: HTMLButtonElement): Promise<void>
     showStatus("Restored successfully.", false);
   } catch (err) {
     showStatus(err instanceof Error ? err.message : "Failed to restore version.", true);
+  } finally {
     btn.disabled = false;
     btn.textContent = originalText;
   }
