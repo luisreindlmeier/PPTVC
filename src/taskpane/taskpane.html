@@ -5,62 +5,115 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>PPTVC</title>
 
+    <!-- Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
     <!-- Office JavaScript API -->
     <script
       type="text/javascript"
       src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"
     ></script>
 
-    <!-- Fluent UI Fabric Core -->
-    <link
-      rel="stylesheet"
-      href="https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/office-ui-fabric-core/11.1.0/css/fabric.min.css"
-    />
-
     <!-- Task pane styles -->
     <link href="taskpane.css" rel="stylesheet" type="text/css" />
   </head>
 
-  <body class="ms-font-m ms-Fabric">
+  <body>
     <section id="sideload-msg" class="pptvc-sideload">
-      <p class="ms-font-m">
+      <p>
         Please
         <a
           target="_blank"
           rel="noopener noreferrer"
           href="https://learn.microsoft.com/office/dev/add-ins/testing/test-debug-office-add-ins#sideload-an-office-add-in-for-testing"
+          >sideload</a
         >
-          sideload
-        </a>
         the add-in to continue.
       </p>
     </section>
 
-    <main id="app-body" class="pptvc-app-body pptvc-hidden">
+    <main id="app-body" class="pptvc-app pptvc-hidden">
+      <!-- ── Header ── -->
       <header class="pptvc-header">
         <h1 class="pptvc-title">PPTVC</h1>
-        <p class="pptvc-subtitle ms-font-s">Version Control for PowerPoint</p>
+        <p class="pptvc-subtitle">Version Control for PowerPoint</p>
       </header>
 
-      <section class="pptvc-section">
-        <button id="btn-save" type="button" class="pptvc-btn pptvc-btn--primary ms-font-m">
-          <span class="btn-label">Save Version</span>
-          <span class="btn-spinner pptvc-hidden" aria-hidden="true"></span>
+      <!-- ── Tabs: History / Diff ── -->
+      <div class="pptvc-scope-bar" role="tablist" aria-label="View">
+        <button
+          type="button"
+          role="tab"
+          id="tab-history"
+          class="pptvc-scope-tab pptvc-scope-tab--active"
+          aria-selected="true"
+        >
+          History
         </button>
+        <button
+          type="button"
+          role="tab"
+          id="tab-diff"
+          class="pptvc-scope-tab"
+          aria-selected="false"
+        >
+          Diff
+        </button>
+      </div>
+
+      <!-- ── History scope ── -->
+      <div id="history-scope">
+        <!-- Save panel -->
+        <section class="pptvc-save-panel">
+          <input
+            id="version-name-input"
+            type="text"
+            class="pptvc-text-input"
+            placeholder="Version name (optional)"
+            maxlength="60"
+            aria-label="Version name"
+          />
+
+          <!-- Tag picker (predefined, max 3) -->
+          <div class="pptvc-tag-picker-area" role="group" aria-label="Tags">
+            <span class="pptvc-tag-picker-label">Tags (max 3)</span>
+            <div id="save-tag-picker" class="pptvc-save-tag-picker"></div>
+          </div>
+
+          <button id="btn-save" type="button" class="pptvc-btn pptvc-btn--primary">
+            <span class="btn-label">Save Version</span>
+            <span class="btn-spinner pptvc-hidden" aria-hidden="true"></span>
+          </button>
+        </section>
+
+        <!-- Status message -->
         <div id="status-msg" class="pptvc-status" role="status" aria-live="polite"></div>
-      </section>
 
-      <section class="pptvc-section pptvc-section--list">
-        <h2 class="pptvc-section-title ms-font-xs">Versions</h2>
+        <!-- Versions list (timeline) -->
+        <section class="pptvc-list-section">
+          <h2 id="versions-title" class="pptvc-list-title">
+            History <span class="pptvc-list-count"></span>
+          </h2>
 
-        <div id="versions-loading" class="pptvc-loading pptvc-hidden">
-          <div class="pptvc-spinner"></div>
-        </div>
+          <div id="versions-loading" class="pptvc-loading pptvc-hidden">
+            <div class="pptvc-spinner"></div>
+          </div>
 
-        <ul id="versions-list" class="pptvc-versions-list" role="list"></ul>
+          <ul id="versions-list" class="pptvc-versions-list" role="list"></ul>
 
-        <p id="versions-empty" class="pptvc-empty ms-font-s pptvc-hidden">No versions saved yet.</p>
-      </section>
+          <p id="versions-empty" class="pptvc-empty pptvc-hidden">No versions saved yet.</p>
+        </section>
+      </div>
+
+      <!-- ── Diff scope ── -->
+      <div id="diff-scope" class="pptvc-hidden">
+        <div id="diff-content" class="pptvc-diff-scope"></div>
+      </div>
     </main>
   </body>
 </html>
