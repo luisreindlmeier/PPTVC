@@ -49,6 +49,25 @@ Office.onReady((info) => {
       switchScope("diff", undefined, true);
     });
 
+    const tagDropdownBtn = getEl<HTMLButtonElement>("btn-tag-dropdown");
+    const tagPanel = getEl<HTMLDivElement>("save-tags-panel");
+    tagDropdownBtn.addEventListener("click", () => {
+      const isOpen = !tagPanel.classList.contains("pptvc-hidden");
+      tagDropdownBtn.setAttribute("aria-expanded", String(!isOpen));
+      tagDropdownBtn.classList.toggle("pptvc-save-tag-dropdown--open", !isOpen);
+      if (isOpen) {
+        hide(tagPanel);
+      } else {
+        show(tagPanel);
+      }
+    });
+
+    // Mark input as user-edited so auto-fill doesn't overwrite it
+    const saveNameInput = getEl<HTMLInputElement>("version-name-input");
+    saveNameInput.addEventListener("input", () => {
+      saveNameInput.dataset["dirty"] = "1";
+    });
+
     renderSaveTagPicker();
     void loadVersionList();
   }
@@ -190,7 +209,13 @@ function updateVersionCount(count: number): void {
   const title = getEl<HTMLHeadingElement>("versions-title");
   const span = title.querySelector<HTMLSpanElement>(".pptvc-list-count");
   if (span) {
-    span.innerHTML = `${ICON_VERSIONS}<span>${count}</span>`;
+    const label = count === 1 ? "Version Saved" : "Versions Saved";
+    span.innerHTML = `${ICON_VERSIONS}<span>${count} ${label}</span>`;
+  }
+  // Pre-fill next version name in save input (only if user hasn't typed)
+  const nameInput = getEl<HTMLInputElement>("version-name-input");
+  if (!nameInput.dataset["dirty"]) {
+    nameInput.value = `Version ${count + 1}`;
   }
 }
 
@@ -592,7 +617,15 @@ async function onSaveClick(): Promise<void> {
 
     showStatus(`Saved: ${customName || version.name}`, false);
     nameInput.value = "";
+    nameInput.dataset["dirty"] = "";
+    delete nameInput.dataset["dirty"];
     pendingTags.splice(0, pendingTags.length);
+    // Close tag dropdown panel after save
+    const tagDropdownBtn = getEl<HTMLButtonElement>("btn-tag-dropdown");
+    const tagPanel = getEl<HTMLDivElement>("save-tags-panel");
+    tagDropdownBtn.setAttribute("aria-expanded", "false");
+    tagDropdownBtn.classList.remove("pptvc-save-tag-dropdown--open");
+    hide(tagPanel);
     renderSaveTagPicker();
     await loadVersionList();
   } catch (err) {

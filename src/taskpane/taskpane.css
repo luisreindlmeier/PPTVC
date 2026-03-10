@@ -7,8 +7,8 @@
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
 
   /* Beige palette */
-  --color-bg: #f3ede2;
-  --color-surface: #faf6ef;
+  --color-bg: #f0ece3;
+  --color-surface: #f7f4ef;
   --color-surface-raised: #ffffff;
   --color-border: #e0d8c8;
   --color-border-focus: #b8a888;
@@ -105,25 +105,25 @@ ul {
    ════════════════════════════════════════════ */
 
 .pptvc-header {
-  padding: 16px 16px 12px;
-  background: var(--color-surface-raised);
+  padding: 10px 14px 8px;
+  background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
 }
 
 .pptvc-title {
   margin: 0;
   font-family: var(--font-sans);
-  font-size: 22px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--color-text);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .pptvc-subtitle {
-  margin: 3px 0 0;
+  margin: 1px 0 0;
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 10px;
   color: var(--color-text-muted);
   letter-spacing: 0.01em;
 }
@@ -172,13 +172,84 @@ ul {
    ════════════════════════════════════════════ */
 
 .pptvc-save-panel {
-  padding: 14px 14px 10px;
+  padding: 12px 14px 10px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   display: -ms-flexbox;
   display: flex;
   -ms-flex-direction: column;
   flex-direction: column;
+  gap: 8px;
+}
+
+/* Name input + tag dropdown row */
+.pptvc-save-input-row {
+  display: -ms-flexbox;
+  display: flex;
+  gap: 0;
+}
+
+.pptvc-save-input-row .pptvc-text-input {
+  -ms-flex: 1 1 auto;
+  flex: 1 1 auto;
+  margin-bottom: 0;
+  border-right: none;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.pptvc-save-tag-dropdown {
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+  width: 32px;
+  border: 1px solid var(--color-border);
+  border-left: none;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  padding: 0;
+}
+
+.pptvc-save-tag-dropdown:hover {
+  background: var(--color-surface);
+  border-color: var(--color-border-focus);
+  color: var(--color-text);
+}
+
+.pptvc-save-tag-dropdown--open {
+  background: var(--color-green-light);
+  border-color: var(--color-tag-bg);
+  color: var(--color-green-active);
+}
+
+.pptvc-save-tag-dropdown svg {
+  width: 10px;
+  height: 10px;
+  transition: transform 0.15s;
+}
+
+.pptvc-save-tag-dropdown--open svg {
+  transform: rotate(180deg);
+}
+
+/* Inline tag picker shown below input row */
+.pptvc-save-tags-panel {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 6px 8px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
 }
 
 /* ── Text input (version name) ── */
@@ -363,7 +434,7 @@ ul {
 .pptvc-list-section {
   -ms-flex: 1 0 0;
   flex: 1 0 0;
-  padding: 12px 14px 20px;
+  padding: 8px 14px 20px;
 }
 
 .pptvc-list-title {

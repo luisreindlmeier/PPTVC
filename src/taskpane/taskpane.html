@@ -70,18 +70,28 @@
       <div id="history-scope">
         <!-- Save panel -->
         <section class="pptvc-save-panel">
-          <input
-            id="version-name-input"
-            type="text"
-            class="pptvc-text-input"
-            placeholder="Version name (optional)"
-            maxlength="60"
-            aria-label="Version name"
-          />
+          <div class="pptvc-save-input-row">
+            <input
+              id="version-name-input"
+              type="text"
+              class="pptvc-text-input"
+              placeholder="Version name"
+              maxlength="60"
+              aria-label="Version name"
+            />
+            <button
+              id="btn-tag-dropdown"
+              type="button"
+              class="pptvc-save-tag-dropdown"
+              aria-label="Add tags"
+              aria-expanded="false"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true"><path d="M0 0l5 6 5-6H0z"/></svg>
+            </button>
+          </div>
 
-          <!-- Tag picker (predefined, max 3) -->
-          <div class="pptvc-tag-picker-area" role="group" aria-label="Tags">
-            <span class="pptvc-tag-picker-label">Tags (max 3)</span>
+          <!-- Collapsible tag picker -->
+          <div id="save-tags-panel" class="pptvc-save-tags-panel pptvc-hidden" role="group" aria-label="Tags">
             <div id="save-tag-picker" class="pptvc-save-tag-picker"></div>
           </div>
 
