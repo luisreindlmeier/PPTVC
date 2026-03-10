@@ -367,13 +367,37 @@ ul {
 }
 
 .pptvc-list-title {
-  margin: 0 0 6px;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
   font-family: var(--font-sans);
-  font-size: 17px;
-  font-weight: 400;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--color-text-muted);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+/* Count badge */
+.pptvc-list-count {
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 1px 6px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0;
 }
 
 /* Loading spinner */
@@ -432,7 +456,7 @@ ul {
   content: "";
   position: absolute;
   top: 0;
-  height: 17px; /* dot center: 7px padding + 7px half-dot + ~3px text-center offset = 17px */
+  height: 21px; /* dot center: header pad 7px + (28px btn row - 20px name) / 2 + 10px half-text = 21px */
   left: -12px;
   width: 2px;
   background: var(--color-border);
@@ -442,7 +466,7 @@ ul {
 .pptvc-version-item::after {
   content: "";
   position: absolute;
-  top: 17px;
+  top: 21px;
   bottom: -4px; /* extend through margin-bottom:4px to reach next li top */
   left: -12px;
   width: 2px;
@@ -462,7 +486,7 @@ ul {
 /* Timeline dot — 14px, centered on the name text line */
 .pptvc-version-dot {
   position: absolute;
-  top: 10px; /* center at 17px aligns with name text center (7px padding + ~10px half line-height) */
+  top: 14px; /* center at 21px aligns with name text center (flex-centered within 28px btn row) */
   left: -18px; /* dot left edge at list-left + 2px → (2 - 20) = -18px from li */
   width: 14px;
   height: 14px;
@@ -546,24 +570,27 @@ ul {
   flex-shrink: 0;
 }
 
-/* Tags toggle — icon + label style */
+/* Tags toggle — styled like a tag chip but green-outlined */
 .pptvc-tags-toggle {
   display: -ms-inline-flexbox;
   display: inline-flex;
   -ms-flex-align: center;
   align-items: center;
-  gap: 3px;
-  border: none;
-  background: none;
-  padding: 0;
+  gap: 4px;
+  border: 1px solid var(--color-tag-bg);
+  border-radius: 3px;
+  background: transparent;
+  padding: 1px 7px 1px 5px;
   font-family: var(--font-sans);
   font-size: 10px;
   font-weight: 500;
-  color: var(--color-text-muted);
+  color: var(--color-green-active);
   cursor: pointer;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  transition: color 0.12s;
+  letter-spacing: 0.02em;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
 }
 
 .pptvc-tags-toggle svg {
@@ -574,7 +601,9 @@ ul {
 }
 
 .pptvc-tags-toggle:hover {
-  color: var(--color-tag-text);
+  background: var(--color-green-light);
+  border-color: var(--color-green);
+  color: var(--color-green-active);
 }
 
 /* Tags expandable section (below meta, hidden by default) */
@@ -601,6 +630,7 @@ ul {
   font-size: 10px;
   font-weight: 500;
   font-family: var(--font-sans);
+  text-transform: capitalize;
 }
 
 .pptvc-version-tag-chip__remove {
@@ -772,6 +802,7 @@ ul {
   font-family: var(--font-sans);
   font-weight: 500;
   cursor: pointer;
+  text-transform: capitalize;
   transition:
     background 0.12s,
     color 0.12s,
