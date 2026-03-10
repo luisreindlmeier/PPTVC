@@ -1,80 +1,231 @@
-/* 
- * Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT license.
- * See LICENSE in the project root for license information.
- */
-
- html,
- body {
-     width: 100%;
-     height: 100%;
-     margin: 0;
-     padding: 0;
- }
- 
- ul {
-     margin: 0;
-     padding: 0;
- }
- 
- .ms-welcome__header {
-    padding: 20px;
-    padding-bottom: 30px;
-    padding-top: 100px;
-    display: -webkit-flex;
-    display: flex;
-    -webkit-flex-direction: column;
-    flex-direction: column;
-    align-items: center;
- }
-
- .ms-welcome__main {
-    display: -webkit-flex;
-    display: flex;
-    -webkit-flex-direction: column;
-    flex-direction: column;
-    -webkit-flex-wrap: nowrap;
-    flex-wrap: nowrap;
-    -webkit-align-items: center;
-    align-items: center;
-    -webkit-flex: 1 0 0;
-    flex: 1 0 0;
-    padding: 10px 20px;
- }
- 
- .ms-welcome__main > h2 {
-     width: 100%;
-     text-align: center;
- }
- 
- .ms-welcome__features {
-     list-style-type: none;
-     margin-top: 20px;
- }
- 
- .ms-welcome__features.ms-List .ms-ListItem {
-     padding-bottom: 20px;
-     display: -webkit-flex;
-     display: flex;
- }
- 
- .ms-welcome__features.ms-List .ms-ListItem > .ms-Icon {
-     margin-right: 10px;
- }
- 
- .ms-welcome__action.ms-Button--hero {
-     margin-top: 30px;
- }
- 
-.ms-Button.ms-Button--hero .ms-Button-label {
-  color: #0078d7;
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #faf9f8;
+  color: #323130;
 }
 
-.ms-Button.ms-Button--hero:hover .ms-Button-label,
-.ms-Button.ms-Button--hero:focus .ms-Button-label{
-  color: #005a9e;
+/* ── Utility ── */
+
+.pptvc-hidden {
+  display: none !important;
+}
+
+/* ── Sideload message ── */
+
+.pptvc-sideload {
+  padding: 20px;
+}
+
+/* ── App body ── */
+
+.pptvc-app-body {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+
+.pptvc-header {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid #edebe9;
+  background: #fff;
+}
+
+.pptvc-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #323130;
+}
+
+.pptvc-subtitle {
+  margin: 2px 0 0;
+  color: #605e5c;
+}
+
+/* ── Sections ── */
+
+.pptvc-section {
+  padding: 14px 16px;
+}
+
+.pptvc-section--list {
+  -ms-flex: 1 0 0;
+  flex: 1 0 0;
+  padding-top: 10px;
+}
+
+.pptvc-section-title {
+  margin: 0 0 10px;
+  font-weight: 600;
+  color: #605e5c;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 11px;
+}
+
+/* ── Buttons ── */
+
+.pptvc-btn {
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  border: none;
+  border-radius: 2px;
   cursor: pointer;
+  font-family: inherit;
+  transition: background 0.1s;
 }
 
-b {
-    font-weight: bold;
+.pptvc-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pptvc-btn--primary {
+  width: 100%;
+  padding: 10px 16px;
+  background: #0078d4;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pptvc-btn--primary:hover:not(:disabled) {
+  background: #106ebe;
+}
+
+.pptvc-btn--primary:active:not(:disabled) {
+  background: #005a9e;
+}
+
+.pptvc-btn--secondary {
+  padding: 4px 10px;
+  background: #fff;
+  color: #0078d4;
+  border: 1px solid #0078d4;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pptvc-btn--secondary:hover:not(:disabled) {
+  background: #f3f9fd;
+}
+
+/* ── Spinner inside save button ── */
+
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: pptvc-spin 0.6s linear infinite;
+}
+
+/* ── Status message ── */
+
+.pptvc-status {
+  min-height: 20px;
+  margin-top: 8px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.pptvc-status--success {
+  color: #107c10;
+}
+
+.pptvc-status--error {
+  color: #a4262c;
+}
+
+/* ── List loading spinner ── */
+
+.pptvc-loading {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-pack: center;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.pptvc-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #edebe9;
+  border-top-color: #0078d4;
+  border-radius: 50%;
+  animation: pptvc-spin 0.6s linear infinite;
+}
+
+@keyframes pptvc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Versions list ── */
+
+.pptvc-versions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pptvc-version-item {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #edebe9;
+}
+
+.pptvc-version-item:last-child {
+  border-bottom: none;
+}
+
+.pptvc-version-info {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  min-width: 0;
+  margin-right: 8px;
+}
+
+.pptvc-version-name {
+  font-weight: 600;
+  color: #323130;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pptvc-version-time {
+  margin-top: 2px;
+  color: #605e5c;
+}
+
+/* ── Empty state ── */
+
+.pptvc-empty {
+  color: #605e5c;
+  text-align: center;
+  padding: 24px 0;
+  margin: 0;
 }
