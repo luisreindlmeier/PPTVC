@@ -117,7 +117,8 @@ ul {
   font-size: 22px;
   font-weight: 400;
   color: var(--color-text);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .pptvc-subtitle {
@@ -367,12 +368,13 @@ ul {
 }
 
 .pptvc-list-title {
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   font-family: var(--font-serif);
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 400;
   color: var(--color-text-muted);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* Loading spinner */
@@ -421,22 +423,47 @@ ul {
   padding-left: 20px;
 }
 
-/* Vertical connecting line */
-.pptvc-versions-list::before {
+/* Vertical line drawn per item so it never extends beyond first/last dot.
+   Each item contributes two segments via ::before (above dot) and ::after (below dot).
+   Dot center = top:7px + 7px half = 14px from li top (header padding 7px + half 14px dot).
+   Line x-center = dot left-center: dot left -18px + 7px = -11px; line left = -12px. */
+
+/* Upper segment: top of li → dot center (connects from previous dot) */
+.pptvc-version-item::before {
   content: "";
   position: absolute;
-  top: 10px;
-  bottom: 10px;
-  left: 8px; /* center of 14px dot at list-left + 2px → center 2+7=9px; line at 8px */
+  top: 0;
+  height: 14px; /* dot center: 7px header padding + 7px half-dot */
+  left: -12px;
   width: 2px;
   background: var(--color-border);
-  border-radius: 1px;
+}
+
+/* Lower segment: dot center → bottom of li incl. margin (connects to next dot) */
+.pptvc-version-item::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: -4px; /* extend through margin-bottom:4px to reach next li top */
+  left: -12px;
+  width: 2px;
+  background: var(--color-border);
+}
+
+/* No line above first dot */
+.pptvc-version-item:first-child::before {
+  display: none;
+}
+
+/* No line below last dot */
+.pptvc-version-item:last-child::after {
+  display: none;
 }
 
 /* Timeline dot — 14px, centered on the name text line */
 .pptvc-version-dot {
   position: absolute;
-  top: 13px; /* header padding-top 9px + (20px line-height / 2) - 7px (half dot) = ~12px */
+  top: 7px; /* header padding-top 7px; dot top-aligns with padding start, center at 7+7=14px */
   left: -18px; /* dot left edge at list-left + 2px → (2 - 20) = -18px from li */
   width: 14px;
   height: 14px;
@@ -472,7 +499,7 @@ ul {
   display: flex;
   -ms-flex-align: center;
   align-items: center;
-  padding: 9px 6px 1px 10px;
+  padding: 7px 6px 0 10px;
 }
 
 .pptvc-version-name-input {
@@ -508,7 +535,7 @@ ul {
   align-items: center;
   -ms-flex-wrap: wrap;
   flex-wrap: wrap;
-  padding: 1px 6px 5px 10px;
+  padding: 0 6px 5px 10px;
   gap: 6px;
 }
 
