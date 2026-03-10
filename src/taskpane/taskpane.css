@@ -369,7 +369,7 @@ ul {
 .pptvc-list-title {
   margin: 0 0 10px;
   font-family: var(--font-serif);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 400;
   color: var(--color-text-muted);
   letter-spacing: 0.03em;
@@ -624,17 +624,15 @@ ul {
   padding: 2px 0;
 }
 
-/* Actions row */
-.pptvc-version-actions {
+/* Header right-side action group (diff + restore + delete) */
+.pptvc-version-header-actions {
   display: -ms-flexbox;
   display: flex;
   -ms-flex-align: center;
   align-items: center;
-  -ms-flex-pack: end;
-  justify-content: flex-end;
-  padding: 2px 8px 8px;
-  gap: 2px;
-  border-top: 1px solid var(--color-bg);
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+  gap: 1px;
 }
 
 /* Icon action buttons (View diff / Restore) */

@@ -223,6 +223,29 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
     }
   });
 
+  const headerActions = document.createElement("div");
+  headerActions.className = "pptvc-version-header-actions";
+
+  const viewDiffBtn = document.createElement("button");
+  viewDiffBtn.type = "button";
+  viewDiffBtn.className = "pptvc-btn-icon-action";
+  viewDiffBtn.innerHTML = ICON_DIFF;
+  viewDiffBtn.setAttribute("aria-label", "View diff");
+  viewDiffBtn.title = "View diff";
+  viewDiffBtn.addEventListener("click", () => {
+    switchScope("diff", version.id);
+  });
+
+  const restoreBtn = document.createElement("button");
+  restoreBtn.type = "button";
+  restoreBtn.className = "pptvc-btn-icon-action pptvc-btn-icon-action--restore";
+  restoreBtn.innerHTML = ICON_RESTORE;
+  restoreBtn.setAttribute("aria-label", "Restore this version");
+  restoreBtn.title = "Restore this version";
+  restoreBtn.addEventListener("click", () => {
+    void onRestoreClick(version.id, restoreBtn);
+  });
+
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
   deleteBtn.className = "pptvc-btn-icon";
@@ -230,8 +253,12 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
   deleteBtn.setAttribute("aria-label", "Delete version");
   deleteBtn.addEventListener("click", () => showDeletePopup(version.id, li));
 
+  headerActions.appendChild(viewDiffBtn);
+  headerActions.appendChild(restoreBtn);
+  headerActions.appendChild(deleteBtn);
+
   header.appendChild(nameInput);
-  header.appendChild(deleteBtn);
+  header.appendChild(headerActions);
   li.appendChild(header);
 
   // Meta row: timestamp + tags toggle
@@ -271,34 +298,6 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
   });
 
   li.appendChild(tagsRow);
-
-  // Actions row: View diff + Restore
-  const actions = document.createElement("div");
-  actions.className = "pptvc-version-actions";
-
-  const viewDiffBtn = document.createElement("button");
-  viewDiffBtn.type = "button";
-  viewDiffBtn.className = "pptvc-btn-icon-action";
-  viewDiffBtn.innerHTML = ICON_DIFF;
-  viewDiffBtn.setAttribute("aria-label", "View diff");
-  viewDiffBtn.title = "View diff";
-  viewDiffBtn.addEventListener("click", () => {
-    switchScope("diff", version.id);
-  });
-
-  const restoreBtn = document.createElement("button");
-  restoreBtn.type = "button";
-  restoreBtn.className = "pptvc-btn-icon-action pptvc-btn-icon-action--restore";
-  restoreBtn.innerHTML = ICON_RESTORE;
-  restoreBtn.setAttribute("aria-label", "Restore this version");
-  restoreBtn.title = "Restore this version";
-  restoreBtn.addEventListener("click", () => {
-    void onRestoreClick(version.id, restoreBtn);
-  });
-
-  actions.appendChild(viewDiffBtn);
-  actions.appendChild(restoreBtn);
-  li.appendChild(actions);
 
   return li;
 }
