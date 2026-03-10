@@ -425,21 +425,21 @@ ul {
 .pptvc-versions-list::before {
   content: "";
   position: absolute;
-  top: 18px;
-  bottom: 18px;
-  left: 9px;
+  top: 10px;
+  bottom: 10px;
+  left: 8px; /* center of 14px dot at list-left + 2px → center 2+7=9px; line at 8px */
   width: 2px;
   background: var(--color-border);
   border-radius: 1px;
 }
 
-/* Timeline dot (absolutely positioned relative to the list item) */
+/* Timeline dot — 14px, centered on the name text line */
 .pptvc-version-dot {
   position: absolute;
-  top: 15px;
-  left: -16px; /* centers dot on the line at list-left + 9px */
-  width: 10px;
-  height: 10px;
+  top: 13px; /* header padding-top 9px + (20px line-height / 2) - 7px (half dot) = ~12px */
+  left: -18px; /* dot left edge at list-left + 2px → (2 - 20) = -18px from li */
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--color-border);
   border: 2px solid var(--color-bg);
@@ -451,20 +451,19 @@ ul {
   border-color: var(--color-green-light);
 }
 
-/* ── Version card ── */
+/* ── Version item — no card box, flat on background ── */
 
 .pptvc-version-item {
   position: relative;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  margin-bottom: 8px;
+  margin-bottom: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
   overflow: visible;
-  transition: box-shadow 0.15s;
 }
 
-.pptvc-version-item:hover {
-  box-shadow: 0 2px 10px rgba(44, 40, 32, 0.08);
+.pptvc-version-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
 }
 
 /* Header row: name input + delete */
@@ -521,7 +520,24 @@ ul {
   flex-shrink: 0;
 }
 
-/* Tags row (inside meta) */
+/* Tags toggle button (in meta row) */
+.pptvc-tags-toggle {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: color 0.12s;
+}
+
+.pptvc-tags-toggle:hover {
+  color: var(--color-text);
+}
+
+/* Tags expandable section (below meta, hidden by default) */
 .pptvc-version-tags {
   display: -ms-flexbox;
   display: flex;
@@ -530,6 +546,7 @@ ul {
   -ms-flex-align: center;
   align-items: center;
   gap: 4px;
+  padding: 0 10px 8px;
 }
 
 .pptvc-version-tag-chip {

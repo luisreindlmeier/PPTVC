@@ -39,7 +39,7 @@ Office.onReady((info) => {
       switchScope("history");
     });
     document.getElementById("tab-diff")!.addEventListener("click", () => {
-      switchScope("diff");
+      switchScope("diff", undefined, true);
     });
 
     renderSaveTagPicker();
@@ -84,7 +84,7 @@ function formatTimestamp(timestamp: number): string {
 // ── Scope tabs ────────────────────────────────────────────────
 
 // pptvc-hidden uses !important — must use classList, not style.display
-function switchScope(scope: "history" | "diff"): void {
+function switchScope(scope: "history" | "diff", preselectedId?: string, loadIfEmpty = false): void {
   const tabHistory = getEl<HTMLButtonElement>("tab-history");
   const tabDiff = getEl<HTMLButtonElement>("tab-diff");
   const historyScope = getEl<HTMLDivElement>("history-scope");
@@ -102,6 +102,11 @@ function switchScope(scope: "history" | "diff"): void {
   } else {
     hide(historyScope);
     show(diffScope);
+    const diffContent = getEl<HTMLDivElement>("diff-content");
+    // Populate when called from "View diff" (always) or tab click when empty
+    if (preselectedId !== undefined || loadIfEmpty || !diffContent.hasChildNodes()) {
+      loadDiffScope(preselectedId);
+    }
   }
 }
 
@@ -215,7 +220,7 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
   header.appendChild(deleteBtn);
   li.appendChild(header);
 
-  // Meta row: timestamp + tags inline (max 3)
+  // Meta row: timestamp + tags toggle
   const meta = document.createElement("div");
   meta.className = "pptvc-version-meta";
 
@@ -224,12 +229,34 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
   time.textContent = formatTimestamp(version.timestamp);
   meta.appendChild(time);
 
-  const tagsRow = document.createElement("div");
-  tagsRow.className = "pptvc-version-tags";
-  renderVersionTags(version.id, tagsRow);
-  meta.appendChild(tagsRow);
+  const tagsToggle = document.createElement("button");
+  tagsToggle.type = "button";
+  tagsToggle.className = "pptvc-tags-toggle";
+  const existingTags = versionTagsMap.get(version.id) ?? [];
+  tagsToggle.textContent = existingTags.length > 0 ? `tags (${existingTags.length}) ▾` : "tags ▾";
+  meta.appendChild(tagsToggle);
 
   li.appendChild(meta);
+
+  // Tags section — hidden by default, toggled by button
+  const tagsRow = document.createElement("div");
+  tagsRow.className = "pptvc-version-tags pptvc-hidden";
+  renderVersionTags(version.id, tagsRow);
+
+  tagsToggle.addEventListener("click", () => {
+    const isOpen = !tagsRow.classList.contains("pptvc-hidden");
+    if (isOpen) {
+      hide(tagsRow);
+      const current = versionTagsMap.get(version.id) ?? [];
+      tagsToggle.textContent = current.length > 0 ? `tags (${current.length}) ▾` : "tags ▾";
+    } else {
+      renderVersionTags(version.id, tagsRow);
+      show(tagsRow);
+      tagsToggle.textContent = "tags ▴";
+    }
+  });
+
+  li.appendChild(tagsRow);
 
   // Actions row: View diff + Restore
   const actions = document.createElement("div");
@@ -240,8 +267,7 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
   viewDiffBtn.className = "pptvc-btn pptvc-btn--ghost";
   viewDiffBtn.textContent = "View diff";
   viewDiffBtn.addEventListener("click", () => {
-    loadDiffScope(version.id);
-    switchScope("diff");
+    switchScope("diff", version.id);
   });
 
   const restoreBtn = document.createElement("button");
