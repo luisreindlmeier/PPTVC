@@ -16,13 +16,13 @@
   --color-text-muted: #7a7060;
   --color-text-placeholder: #b0a898;
 
-  /* Green palette */
-  --color-green: #79ad74;
-  --color-green-hover: #669a61;
-  --color-green-active: #538050;
-  --color-green-light: #eaf3e8;
-  --color-tag-bg: #d4e8ce;
-  --color-tag-text: #3a6035;
+  /* Green palette → Brown (Kronos-inspired) */
+  --color-green: #5D4E37;
+  --color-green-hover: #6F5A45;
+  --color-green-active: #4a3d2c;
+  --color-green-light: #f0e8df;
+  --color-tag-bg: #e6d9cc;
+  --color-tag-text: #3d2f22;
 
   /* Danger — warm terracotta, stays in palette */
   --color-danger: #b87050;
@@ -216,33 +216,12 @@ ul {
    ════════════════════════════════════════════ */
 
 .pptvc-save-panel-title {
-  display: -ms-flexbox;
-  display: flex;
-  -ms-flex-align: center;
-  align-items: center;
-  gap: 6px;
-  margin: 8px 0 10px 0;
-  padding: 0 14px;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  letter-spacing: 0.02em;
-  text-transform: none;
-}
-
-.pptvc-save-panel-title::after {
-  content: "";
-  -ms-flex: 1 1 auto;
-  flex: 1 1 auto;
-  height: 1px;
-  margin-left: 8px;
-  background: var(--color-border);
+  display: none;
 }
 
 .pptvc-save-panel {
   padding: 12px 14px 10px;
-  background: var(--color-surface);
+  background: var(--color-bg);
   border: none;
   border-top: none;
   border-bottom: none;
