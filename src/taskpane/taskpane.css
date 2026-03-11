@@ -581,10 +581,17 @@ ul {
   padding-bottom: 4px;
   border-bottom: 1px solid var(--color-border);
   overflow: visible;
+}
+
+.pptvc-version-header,
+.pptvc-version-meta,
+.pptvc-version-tags {
   transition: transform 0.12s var(--ease);
 }
 
-.pptvc-version-item:hover {
+.pptvc-version-item:hover .pptvc-version-header,
+.pptvc-version-item:hover .pptvc-version-meta,
+.pptvc-version-item:hover .pptvc-version-tags {
   transform: translateX(2px);
 }
 
@@ -642,6 +649,12 @@ ul {
   margin-top: -1px;
   padding: 0 6px 4px 10px;
   gap: 6px;
+  transition: transform 0.16s var(--ease);
+  transform-origin: center;
+}
+
+.pptvc-version-item:hover .pptvc-version-dot {
+  transform: scale(1.12);
 }
 
 .pptvc-version-time {
