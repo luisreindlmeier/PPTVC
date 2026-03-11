@@ -19,6 +19,8 @@ export async function listVersions(): Promise<Version[]> {
       versions.push({
         id: metadata.id,
         name: metadata.name,
+        displayName: metadata.displayName,
+        tags: metadata.tags,
         timestamp: metadata.timestamp,
         filename: metadata.filename,
         snapshotPath,
