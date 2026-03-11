@@ -164,7 +164,7 @@ ul {
   bottom: 3px;
   width: calc((100% - 6px) / 3);
   border-radius: var(--radius-full);
-  background: var(--color-green-light);
+  background: #f0edd1;
   border: 1px solid var(--color-tag-bg);
   box-shadow: var(--shadow-subtle);
   transition: transform 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -201,10 +201,10 @@ ul {
 }
 
 @keyframes pptvc-tab-bounce {
-  0%   { transform: translateY(0) scale(1); }
-  35%  { transform: translateY(-2px) scale(1.05); }
-  70%  { transform: translateY(0.5px) scale(0.98); }
-  100% { transform: translateY(0) scale(1); }
+  0%   { transform: translateX(0) scale(1); }
+  35%  { transform: translateX(-3px) scale(1.05); }
+  70%  { transform: translateX(0.5px) scale(0.98); }
+  100% { transform: translateX(0) scale(1); }
 }
 
 .pptvc-scope-tab--bounce {
@@ -215,10 +215,37 @@ ul {
    Save panel
    ════════════════════════════════════════════ */
 
+.pptvc-save-panel-title {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 10px 0;
+  padding: 0 14px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.pptvc-save-panel-title::after {
+  content: "";
+  -ms-flex: 1 1 auto;
+  flex: 1 1 auto;
+  height: 1px;
+  margin-left: 8px;
+  background: var(--color-border);
+}
+
 .pptvc-save-panel {
   padding: 12px 14px 10px;
   background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  border: none;
+  border-top: none;
+  border-bottom: none;
   display: -ms-flexbox;
   display: flex;
   -ms-flex-direction: column;
