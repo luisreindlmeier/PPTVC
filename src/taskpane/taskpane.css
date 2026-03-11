@@ -216,7 +216,46 @@ ul {
    ════════════════════════════════════════════ */
 
 .pptvc-save-panel-title {
-  display: none;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px 0;
+  padding: 0 14px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.pptvc-save-panel-title::after {
+  content: "";
+  -ms-flex: 1 1 auto;
+  flex: 1 1 auto;
+  height: 1px;
+  margin-left: 8px;
+  background: var(--color-border);
+}
+
+.pptvc-save-count {
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 1px 6px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0;
 }
 
 .pptvc-save-panel {
@@ -492,7 +531,7 @@ ul {
 .pptvc-list-section {
   -ms-flex: 1 0 0;
   flex: 1 0 0;
-  padding: 8px 14px 20px;
+  padding: 6px 14px 20px;
 }
 
 .pptvc-list-title {
