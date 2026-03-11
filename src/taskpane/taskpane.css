@@ -1155,11 +1155,15 @@ ul {
    ════════════════════════════════════════════ */
 
 .pptvc-diff-scope {
-  padding: 14px 14px 24px;
+  padding: 8px 14px 24px;
   display: -ms-flexbox;
   display: flex;
   -ms-flex-direction: column;
   flex-direction: column;
+}
+
+.pptvc-diff-title {
+  margin-top: 2px;
 }
 
 .pptvc-workflow-scope {
@@ -1168,11 +1172,11 @@ ul {
 
 /* COMPARING section */
 .pptvc-diff-comparing {
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-  margin-bottom: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0 0 8px;
+  margin-bottom: 2px;
 }
 
 .pptvc-diff-section-label {
@@ -1207,10 +1211,10 @@ ul {
 .pptvc-diff-select {
   -ms-flex: 1 1 0;
   flex: 1 1 0;
-  padding: 5px 8px;
+  padding: 6px 9px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  background: var(--color-surface-raised);
   font-family: var(--font-sans);
   font-size: 11px;
   color: var(--color-text);
@@ -1230,48 +1234,55 @@ ul {
   flex-shrink: 0;
 }
 
-/* Summary badges */
-.pptvc-diff-summary {
+/* Summary */
+.pptvc-diff-summary-grid {
   display: -ms-flexbox;
   display: flex;
-  -ms-flex-wrap: wrap;
-  flex-wrap: wrap;
+  -ms-flex-wrap: nowrap;
+  flex-wrap: nowrap;
   gap: 6px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
-.pptvc-diff-badge {
-  display: -ms-inline-flexbox;
-  display: inline-flex;
-  -ms-flex-align: center;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 3px;
+.pptvc-diff-summary-card {
+  -ms-flex: 1 1 0;
+  flex: 1 1 0;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 8px;
+  border-radius: var(--radius-xs);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
-  font-size: 11px;
+}
+
+.pptvc-diff-summary-card--primary {
+  background: var(--color-green-light);
+  border-color: var(--color-tag-bg);
+}
+
+.pptvc-diff-summary-label {
+  font-size: 10px;
   font-weight: 500;
   font-family: var(--font-sans);
   color: var(--color-text-muted);
 }
 
-.pptvc-diff-badge--changes {
-  background: var(--color-green-light);
-  border-color: var(--color-tag-bg);
+.pptvc-diff-summary-value {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-sans);
   color: var(--color-green-active);
 }
 
 /* Changed slides list */
 .pptvc-diff-slides-section {
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-.pptvc-diff-slides-header {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
 }
 
 .pptvc-diff-slide-list {
@@ -1280,8 +1291,25 @@ ul {
   padding: 0;
 }
 
+.pptvc-diff-slide-list--timeline {
+  position: relative;
+  padding-left: 20px;
+}
+
+.pptvc-diff-slide-list--timeline::before {
+  content: "";
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  left: 8px;
+  width: 2px;
+  background: var(--color-border);
+}
+
 .pptvc-diff-slide-item {
+  position: relative;
   border-bottom: 1px solid var(--color-bg);
+  padding-bottom: 6px;
 }
 
 .pptvc-diff-slide-item:last-child {
@@ -1294,13 +1322,25 @@ ul {
   display: flex;
   -ms-flex-align: center;
   align-items: center;
-  padding: 8px 14px;
+  padding: 6px 8px 4px 8px;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: transform 0.12s var(--ease);
 }
 
 .pptvc-diff-slide-row:hover {
-  background: var(--color-surface);
+  transform: translateX(2px);
+}
+
+.pptvc-diff-slide-dot {
+  position: absolute;
+  top: 12px;
+  left: -18px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-green);
+  border: 2px solid var(--color-bg);
+  z-index: 1;
 }
 
 .pptvc-diff-slide-number {
@@ -1322,6 +1362,12 @@ ul {
   -ms-flex-negative: 0;
   flex-shrink: 0;
   margin-right: 10px;
+}
+
+.pptvc-diff-slide-meta {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  padding: 0 8px 4px 42px;
 }
 
 .pptvc-diff-slide-name {
@@ -1348,7 +1394,7 @@ ul {
 
 /* Per-slide shape changes (expandable) */
 .pptvc-diff-change-list {
-  padding: 0 14px 8px 48px;
+  padding: 0 8px 8px 42px;
 }
 
 .pptvc-diff-change-item {
@@ -1358,7 +1404,7 @@ ul {
   align-items: center;
   -ms-flex-pack: justify;
   justify-content: space-between;
-  padding: 3px 0;
+  padding: 4px 0;
   border-top: 1px solid var(--color-bg);
 }
 
