@@ -43,6 +43,7 @@ const versionNameOverrides = new Map<string, string>();
 const versionTagsMap = new Map<string, string[]>();
 let loadedVersions: Version[] = [];
 const globalSelectedSlides = new Set<number>();
+let displayedVersionId: string | null = null;
 
 // ── Boot ──────────────────────────────────────────────────────
 
@@ -350,6 +351,16 @@ async function loadVersionList(): Promise<void> {
   try {
     loadedVersions = await listVersions();
 
+    if (loadedVersions.length === 0) {
+      displayedVersionId = null;
+    } else if (
+      displayedVersionId === null ||
+      !loadedVersions.some((version) => version.id === displayedVersionId)
+    ) {
+      // Fallback to newest when no displayed version exists yet.
+      displayedVersionId = loadedVersions[0].id;
+    }
+
     // Sync in-memory state from persisted metadata
     versionNameOverrides.clear();
     versionTagsMap.clear();
@@ -364,7 +375,7 @@ async function loadVersionList(): Promise<void> {
       show(emptyEl);
     } else {
       for (const version of loadedVersions) {
-        listEl.appendChild(createVersionItem(version, loadedVersions));
+        listEl.appendChild(createVersionItem(version));
       }
     }
   } catch (err) {
@@ -390,13 +401,14 @@ function updateVersionCount(count: number): void {
 
 // ── Build version list item ───────────────────────────────────
 
-function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElement {
+function createVersionItem(version: Version): HTMLLIElement {
   const li = document.createElement("li");
   li.className = "pptvc-version-item";
+  li.dataset["versionId"] = version.id;
 
   // Timeline dot
   const dot = document.createElement("div");
-  dot.className = `pptvc-version-dot${allVersions[0].id === version.id ? " pptvc-version-dot--latest" : ""}`;
+  dot.className = `pptvc-version-dot${displayedVersionId === version.id ? " pptvc-version-dot--latest" : ""}`;
   li.appendChild(dot);
 
   // Header row: editable name + delete button
@@ -603,6 +615,18 @@ function closeAllDeletePopups(): void {
   }
 }
 
+function updateDisplayedVersionDot(): void {
+  const items = document.querySelectorAll<HTMLLIElement>(".pptvc-version-item");
+  for (const item of items) {
+    const dot = item.querySelector<HTMLDivElement>(".pptvc-version-dot");
+    if (!dot) {
+      continue;
+    }
+    const isDisplayed = item.dataset["versionId"] === displayedVersionId;
+    dot.classList.toggle("pptvc-version-dot--latest", isDisplayed);
+  }
+}
+
 // ── Delete confirm ────────────────────────────────────────────
 
 async function onDeleteConfirm(id: string, li: HTMLLIElement): Promise<void> {
@@ -612,6 +636,10 @@ async function onDeleteConfirm(id: string, li: HTMLLIElement): Promise<void> {
     loadedVersions = loadedVersions.filter((v) => v.id !== id);
     versionNameOverrides.delete(id);
     versionTagsMap.delete(id);
+    if (displayedVersionId === id) {
+      displayedVersionId = loadedVersions[0]?.id ?? null;
+      updateDisplayedVersionDot();
+    }
     updateVersionCount(loadedVersions.length);
     const listEl = getEl<HTMLUListElement>("versions-list");
     if (listEl.children.length === 0) {
@@ -832,6 +860,8 @@ async function onSaveClick(): Promise<void> {
       tags: pendingTags.length > 0 ? [...pendingTags] : [],
     });
 
+    displayedVersionId = version.id;
+
     if (customName) {
       versionNameOverrides.set(version.id, customName);
     }
@@ -870,6 +900,8 @@ async function onRestoreClick(id: string, btn: HTMLButtonElement): Promise<void>
 
   try {
     await restoreVersion(id);
+    displayedVersionId = id;
+    updateDisplayedVersionDot();
     showStatus("Restored successfully.", false);
   } catch (err) {
     showStatus(err instanceof Error ? err.message : "Failed to restore version.", true);
