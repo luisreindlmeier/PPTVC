@@ -6,4 +6,5 @@ export interface StorageAdapter {
   readBlob(path: string): Promise<Blob>;
   readJson<T>(path: string): Promise<T>;
   listDirectory(path: string): Promise<string[]>;
+  deleteDirectory(path: string): Promise<void>;
 }
