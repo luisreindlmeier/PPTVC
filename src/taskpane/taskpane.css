@@ -1028,6 +1028,15 @@ ul {
   gap: 8px;
 }
 
+.pptvc-diff-target-row {
+  margin-top: 10px;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .pptvc-diff-select {
   -ms-flex: 1 1 0;
   flex: 1 1 0;

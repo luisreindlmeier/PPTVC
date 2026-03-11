@@ -526,6 +526,42 @@ function loadDiffScope(preselectedId?: string): void {
   selectors.appendChild(arrow);
   selectors.appendChild(selectTo);
   comparing.appendChild(selectors);
+
+  const targetRow = document.createElement("div");
+  targetRow.className = "pptvc-diff-target-row";
+
+  const targetLabel = document.createElement("span");
+  targetLabel.className = "pptvc-diff-section-label";
+  targetLabel.style.marginBottom = "0";
+  targetLabel.textContent = "Scope";
+
+  const targetSelectors = document.createElement("div");
+  targetSelectors.className = "pptvc-diff-selectors";
+
+  const targetModeSelect = document.createElement("select");
+  targetModeSelect.className = "pptvc-diff-select";
+  targetModeSelect.setAttribute("aria-label", "Compare scope");
+
+  const optionPresentation = document.createElement("option");
+  optionPresentation.value = "presentation";
+  optionPresentation.textContent = "Entire presentation";
+  targetModeSelect.appendChild(optionPresentation);
+
+  const optionSingleSlide = document.createElement("option");
+  optionSingleSlide.value = "slide";
+  optionSingleSlide.textContent = "Single slide";
+  targetModeSelect.appendChild(optionSingleSlide);
+
+  const slideSelect = document.createElement("select");
+  slideSelect.className = "pptvc-diff-select";
+  slideSelect.setAttribute("aria-label", "Slide to compare");
+
+  targetSelectors.appendChild(targetModeSelect);
+  targetSelectors.appendChild(slideSelect);
+  targetRow.appendChild(targetLabel);
+  targetRow.appendChild(targetSelectors);
+  comparing.appendChild(targetRow);
+
   container.appendChild(comparing);
 
   // Summary badges
@@ -561,62 +597,132 @@ function loadDiffScope(preselectedId?: string): void {
   const slideList = document.createElement("ul");
   slideList.className = "pptvc-diff-slide-list";
 
+  type PlaceholderChange = { name: string; delta: string };
+  type PlaceholderSlide = { num: number; name: string; changes: PlaceholderChange[] };
+
   // Placeholder slides — diff engine not yet implemented
-  const placeholderSlides = [
-    { num: 1, name: "Title Slide" },
-    { num: 3, name: "Overview" },
+  const placeholderSlides: PlaceholderSlide[] = [
+    {
+      num: 1,
+      name: "Title Slide",
+      changes: [
+        { name: "Title text box", delta: "modified" },
+        { name: "Subtitle text", delta: "modified" },
+      ],
+    },
+    {
+      num: 3,
+      name: "Overview",
+      changes: [
+        { name: "Bullet list", delta: "modified" },
+        { name: "Icon group", delta: "added" },
+      ],
+    },
   ];
 
   for (const slide of placeholderSlides) {
-    const item = document.createElement("li");
-    item.className = "pptvc-diff-slide-item";
-
-    const row = document.createElement("div");
-    row.className = "pptvc-diff-slide-row";
-
-    const numBox = document.createElement("div");
-    numBox.className = "pptvc-diff-slide-number";
-    numBox.textContent = String(slide.num);
-
-    const name = document.createElement("span");
-    name.className = "pptvc-diff-slide-name";
-    name.textContent = slide.name;
-
-    const dot = document.createElement("div");
-    dot.className = "pptvc-diff-slide-indicator";
-
-    row.appendChild(numBox);
-    row.appendChild(name);
-    row.appendChild(dot);
-    item.appendChild(row);
-
-    // Placeholder shape changes
-    const changeList = document.createElement("div");
-    changeList.className = "pptvc-diff-change-list";
-
-    const changeData = [
-      { name: "Title text box", delta: "modified" },
-      { name: "Body text", delta: "modified" },
-    ];
-    for (const change of changeData) {
-      const changeItem = document.createElement("div");
-      changeItem.className = "pptvc-diff-change-item";
-
-      const changeName = document.createElement("span");
-      changeName.className = "pptvc-diff-change-name";
-      changeName.textContent = change.name;
-
-      const changeDelta = document.createElement("span");
-      changeDelta.className = "pptvc-diff-change-delta";
-      changeDelta.textContent = change.delta;
-
-      changeItem.appendChild(changeName);
-      changeItem.appendChild(changeDelta);
-      changeList.appendChild(changeItem);
-    }
-    item.appendChild(changeList);
-    slideList.appendChild(item);
+    const option = document.createElement("option");
+    option.value = String(slide.num);
+    option.textContent = `Slide ${slide.num} — ${slide.name}`;
+    slideSelect.appendChild(option);
   }
+
+  const renderDiffResults = (): void => {
+    const mode = targetModeSelect.value;
+    const selectedSlideNum = Number(slideSelect.value);
+    const visibleSlides =
+      mode === "slide"
+        ? placeholderSlides.filter((slide) => slide.num === selectedSlideNum)
+        : placeholderSlides;
+
+    const totalChanges = visibleSlides.reduce((sum, slide) => sum + slide.changes.length, 0);
+    badgeChanges.textContent = `${totalChanges} changes`;
+    badgeSlides.textContent = `${visibleSlides.length} ${visibleSlides.length === 1 ? "slide" : "slides"}`;
+
+    slideList.innerHTML = "";
+
+    if (visibleSlides.length === 0) {
+      const emptyItem = document.createElement("li");
+      emptyItem.className = "pptvc-diff-slide-item";
+      const emptyRow = document.createElement("div");
+      emptyRow.className = "pptvc-diff-slide-row";
+      const emptyText = document.createElement("span");
+      emptyText.className = "pptvc-diff-slide-name";
+      emptyText.textContent = "No detected changes for this slide.";
+      emptyRow.appendChild(emptyText);
+      emptyItem.appendChild(emptyRow);
+      slideList.appendChild(emptyItem);
+      return;
+    }
+
+    for (const slide of visibleSlides) {
+      const item = document.createElement("li");
+      item.className = "pptvc-diff-slide-item";
+
+      const row = document.createElement("div");
+      row.className = "pptvc-diff-slide-row";
+
+      const numBox = document.createElement("div");
+      numBox.className = "pptvc-diff-slide-number";
+      numBox.textContent = String(slide.num);
+
+      const name = document.createElement("span");
+      name.className = "pptvc-diff-slide-name";
+      name.textContent = slide.name;
+
+      const dot = document.createElement("div");
+      dot.className = "pptvc-diff-slide-indicator";
+
+      row.appendChild(numBox);
+      row.appendChild(name);
+      row.appendChild(dot);
+      item.appendChild(row);
+
+      const changeList = document.createElement("div");
+      changeList.className = "pptvc-diff-change-list";
+
+      for (const change of slide.changes) {
+        const changeItem = document.createElement("div");
+        changeItem.className = "pptvc-diff-change-item";
+
+        const changeName = document.createElement("span");
+        changeName.className = "pptvc-diff-change-name";
+        changeName.textContent = change.name;
+
+        const changeDelta = document.createElement("span");
+        changeDelta.className = "pptvc-diff-change-delta";
+        changeDelta.textContent = change.delta;
+
+        changeItem.appendChild(changeName);
+        changeItem.appendChild(changeDelta);
+        changeList.appendChild(changeItem);
+      }
+
+      item.appendChild(changeList);
+      slideList.appendChild(item);
+    }
+  };
+
+  const syncTargetControls = (): void => {
+    const isSlideMode = targetModeSelect.value === "slide";
+    slideSelect.disabled = !isSlideMode;
+    slideSelect.classList.toggle("pptvc-hidden", !isSlideMode);
+  };
+
+  targetModeSelect.addEventListener("change", () => {
+    syncTargetControls();
+    renderDiffResults();
+  });
+  slideSelect.addEventListener("change", renderDiffResults);
+  selectFrom.addEventListener("change", renderDiffResults);
+  selectTo.addEventListener("change", renderDiffResults);
+
+  targetModeSelect.value = "presentation";
+  if (slideSelect.options.length > 0) {
+    slideSelect.value = slideSelect.options[0].value;
+  }
+  syncTargetControls();
+  renderDiffResults();
 
   slidesSection.appendChild(slideList);
   container.appendChild(slidesSection);
