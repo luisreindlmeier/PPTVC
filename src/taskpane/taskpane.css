@@ -215,13 +215,13 @@ ul {
    Save panel
    ════════════════════════════════════════════ */
 
-.pptvc-save-panel-title {
+.pptvc-section-title {
   display: -ms-flexbox;
   display: flex;
   -ms-flex-align: center;
   align-items: center;
   gap: 6px;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   padding: 0;
   font-family: var(--font-sans);
   font-size: 14px;
@@ -229,6 +229,10 @@ ul {
   color: var(--color-text-muted);
   letter-spacing: 0.02em;
   text-transform: none;
+}
+
+.pptvc-save-panel-title {
+  /* Uses shared .pptvc-section-title formatting */
 }
 
 .pptvc-save-panel-title::after {
@@ -521,18 +525,7 @@ ul {
 }
 
 .pptvc-list-title {
-  display: -ms-flexbox;
-  display: flex;
-  -ms-flex-align: center;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 8px;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  letter-spacing: 0.02em;
-  text-transform: none;
+  /* Uses shared .pptvc-section-title formatting */
 }
 
 .pptvc-list-title::after {
