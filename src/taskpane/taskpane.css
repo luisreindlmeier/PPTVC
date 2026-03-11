@@ -833,7 +833,7 @@ ul {
   font-weight: 600;
   line-height: 1.2;
   color: var(--color-text);
-  padding: 0;
+  padding: 2px 8px;
   border-radius: var(--radius-xs);
   min-width: 0;
   outline: none;
@@ -1039,8 +1039,8 @@ ul {
 .pptvc-delete-popup__actions {
   display: -ms-flexbox;
   display: flex;
-  -ms-flex-pack: end;
-  justify-content: flex-end;
+  -ms-flex-pack: center;
+  justify-content: center;
   gap: 6px;
 }
 

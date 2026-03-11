@@ -66,6 +66,12 @@ Office.onReady((info) => {
 
     const slideScopeBtn = getEl<HTMLButtonElement>("btn-slide-scope");
     const slideScopePanel = getEl<HTMLDivElement>("slide-scope-panel");
+    const closeSlideScopeDropdown = (): void => {
+      slideScopePanel.classList.remove("pptvc-slide-scope-panel--open");
+      slideScopeBtn.classList.remove("pptvc-slide-scope-btn--open");
+      slideScopeBtn.setAttribute("aria-expanded", "false");
+    };
+
     slideScopeBtn.addEventListener("click", () => {
       const isOpen = slideScopePanel.classList.contains("pptvc-slide-scope-panel--open");
       slideScopeBtn.setAttribute("aria-expanded", String(!isOpen));
@@ -80,10 +86,23 @@ Office.onReady((info) => {
       }
       const scopeWrapper = target.closest(".pptvc-slide-scope");
       if (!scopeWrapper) {
-        slideScopePanel.classList.remove("pptvc-slide-scope-panel--open");
-        slideScopeBtn.classList.remove("pptvc-slide-scope-btn--open");
-        slideScopeBtn.setAttribute("aria-expanded", "false");
+        closeSlideScopeDropdown();
       }
+
+      const insideDeletePopup = target.closest(".pptvc-delete-popup");
+      const onDeleteTrigger = target.closest(".pptvc-delete-trigger");
+      if (!insideDeletePopup && !onDeleteTrigger) {
+        closeAllDeletePopups();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      closeSlideScopeDropdown();
+      closeAllDeletePopups();
     });
 
     const tagDropdownBtn = getEl<HTMLButtonElement>("btn-tag-dropdown");
@@ -424,7 +443,7 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
 
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
-  deleteBtn.className = "pptvc-btn-icon";
+  deleteBtn.className = "pptvc-btn-icon pptvc-delete-trigger";
   deleteBtn.textContent = "✕";
   deleteBtn.setAttribute("aria-label", "Delete version");
   deleteBtn.addEventListener("click", () => showDeletePopup(version.id, li));
@@ -536,6 +555,8 @@ function renderVersionTags(id: string, container: HTMLDivElement): void {
 // ── Delete popup ──────────────────────────────────────────────
 
 function showDeletePopup(id: string, li: HTMLLIElement): void {
+  closeAllDeletePopups();
+
   const existing = li.querySelector(".pptvc-delete-popup");
   if (existing) {
     existing.remove();
@@ -573,6 +594,13 @@ function showDeletePopup(id: string, li: HTMLLIElement): void {
   popup.appendChild(msg);
   popup.appendChild(actionsRow);
   li.appendChild(popup);
+}
+
+function closeAllDeletePopups(): void {
+  const popups = document.querySelectorAll<HTMLElement>(".pptvc-delete-popup");
+  for (const popup of popups) {
+    popup.remove();
+  }
 }
 
 // ── Delete confirm ────────────────────────────────────────────
