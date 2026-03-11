@@ -301,7 +301,7 @@ ul {
   display: -ms-flexbox;
   display: flex;
   background: transparent;
-  border: 1px solid var(--color-border);
+  border: none;
   border-radius: var(--radius-full);
   padding: 3px;
 }
@@ -335,13 +335,15 @@ ul {
   font-weight: 500;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: color 0.2s var(--ease);
+  transition:
+    color 0.2s var(--ease),
+    font-size 0.14s var(--ease);
   letter-spacing: 0.01em;
   text-align: center;
 }
 
 .pptvc-scope-tab:hover {
-  color: var(--color-text);
+  font-size: 12.3px;
 }
 
 .pptvc-scope-tab--active {
