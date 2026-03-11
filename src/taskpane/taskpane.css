@@ -144,7 +144,7 @@ ul {
 .pptvc-scope-bar {
   padding: 8px 12px;
   background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: none;
 }
 
 .pptvc-scope-bar__track {
@@ -245,7 +245,7 @@ ul {
 }
 
 .pptvc-save-panel {
-  padding: 12px 14px 10px;
+  padding: 6px 14px 10px;
   background: var(--color-bg);
   border: none;
   border-top: none;
