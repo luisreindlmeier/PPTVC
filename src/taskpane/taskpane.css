@@ -464,11 +464,20 @@ ul {
   gap: 6px;
   margin: 0 0 8px;
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-muted);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.pptvc-list-title::after {
+  content: "";
+  -ms-flex: 1 1 auto;
+  flex: 1 1 auto;
+  height: 1px;
+  margin-left: 8px;
+  background: var(--color-border);
 }
 
 /* Count badge */
@@ -536,41 +545,14 @@ ul {
   padding-left: 20px;
 }
 
-/* Vertical line drawn per item so it never extends beyond first/last dot.
-   Each item contributes two segments via ::before (above dot) and ::after (below dot).
-   Dot center = top:7px + 7px half = 14px from li top (header padding 7px + half 14px dot).
-   Line x-center = dot left-center: dot left -18px + 7px = -11px; line left = -12px. */
-
-/* Upper segment: top of li → dot center (connects from previous dot) */
-.pptvc-version-item::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  height: 21px; /* dot center: header pad 7px + (28px btn row - 20px name) / 2 + 10px half-text = 21px */
-  left: -12px;
-  width: 2px;
-  background: var(--color-border);
-}
-
-/* Lower segment: dot center → bottom of li incl. margin (connects to next dot) */
-.pptvc-version-item::after {
+.pptvc-versions-list::before {
   content: "";
   position: absolute;
   top: 21px;
-  bottom: -4px; /* extend through margin-bottom:4px to reach next li top */
+  bottom: 14px;
   left: -12px;
   width: 2px;
   background: var(--color-border);
-}
-
-/* No line above first dot */
-.pptvc-version-item:first-child::before {
-  display: none;
-}
-
-/* No line below last dot */
-.pptvc-version-item:last-child::after {
-  display: none;
 }
 
 /* Timeline dot — 14px, centered on the name text line */
@@ -591,27 +573,18 @@ ul {
   border-color: var(--color-green-light);
 }
 
-/* ── Version item — card, Kronos-style ── */
+/* ── Version item — flat (no card box) ── */
 
 .pptvc-version-item {
   position: relative;
-  margin-bottom: 8px;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-subtle), var(--shadow-inset-highlight);
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--color-border);
   overflow: visible;
-  transition:
-    box-shadow 0.2s var(--ease),
-    transform 0.15s var(--ease);
-}
-
-.pptvc-version-item:hover {
-  box-shadow: var(--shadow-card), var(--shadow-inset-highlight);
-  transform: translateY(-1px);
 }
 
 .pptvc-version-item:last-child {
+  border-bottom: none;
   margin-bottom: 0;
 }
 
@@ -621,7 +594,7 @@ ul {
   display: flex;
   -ms-flex-align: center;
   align-items: center;
-  padding: 7px 6px 0 10px;
+  padding: 6px 6px 0 10px;
 }
 
 .pptvc-version-name-input {
@@ -632,6 +605,7 @@ ul {
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
+  line-height: 1.2;
   color: var(--color-text);
   padding: 0;
   border-radius: var(--radius-xs);
@@ -657,7 +631,8 @@ ul {
   align-items: center;
   -ms-flex-wrap: wrap;
   flex-wrap: wrap;
-  padding: 0 6px 5px 10px;
+  margin-top: -1px;
+  padding: 0 6px 4px 10px;
   gap: 6px;
 }
 
