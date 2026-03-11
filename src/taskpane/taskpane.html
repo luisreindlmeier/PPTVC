@@ -40,17 +40,62 @@
     <main id="app-body" class="pptvc-app pptvc-hidden">
       <!-- ── Header ── -->
       <header class="pptvc-header">
-        <h1 class="pptvc-title">PPTVC</h1>
-        <p class="pptvc-subtitle">Version Control for PowerPoint</p>
+        <div class="pptvc-header-main">
+          <h1 class="pptvc-title">PPTVC</h1>
+          <p class="pptvc-subtitle">Version Control for PowerPoint</p>
+        </div>
+        <div class="pptvc-slide-scope">
+          <button
+            id="btn-slide-scope"
+            type="button"
+            class="pptvc-slide-scope-btn"
+            aria-label="Slide comparison scope"
+            aria-expanded="false"
+          >
+            Presentation
+          </button>
+          <div
+            id="slide-scope-panel"
+            class="pptvc-slide-scope-panel pptvc-hidden"
+            role="group"
+            aria-label="Slides to compare"
+          >
+            <div id="slide-scope-options" class="pptvc-slide-scope-options"></div>
+          </div>
+        </div>
       </header>
 
       <!-- ── Tabs: History / Diff / Workflow ── -->
       <div class="pptvc-scope-bar">
         <div class="pptvc-scope-bar__track" role="tablist" aria-label="View">
           <div class="pptvc-scope-bar__indicator" id="scope-indicator"></div>
-          <button type="button" role="tab" id="tab-history" class="pptvc-scope-tab pptvc-scope-tab--active" aria-selected="true">History</button>
-          <button type="button" role="tab" id="tab-diff" class="pptvc-scope-tab" aria-selected="false">Diff</button>
-          <button type="button" role="tab" id="tab-workflow" class="pptvc-scope-tab" aria-selected="false">Workflow</button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-history"
+            class="pptvc-scope-tab pptvc-scope-tab--active"
+            aria-selected="true"
+          >
+            History
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-diff"
+            class="pptvc-scope-tab"
+            aria-selected="false"
+          >
+            Diff
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-workflow"
+            class="pptvc-scope-tab"
+            aria-selected="false"
+          >
+            Workflow
+          </button>
         </div>
       </div>
 
@@ -78,12 +123,24 @@
               aria-label="Add tags"
               aria-expanded="false"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true"><path d="M0 0l5 6 5-6H0z"/></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 10 6"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M0 0l5 6 5-6H0z" />
+              </svg>
             </button>
           </div>
 
           <!-- Collapsible tag picker -->
-          <div id="save-tags-panel" class="pptvc-save-tags-panel pptvc-hidden" role="group" aria-label="Tags">
+          <div
+            id="save-tags-panel"
+            class="pptvc-save-tags-panel pptvc-hidden"
+            role="group"
+            aria-label="Tags"
+          >
             <div id="save-tag-picker" class="pptvc-save-tag-picker"></div>
           </div>
 

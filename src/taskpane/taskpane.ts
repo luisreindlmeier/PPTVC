@@ -30,6 +30,28 @@ const ICON_VERSIONS = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewB
 const ICON_RESTORE = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" /></svg>`;
 const ICON_TAG = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.595.45a18.634 18.634 0 0 0 5.652-4.475 1.876 1.876 0 0 0-.45-2.594L10.455 3.659A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>`;
 
+type PlaceholderChange = { name: string; delta: string };
+type PlaceholderSlide = { num: number; name: string; changes: PlaceholderChange[] };
+
+const PLACEHOLDER_SLIDES: PlaceholderSlide[] = [
+  {
+    num: 1,
+    name: "Title Slide",
+    changes: [
+      { name: "Title text box", delta: "modified" },
+      { name: "Subtitle text", delta: "modified" },
+    ],
+  },
+  {
+    num: 3,
+    name: "Overview",
+    changes: [
+      { name: "Bullet list", delta: "modified" },
+      { name: "Icon group", delta: "added" },
+    ],
+  },
+];
+
 // ── In-memory state ───────────────────────────────────────────
 // Names and tags are UI-only for now — backend persistence coming soon.
 
@@ -37,6 +59,7 @@ const pendingTags: PresetTag[] = [];
 const versionNameOverrides = new Map<string, string>();
 const versionTagsMap = new Map<string, PresetTag[]>();
 let loadedVersions: Version[] = [];
+const globalSelectedSlides = new Set<number>();
 
 // ── Boot ──────────────────────────────────────────────────────
 
@@ -58,6 +81,30 @@ Office.onReady((info) => {
       switchScope("workflow");
     });
 
+    const slideScopeBtn = getEl<HTMLButtonElement>("btn-slide-scope");
+    const slideScopePanel = getEl<HTMLDivElement>("slide-scope-panel");
+    slideScopeBtn.addEventListener("click", () => {
+      const isOpen = !slideScopePanel.classList.contains("pptvc-hidden");
+      slideScopeBtn.setAttribute("aria-expanded", String(!isOpen));
+      if (isOpen) {
+        hide(slideScopePanel);
+      } else {
+        show(slideScopePanel);
+      }
+    });
+
+    document.addEventListener("click", (event) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) {
+        return;
+      }
+      const scopeWrapper = target.closest(".pptvc-slide-scope");
+      if (!scopeWrapper) {
+        hide(slideScopePanel);
+        slideScopeBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+
     const tagDropdownBtn = getEl<HTMLButtonElement>("btn-tag-dropdown");
     const tagPanel = getEl<HTMLDivElement>("save-tags-panel");
     tagDropdownBtn.addEventListener("click", () => {
@@ -77,6 +124,7 @@ Office.onReady((info) => {
       saveNameInput.dataset["dirty"] = "1";
     });
 
+    initializeGlobalSlideScopePicker();
     renderSaveTagPicker();
     void loadVersionList();
   }
@@ -121,6 +169,64 @@ function formatTimestamp(timestamp: number): string {
 function setTagsToggleLabel(btn: HTMLButtonElement, count: number): void {
   const label = count > 0 ? `Tags (${count})` : `Tags`;
   btn.innerHTML = `${ICON_TAG}<span>${label}</span>`;
+}
+
+function initializeGlobalSlideScopePicker(): void {
+  globalSelectedSlides.clear();
+  for (const slide of PLACEHOLDER_SLIDES) {
+    globalSelectedSlides.add(slide.num);
+  }
+  renderGlobalSlideScopeOptions();
+  updateGlobalSlideScopeLabel();
+}
+
+function isGlobalPresentationSelected(): boolean {
+  return globalSelectedSlides.size >= PLACEHOLDER_SLIDES.length;
+}
+
+function updateGlobalSlideScopeLabel(): void {
+  const btn = getEl<HTMLButtonElement>("btn-slide-scope");
+  if (isGlobalPresentationSelected()) {
+    btn.textContent = "Presentation";
+    return;
+  }
+  btn.textContent = `${globalSelectedSlides.size} Slides`;
+}
+
+function renderGlobalSlideScopeOptions(): void {
+  const options = getEl<HTMLDivElement>("slide-scope-options");
+  options.innerHTML = "";
+
+  for (const slide of PLACEHOLDER_SLIDES) {
+    const isSelected = globalSelectedSlides.has(slide.num);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `pptvc-slide-scope-option${isSelected ? " pptvc-slide-scope-option--selected" : ""}`;
+    btn.textContent = `${isSelected ? "[x]" : "[ ]"} Slide ${slide.num} - ${slide.name}`;
+    btn.addEventListener("click", () => {
+      if (globalSelectedSlides.has(slide.num)) {
+        globalSelectedSlides.delete(slide.num);
+      } else {
+        globalSelectedSlides.add(slide.num);
+      }
+
+      // Empty selection falls back to full presentation.
+      if (globalSelectedSlides.size === 0) {
+        for (const s of PLACEHOLDER_SLIDES) {
+          globalSelectedSlides.add(s.num);
+        }
+      }
+
+      renderGlobalSlideScopeOptions();
+      updateGlobalSlideScopeLabel();
+
+      const diffScope = getEl<HTMLDivElement>("diff-scope");
+      if (!diffScope.classList.contains("pptvc-hidden")) {
+        loadDiffScope();
+      }
+    });
+    options.appendChild(btn);
+  }
 }
 
 // ── Scope tabs ────────────────────────────────────────────────
@@ -527,41 +633,6 @@ function loadDiffScope(preselectedId?: string): void {
   selectors.appendChild(selectTo);
   comparing.appendChild(selectors);
 
-  const targetRow = document.createElement("div");
-  targetRow.className = "pptvc-diff-target-row";
-
-  const targetLabel = document.createElement("span");
-  targetLabel.className = "pptvc-diff-section-label";
-  targetLabel.style.marginBottom = "0";
-  targetLabel.textContent = "Scope";
-
-  const targetSelectors = document.createElement("div");
-  targetSelectors.className = "pptvc-diff-selectors";
-
-  const targetModeSelect = document.createElement("select");
-  targetModeSelect.className = "pptvc-diff-select";
-  targetModeSelect.setAttribute("aria-label", "Compare scope");
-
-  const optionPresentation = document.createElement("option");
-  optionPresentation.value = "presentation";
-  optionPresentation.textContent = "Entire presentation";
-  targetModeSelect.appendChild(optionPresentation);
-
-  const optionSingleSlide = document.createElement("option");
-  optionSingleSlide.value = "slide";
-  optionSingleSlide.textContent = "Single slide";
-  targetModeSelect.appendChild(optionSingleSlide);
-
-  const slideSelect = document.createElement("select");
-  slideSelect.className = "pptvc-diff-select";
-  slideSelect.setAttribute("aria-label", "Slide to compare");
-
-  targetSelectors.appendChild(targetModeSelect);
-  targetSelectors.appendChild(slideSelect);
-  targetRow.appendChild(targetLabel);
-  targetRow.appendChild(targetSelectors);
-  comparing.appendChild(targetRow);
-
   container.appendChild(comparing);
 
   // Summary badges
@@ -597,43 +668,10 @@ function loadDiffScope(preselectedId?: string): void {
   const slideList = document.createElement("ul");
   slideList.className = "pptvc-diff-slide-list";
 
-  type PlaceholderChange = { name: string; delta: string };
-  type PlaceholderSlide = { num: number; name: string; changes: PlaceholderChange[] };
-
-  // Placeholder slides — diff engine not yet implemented
-  const placeholderSlides: PlaceholderSlide[] = [
-    {
-      num: 1,
-      name: "Title Slide",
-      changes: [
-        { name: "Title text box", delta: "modified" },
-        { name: "Subtitle text", delta: "modified" },
-      ],
-    },
-    {
-      num: 3,
-      name: "Overview",
-      changes: [
-        { name: "Bullet list", delta: "modified" },
-        { name: "Icon group", delta: "added" },
-      ],
-    },
-  ];
-
-  for (const slide of placeholderSlides) {
-    const option = document.createElement("option");
-    option.value = String(slide.num);
-    option.textContent = `Slide ${slide.num} — ${slide.name}`;
-    slideSelect.appendChild(option);
-  }
-
   const renderDiffResults = (): void => {
-    const mode = targetModeSelect.value;
-    const selectedSlideNum = Number(slideSelect.value);
-    const visibleSlides =
-      mode === "slide"
-        ? placeholderSlides.filter((slide) => slide.num === selectedSlideNum)
-        : placeholderSlides;
+    const visibleSlides = isGlobalPresentationSelected()
+      ? PLACEHOLDER_SLIDES
+      : PLACEHOLDER_SLIDES.filter((slide) => globalSelectedSlides.has(slide.num));
 
     const totalChanges = visibleSlides.reduce((sum, slide) => sum + slide.changes.length, 0);
     badgeChanges.textContent = `${totalChanges} changes`;
@@ -702,26 +740,9 @@ function loadDiffScope(preselectedId?: string): void {
       slideList.appendChild(item);
     }
   };
-
-  const syncTargetControls = (): void => {
-    const isSlideMode = targetModeSelect.value === "slide";
-    slideSelect.disabled = !isSlideMode;
-    slideSelect.classList.toggle("pptvc-hidden", !isSlideMode);
-  };
-
-  targetModeSelect.addEventListener("change", () => {
-    syncTargetControls();
-    renderDiffResults();
-  });
-  slideSelect.addEventListener("change", renderDiffResults);
   selectFrom.addEventListener("change", renderDiffResults);
   selectTo.addEventListener("change", renderDiffResults);
 
-  targetModeSelect.value = "presentation";
-  if (slideSelect.options.length > 0) {
-    slideSelect.value = slideSelect.options[0].value;
-  }
-  syncTargetControls();
   renderDiffResults();
 
   slidesSection.appendChild(slideList);
