@@ -680,7 +680,7 @@ ul {
 .pptvc-list-section {
   -ms-flex: 1 0 0;
   flex: 1 0 0;
-  padding: 2px 14px 16px;
+  padding: 5px 14px 16px;
 }
 
 .pptvc-list-title {
@@ -814,6 +814,16 @@ ul {
 .pptvc-version-item:last-child {
   border-bottom: none;
   margin-bottom: 0;
+}
+
+.pptvc-version-item--newer {
+  opacity: 0.52;
+}
+
+.pptvc-version-item--newer .pptvc-version-name-input,
+.pptvc-version-item--newer .pptvc-version-time,
+.pptvc-version-item--newer .pptvc-tags-toggle {
+  color: var(--color-text-muted);
 }
 
 /* Header row: name input + delete */

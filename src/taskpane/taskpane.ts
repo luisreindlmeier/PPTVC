@@ -615,6 +615,20 @@ function closeAllDeletePopups(): void {
   }
 }
 
+function isVersionNewerThanDisplayed(versionId: string): boolean {
+  if (!displayedVersionId) {
+    return false;
+  }
+
+  const displayedVersion = loadedVersions.find((version) => version.id === displayedVersionId);
+  const version = loadedVersions.find((item) => item.id === versionId);
+  if (!displayedVersion || !version) {
+    return false;
+  }
+
+  return version.timestamp > displayedVersion.timestamp;
+}
+
 function updateDisplayedVersionDot(): void {
   const items = document.querySelectorAll<HTMLLIElement>(".pptvc-version-item");
   for (const item of items) {
@@ -622,8 +636,11 @@ function updateDisplayedVersionDot(): void {
     if (!dot) {
       continue;
     }
-    const isDisplayed = item.dataset["versionId"] === displayedVersionId;
+    const versionId = item.dataset["versionId"];
+    const isDisplayed = versionId === displayedVersionId;
+    const isNewer = versionId ? isVersionNewerThanDisplayed(versionId) : false;
     dot.classList.toggle("pptvc-version-dot--latest", isDisplayed);
+    item.classList.toggle("pptvc-version-item--newer", isNewer);
   }
 }
 
