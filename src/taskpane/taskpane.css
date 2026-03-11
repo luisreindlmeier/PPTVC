@@ -550,7 +550,7 @@ ul {
   position: absolute;
   top: 21px;
   bottom: 14px;
-  left: -12px;
+  left: 8px;
   width: 2px;
   background: var(--color-border);
 }
@@ -611,7 +611,10 @@ ul {
   border-radius: var(--radius-xs);
   min-width: 0;
   outline: none;
-  transition: background 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s,
+    text-shadow 0.12s;
 }
 
 .pptvc-version-name-input:hover {
@@ -642,6 +645,18 @@ ul {
   font-family: var(--font-sans);
   -ms-flex-negative: 0;
   flex-shrink: 0;
+  transition:
+    color 0.12s,
+    text-shadow 0.12s;
+}
+
+.pptvc-version-item:hover .pptvc-version-name-input {
+  color: #1f1c17;
+  text-shadow: 0 0 0.01px rgba(31, 28, 23, 0.4);
+}
+
+.pptvc-version-item:hover .pptvc-version-time {
+  color: #6f6556;
 }
 
 /* Tags toggle — styled like a tag chip but green-outlined */
