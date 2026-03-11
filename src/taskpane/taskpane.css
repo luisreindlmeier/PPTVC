@@ -820,7 +820,7 @@ ul {
   display: flex;
   -ms-flex-align: center;
   align-items: center;
-  padding: 6px 6px 0 10px;
+  padding: 6px 6px 0 6px;
 }
 
 .pptvc-version-name-input {
@@ -833,7 +833,7 @@ ul {
   font-weight: 600;
   line-height: 1.2;
   color: var(--color-text);
-  padding: 2px 8px;
+  padding: 2px 6px;
   border-radius: var(--radius-xs);
   min-width: 0;
   outline: none;
@@ -861,7 +861,7 @@ ul {
   -ms-flex-wrap: wrap;
   flex-wrap: wrap;
   margin-top: -1px;
-  padding: 0 6px 4px 10px;
+  padding: 0 6px 4px 12px;
   gap: 6px;
   transition: transform 0.16s var(--ease);
   transform-origin: center;
