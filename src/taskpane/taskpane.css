@@ -156,16 +156,24 @@ ul {
 }
 
 .pptvc-slide-scope-btn {
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -ms-flex-align: center;
+  align-items: center;
+  gap: 6px;
+  min-width: 96px;
+  height: 24px;
   border: 1px solid var(--color-border);
-  background: var(--color-surface-raised);
-  color: var(--color-text-muted);
-  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--color-text);
+  border-radius: 12px;
   font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 500;
-  padding: 4px 9px;
+  padding: 4px 10px;
   cursor: pointer;
   transition:
+    transform 0.15s var(--ease),
     border-color 0.15s var(--ease),
     color 0.15s var(--ease);
 }
@@ -173,19 +181,45 @@ ul {
 .pptvc-slide-scope-btn:hover {
   border-color: var(--color-border-focus);
   color: var(--color-text);
+  transform: translateY(-1px);
+}
+
+.pptvc-slide-scope-btn:active {
+  transform: translateY(0);
+}
+
+.pptvc-slide-scope-btn--open .pptvc-slide-scope-arrow {
+  transform: rotate(180deg);
+}
+
+.pptvc-slide-scope-arrow {
+  color: var(--color-text-muted);
+  transition: transform 0.15s var(--ease);
 }
 
 .pptvc-slide-scope-panel {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 188px;
-  background: var(--color-surface-raised);
+  min-width: 210px;
+  background: rgba(255, 255, 255, 0.95);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-card);
-  padding: 6px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-elevated);
+  padding: 4px;
   z-index: 30;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: all 0.16s var(--ease);
+}
+
+.pptvc-slide-scope-panel--open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
 }
 
 .pptvc-slide-scope-options {
@@ -197,26 +231,59 @@ ul {
 }
 
 .pptvc-slide-scope-option {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  width: 100%;
   border: 1px solid transparent;
+  border-bottom: 1px solid var(--color-border);
   background: transparent;
   color: var(--color-text-muted);
   border-radius: var(--radius-xs);
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 500;
   text-align: left;
-  padding: 4px 6px;
+  padding: 5px 8px;
   cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+
+.pptvc-slide-scope-option:first-child {
+  border-top-left-radius: calc(var(--radius) - 1px);
+  border-top-right-radius: calc(var(--radius) - 1px);
+}
+
+.pptvc-slide-scope-option:last-child {
+  border-bottom-left-radius: calc(var(--radius) - 1px);
+  border-bottom-right-radius: calc(var(--radius) - 1px);
+  border-bottom: none;
 }
 
 .pptvc-slide-scope-option:hover {
-  border-color: var(--color-border);
+  background: var(--color-green-light);
+  border-color: var(--color-tag-bg);
   color: var(--color-text);
+  transform: translateX(2px);
 }
 
 .pptvc-slide-scope-option--selected {
   background: var(--color-green-light);
   border-color: var(--color-tag-bg);
   color: var(--color-green-active);
+}
+
+.pptvc-slide-scope-check {
+  opacity: 0;
+  color: var(--color-green-active);
+  transition: opacity 0.15s var(--ease);
+}
+
+.pptvc-slide-scope-option--selected .pptvc-slide-scope-check {
+  opacity: 1;
 }
 
 /* ════════════════════════════════════════════

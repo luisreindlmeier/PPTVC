@@ -29,6 +29,7 @@ const ICON_DIFF = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="
 const ICON_VERSIONS = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`;
 const ICON_RESTORE = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" /></svg>`;
 const ICON_TAG = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.595.45a18.634 18.634 0 0 0 5.652-4.475 1.876 1.876 0 0 0-.45-2.594L10.455 3.659A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>`;
+const ICON_CHECK = `<svg class="pptvc-slide-scope-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"></polyline></svg>`;
 
 type PlaceholderChange = { name: string; delta: string };
 type PlaceholderSlide = { num: number; name: string; changes: PlaceholderChange[] };
@@ -84,13 +85,10 @@ Office.onReady((info) => {
     const slideScopeBtn = getEl<HTMLButtonElement>("btn-slide-scope");
     const slideScopePanel = getEl<HTMLDivElement>("slide-scope-panel");
     slideScopeBtn.addEventListener("click", () => {
-      const isOpen = !slideScopePanel.classList.contains("pptvc-hidden");
+      const isOpen = slideScopePanel.classList.contains("pptvc-slide-scope-panel--open");
       slideScopeBtn.setAttribute("aria-expanded", String(!isOpen));
-      if (isOpen) {
-        hide(slideScopePanel);
-      } else {
-        show(slideScopePanel);
-      }
+      slideScopePanel.classList.toggle("pptvc-slide-scope-panel--open", !isOpen);
+      slideScopeBtn.classList.toggle("pptvc-slide-scope-btn--open", !isOpen);
     });
 
     document.addEventListener("click", (event) => {
@@ -100,7 +98,8 @@ Office.onReady((info) => {
       }
       const scopeWrapper = target.closest(".pptvc-slide-scope");
       if (!scopeWrapper) {
-        hide(slideScopePanel);
+        slideScopePanel.classList.remove("pptvc-slide-scope-panel--open");
+        slideScopeBtn.classList.remove("pptvc-slide-scope-btn--open");
         slideScopeBtn.setAttribute("aria-expanded", "false");
       }
     });
@@ -185,12 +184,12 @@ function isGlobalPresentationSelected(): boolean {
 }
 
 function updateGlobalSlideScopeLabel(): void {
-  const btn = getEl<HTMLButtonElement>("btn-slide-scope");
+  const labelEl = getEl<HTMLSpanElement>("slide-scope-label");
   if (isGlobalPresentationSelected()) {
-    btn.textContent = "Presentation";
+    labelEl.textContent = "Presentation";
     return;
   }
-  btn.textContent = `${globalSelectedSlides.size} Slides`;
+  labelEl.textContent = `${globalSelectedSlides.size} Slides`;
 }
 
 function renderGlobalSlideScopeOptions(): void {
@@ -202,7 +201,7 @@ function renderGlobalSlideScopeOptions(): void {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = `pptvc-slide-scope-option${isSelected ? " pptvc-slide-scope-option--selected" : ""}`;
-    btn.textContent = `${isSelected ? "[x]" : "[ ]"} Slide ${slide.num} - ${slide.name}`;
+    btn.innerHTML = `<span>Slide ${slide.num} - ${slide.name}</span>${ICON_CHECK}`;
     btn.addEventListener("click", () => {
       if (globalSelectedSlides.has(slide.num)) {
         globalSelectedSlides.delete(slide.num);
