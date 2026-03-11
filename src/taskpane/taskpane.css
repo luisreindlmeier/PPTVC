@@ -222,7 +222,7 @@ ul {
   align-items: center;
   gap: 6px;
   margin: 0 0 8px;
-  padding: 0 14px;
+  padding: 0;
   font-family: var(--font-sans);
   font-size: 14px;
   font-weight: 600;
