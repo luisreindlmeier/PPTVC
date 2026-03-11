@@ -45,34 +45,13 @@
       </header>
 
       <!-- ── Tabs: History / Diff / Workflow ── -->
-      <div class="pptvc-scope-bar" role="tablist" aria-label="View">
-        <button
-          type="button"
-          role="tab"
-          id="tab-history"
-          class="pptvc-scope-tab pptvc-scope-tab--active"
-          aria-selected="true"
-        >
-          History
-        </button>
-        <button
-          type="button"
-          role="tab"
-          id="tab-diff"
-          class="pptvc-scope-tab"
-          aria-selected="false"
-        >
-          Diff
-        </button>
-        <button
-          type="button"
-          role="tab"
-          id="tab-workflow"
-          class="pptvc-scope-tab"
-          aria-selected="false"
-        >
-          Workflow
-        </button>
+      <div class="pptvc-scope-bar">
+        <div class="pptvc-scope-bar__track" role="tablist" aria-label="View">
+          <div class="pptvc-scope-bar__indicator" id="scope-indicator"></div>
+          <button type="button" role="tab" id="tab-history" class="pptvc-scope-tab pptvc-scope-tab--active" aria-selected="true">History</button>
+          <button type="button" role="tab" id="tab-diff" class="pptvc-scope-tab" aria-selected="false">Diff</button>
+          <button type="button" role="tab" id="tab-workflow" class="pptvc-scope-tab" aria-selected="false">Workflow</button>
+        </div>
       </div>
 
       <!-- ── History scope ── -->

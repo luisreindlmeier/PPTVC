@@ -17,6 +17,12 @@ type PresetTag = (typeof PREDEFINED_TAGS)[number];
 
 const MAX_TAGS = 3;
 
+const TAB_ORDER: Record<"history" | "diff" | "workflow", number> = {
+  history: 0,
+  diff: 1,
+  workflow: 2,
+};
+
 // ── Heroicons (inline SVG, 24px viewBox outline) ──────────────
 
 const ICON_DIFF = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 3M21 7.5H7.5" /></svg>`;
@@ -141,6 +147,16 @@ function switchScope(
   tabDiff.setAttribute("aria-selected", String(isDiff));
   tabWorkflow.classList.toggle("pptvc-scope-tab--active", isWorkflow);
   tabWorkflow.setAttribute("aria-selected", String(isWorkflow));
+
+  // Slide indicator to active tab
+  const indicator = getEl<HTMLDivElement>("scope-indicator");
+  indicator.style.transform = `translateX(${TAB_ORDER[scope] * 100}%)`;
+
+  // Brief bounce on the newly active tab
+  const newTab = getEl<HTMLButtonElement>(`tab-${scope}`);
+  newTab.classList.remove("pptvc-scope-tab--bounce");
+  void newTab.offsetWidth; // force reflow to restart animation
+  newTab.classList.add("pptvc-scope-tab--bounce");
 
   if (isHistory) {
     show(historyScope);

@@ -138,48 +138,77 @@ ul {
 }
 
 /* ════════════════════════════════════════════
-   Scope tabs (History / Diff)
+   Scope tabs — pill notch with sliding indicator
    ════════════════════════════════════════════ */
 
 .pptvc-scope-bar {
+  padding: 8px 12px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pptvc-scope-bar__track {
+  position: relative;
   display: -ms-flexbox;
   display: flex;
-  gap: 8px;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  padding: 8px 12px 0;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 3px;
+}
+
+.pptvc-scope-bar__indicator {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  bottom: 3px;
+  width: calc((100% - 6px) / 3);
+  border-radius: var(--radius-full);
+  background: var(--color-green-light);
+  border: 1px solid var(--color-tag-bg);
+  box-shadow: var(--shadow-subtle);
+  transition: transform 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .pptvc-scope-tab {
   -ms-flex: 1 1 0;
   flex: 1 1 0;
-  padding: 10px 8px 9px;
-  border: 1px solid var(--color-border);
-  border-bottom: none;
-  border-radius: 10px 10px 0 0;
-  background: var(--color-surface-raised);
+  position: relative;
+  z-index: 1;
+  padding: 7px 8px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-full);
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 500;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition:
-    color 0.15s var(--ease),
-    border-color 0.15s var(--ease),
-    background 0.15s var(--ease);
+  transition: color 0.2s var(--ease);
   letter-spacing: 0.01em;
+  text-align: center;
 }
 
 .pptvc-scope-tab:hover {
   color: var(--color-text);
-  background: var(--color-surface);
 }
 
 .pptvc-scope-tab--active {
-  color: var(--color-green);
-  border-color: var(--color-tag-bg);
-  background: var(--color-surface-raised);
-  box-shadow: inset 0 -2px 0 var(--color-green);
+  color: var(--color-green-active);
+  font-weight: 600;
+}
+
+@keyframes pptvc-tab-bounce {
+  0%   { transform: translateY(0) scale(1); }
+  35%  { transform: translateY(-2px) scale(1.05); }
+  70%  { transform: translateY(0.5px) scale(0.98); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+.pptvc-scope-tab--bounce {
+  animation: pptvc-tab-bounce 0.28s var(--ease) forwards;
 }
 
 /* ════════════════════════════════════════════
