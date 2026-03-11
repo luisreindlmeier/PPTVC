@@ -1,19 +1,17 @@
-/* global document, Office, setTimeout, HTMLElement, HTMLDivElement, HTMLUListElement, HTMLParagraphElement, HTMLLIElement, HTMLButtonElement, HTMLSpanElement, HTMLInputElement, HTMLHeadingElement */
+/* global document, Office, PowerPoint, setTimeout, HTMLElement, HTMLDivElement, HTMLUListElement, HTMLParagraphElement, HTMLLIElement, HTMLButtonElement, HTMLSpanElement, HTMLInputElement, HTMLHeadingElement */
 
-import { saveVersion, listVersions, restoreVersion, type Version } from "../versions";
+import {
+  saveVersion,
+  listVersions,
+  restoreVersion,
+  deleteVersion,
+  updateVersionMeta,
+  type Version,
+} from "../versions";
 
 // ── Constants ─────────────────────────────────────────────────
 
-const PREDEFINED_TAGS = [
-  "draft",
-  "reviewed",
-  "final",
-  "sent",
-  "archived",
-  "important",
-  "wip",
-] as const;
-type PresetTag = (typeof PREDEFINED_TAGS)[number];
+const PREDEFINED_TAGS = ["draft", "reviewed", "final", "sent", "archived", "important", "wip"];
 
 const MAX_TAGS = 3;
 
@@ -34,31 +32,15 @@ const ICON_CHECK = `<svg class="pptvc-slide-scope-check" width="16" height="16" 
 type PlaceholderChange = { name: string; delta: string };
 type PlaceholderSlide = { num: number; name: string; changes: PlaceholderChange[] };
 
-const PLACEHOLDER_SLIDES: PlaceholderSlide[] = [
-  {
-    num: 1,
-    name: "Title Slide",
-    changes: [
-      { name: "Title text box", delta: "modified" },
-      { name: "Subtitle text", delta: "modified" },
-    ],
-  },
-  {
-    num: 3,
-    name: "Overview",
-    changes: [
-      { name: "Bullet list", delta: "modified" },
-      { name: "Icon group", delta: "added" },
-    ],
-  },
-];
+// Populated at runtime from the active PowerPoint presentation
+const availableSlides: PlaceholderSlide[] = [];
 
 // ── In-memory state ───────────────────────────────────────────
 // Names and tags are UI-only for now — backend persistence coming soon.
 
-const pendingTags: PresetTag[] = [];
+const pendingTags: string[] = [];
 const versionNameOverrides = new Map<string, string>();
-const versionTagsMap = new Map<string, PresetTag[]>();
+const versionTagsMap = new Map<string, string[]>();
 let loadedVersions: Version[] = [];
 const globalSelectedSlides = new Set<number>();
 
@@ -123,7 +105,7 @@ Office.onReady((info) => {
       saveNameInput.dataset["dirty"] = "1";
     });
 
-    initializeGlobalSlideScopePicker();
+    void initializeGlobalSlideScopePicker();
     renderSaveTagPicker();
     void loadVersionList();
   }
@@ -170,17 +152,36 @@ function setTagsToggleLabel(btn: HTMLButtonElement, count: number): void {
   btn.innerHTML = `${ICON_TAG}<span>${label}</span>`;
 }
 
-function initializeGlobalSlideScopePicker(): void {
+async function initializeGlobalSlideScopePicker(): Promise<void> {
+  availableSlides.length = 0;
   globalSelectedSlides.clear();
-  for (const slide of PLACEHOLDER_SLIDES) {
-    globalSelectedSlides.add(slide.num);
+
+  try {
+    await PowerPoint.run(async (context) => {
+      const slides = context.presentation.slides;
+      slides.load("id,name");
+      await context.sync();
+      slides.items.forEach((slide, index) => {
+        availableSlides.push({
+          num: index + 1,
+          name: slide.name || `Slide ${index + 1}`,
+          changes: [],
+        });
+        globalSelectedSlides.add(index + 1);
+      });
+    });
+  } catch {
+    // Fallback when PowerPoint API is unavailable (e.g., dev/test)
+    availableSlides.push({ num: 1, name: "Slide 1", changes: [] });
+    globalSelectedSlides.add(1);
   }
+
   renderGlobalSlideScopeOptions();
   updateGlobalSlideScopeLabel();
 }
 
 function isGlobalPresentationSelected(): boolean {
-  return globalSelectedSlides.size >= PLACEHOLDER_SLIDES.length;
+  return globalSelectedSlides.size >= availableSlides.length;
 }
 
 function updateGlobalSlideScopeLabel(): void {
@@ -196,7 +197,7 @@ function renderGlobalSlideScopeOptions(): void {
   const options = getEl<HTMLDivElement>("slide-scope-options");
   options.innerHTML = "";
 
-  for (const slide of PLACEHOLDER_SLIDES) {
+  for (const slide of availableSlides) {
     const isSelected = globalSelectedSlides.has(slide.num);
     const btn = document.createElement("button");
     btn.type = "button";
@@ -211,7 +212,7 @@ function renderGlobalSlideScopeOptions(): void {
 
       // Empty selection falls back to full presentation.
       if (globalSelectedSlides.size === 0) {
-        for (const s of PLACEHOLDER_SLIDES) {
+        for (const s of availableSlides) {
           globalSelectedSlides.add(s.num);
         }
       }
@@ -329,6 +330,15 @@ async function loadVersionList(): Promise<void> {
 
   try {
     loadedVersions = await listVersions();
+
+    // Sync in-memory state from persisted metadata
+    versionNameOverrides.clear();
+    versionTagsMap.clear();
+    for (const v of loadedVersions) {
+      if (v.displayName) versionNameOverrides.set(v.id, v.displayName);
+      if (v.tags && v.tags.length > 0) versionTagsMap.set(v.id, v.tags);
+    }
+
     updateVersionCount(loadedVersions.length);
 
     if (loadedVersions.length === 0) {
@@ -383,6 +393,7 @@ function createVersionItem(version: Version, allVersions: Version[]): HTMLLIElem
     const newName = nameInput.value.trim();
     if (newName) {
       versionNameOverrides.set(version.id, newName);
+      void updateVersionMeta(version.id, { displayName: newName });
     } else {
       nameInput.value = versionNameOverrides.get(version.id) ?? version.name;
     }
@@ -485,10 +496,9 @@ function renderVersionTags(id: string, container: HTMLDivElement): void {
     removeBtn.setAttribute("aria-label", `Remove tag ${tag}`);
     removeBtn.addEventListener("click", () => {
       const current = versionTagsMap.get(id) ?? [];
-      versionTagsMap.set(
-        id,
-        current.filter((t) => t !== tag)
-      );
+      const newTags = current.filter((t) => t !== tag);
+      versionTagsMap.set(id, newTags);
+      void updateVersionMeta(id, { tags: newTags });
       renderVersionTags(id, container);
     });
 
@@ -510,7 +520,9 @@ function renderVersionTags(id: string, container: HTMLDivElement): void {
     chip.addEventListener("click", () => {
       const current = versionTagsMap.get(id) ?? [];
       if (current.length < MAX_TAGS) {
-        versionTagsMap.set(id, [...current, tag]);
+        const newTags = [...current, tag];
+        versionTagsMap.set(id, newTags);
+        void updateVersionMeta(id, { tags: newTags });
       }
       renderVersionTags(id, container);
       const li = container.closest<HTMLLIElement>(".pptvc-version-item");
@@ -552,8 +564,8 @@ function showDeletePopup(id: string, li: HTMLLIElement): void {
   confirmBtn.textContent = "Delete";
   confirmBtn.addEventListener("click", () => {
     popup.remove();
-    // Stub — deleteVersion() backend coming soon
-    showStatus("Delete not yet implemented — coming soon.", false);
+    confirmBtn.disabled = true;
+    void onDeleteConfirm(id, li);
   });
 
   actionsRow.appendChild(cancelBtn);
@@ -561,6 +573,26 @@ function showDeletePopup(id: string, li: HTMLLIElement): void {
   popup.appendChild(msg);
   popup.appendChild(actionsRow);
   li.appendChild(popup);
+}
+
+// ── Delete confirm ────────────────────────────────────────────
+
+async function onDeleteConfirm(id: string, li: HTMLLIElement): Promise<void> {
+  try {
+    await deleteVersion(id);
+    li.remove();
+    loadedVersions = loadedVersions.filter((v) => v.id !== id);
+    versionNameOverrides.delete(id);
+    versionTagsMap.delete(id);
+    updateVersionCount(loadedVersions.length);
+    const listEl = getEl<HTMLUListElement>("versions-list");
+    if (listEl.children.length === 0) {
+      show(getEl<HTMLParagraphElement>("versions-empty"));
+    }
+    showStatus("Version deleted.", false);
+  } catch (err) {
+    showStatus(err instanceof Error ? err.message : "Failed to delete version.", true);
+  }
 }
 
 // ── Diff scope ────────────────────────────────────────────────
@@ -669,8 +701,8 @@ function loadDiffScope(preselectedId?: string): void {
 
   const renderDiffResults = (): void => {
     const visibleSlides = isGlobalPresentationSelected()
-      ? PLACEHOLDER_SLIDES
-      : PLACEHOLDER_SLIDES.filter((slide) => globalSelectedSlides.has(slide.num));
+      ? availableSlides
+      : availableSlides.filter((slide) => globalSelectedSlides.has(slide.num));
 
     const totalChanges = visibleSlides.reduce((sum, slide) => sum + slide.changes.length, 0);
     badgeChanges.textContent = `${totalChanges} changes`;
@@ -767,7 +799,10 @@ async function onSaveClick(): Promise<void> {
   show(spinner);
 
   try {
-    const version = await saveVersion();
+    const version = await saveVersion({
+      name: customName || undefined,
+      tags: pendingTags.length > 0 ? [...pendingTags] : [],
+    });
 
     if (customName) {
       versionNameOverrides.set(version.id, customName);
