@@ -581,6 +581,11 @@ ul {
   padding-bottom: 4px;
   border-bottom: 1px solid var(--color-border);
   overflow: visible;
+  transition: transform 0.12s var(--ease);
+}
+
+.pptvc-version-item:hover {
+  transform: translateX(2px);
 }
 
 .pptvc-version-item:last-child {
@@ -645,18 +650,6 @@ ul {
   font-family: var(--font-sans);
   -ms-flex-negative: 0;
   flex-shrink: 0;
-  transition:
-    color 0.12s,
-    text-shadow 0.12s;
-}
-
-.pptvc-version-item:hover .pptvc-version-name-input {
-  color: #1f1c17;
-  text-shadow: 0 0 0.01px rgba(31, 28, 23, 0.4);
-}
-
-.pptvc-version-item:hover .pptvc-version-time {
-  color: #6f6556;
 }
 
 /* Tags toggle — styled like a tag chip but green-outlined */
