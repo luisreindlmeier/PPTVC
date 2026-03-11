@@ -44,7 +44,7 @@
         <p class="pptvc-subtitle">Version Control for PowerPoint</p>
       </header>
 
-      <!-- ── Tabs: History / Diff ── -->
+      <!-- ── Tabs: History / Diff / Workflow ── -->
       <div class="pptvc-scope-bar" role="tablist" aria-label="View">
         <button
           type="button"
@@ -63,6 +63,15 @@
           aria-selected="false"
         >
           Diff
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="tab-workflow"
+          class="pptvc-scope-tab"
+          aria-selected="false"
+        >
+          Workflow
         </button>
       </div>
 
@@ -123,6 +132,13 @@
       <!-- ── Diff scope ── -->
       <div id="diff-scope" class="pptvc-hidden">
         <div id="diff-content" class="pptvc-diff-scope"></div>
+      </div>
+
+      <!-- ── Workflow scope ── -->
+      <div id="workflow-scope" class="pptvc-hidden">
+        <section class="pptvc-workflow-scope">
+          <p class="pptvc-empty">Workflow tools coming soon.</p>
+        </section>
       </div>
     </main>
   </body>

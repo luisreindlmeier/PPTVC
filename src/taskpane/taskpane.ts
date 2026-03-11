@@ -48,6 +48,9 @@ Office.onReady((info) => {
     document.getElementById("tab-diff")!.addEventListener("click", () => {
       switchScope("diff", undefined, true);
     });
+    document.getElementById("tab-workflow")!.addEventListener("click", () => {
+      switchScope("workflow");
+    });
 
     const tagDropdownBtn = getEl<HTMLButtonElement>("btn-tag-dropdown");
     const tagPanel = getEl<HTMLDivElement>("save-tags-panel");
@@ -117,29 +120,45 @@ function setTagsToggleLabel(btn: HTMLButtonElement, count: number): void {
 // ── Scope tabs ────────────────────────────────────────────────
 
 // pptvc-hidden uses !important — must use classList, not style.display
-function switchScope(scope: "history" | "diff", preselectedId?: string, loadIfEmpty = false): void {
+function switchScope(
+  scope: "history" | "diff" | "workflow",
+  preselectedId?: string,
+  loadIfEmpty = false
+): void {
   const tabHistory = getEl<HTMLButtonElement>("tab-history");
   const tabDiff = getEl<HTMLButtonElement>("tab-diff");
+  const tabWorkflow = getEl<HTMLButtonElement>("tab-workflow");
   const historyScope = getEl<HTMLDivElement>("history-scope");
   const diffScope = getEl<HTMLDivElement>("diff-scope");
+  const workflowScope = getEl<HTMLDivElement>("workflow-scope");
   const isHistory = scope === "history";
+  const isDiff = scope === "diff";
+  const isWorkflow = scope === "workflow";
 
   tabHistory.classList.toggle("pptvc-scope-tab--active", isHistory);
   tabHistory.setAttribute("aria-selected", String(isHistory));
-  tabDiff.classList.toggle("pptvc-scope-tab--active", !isHistory);
-  tabDiff.setAttribute("aria-selected", String(!isHistory));
+  tabDiff.classList.toggle("pptvc-scope-tab--active", isDiff);
+  tabDiff.setAttribute("aria-selected", String(isDiff));
+  tabWorkflow.classList.toggle("pptvc-scope-tab--active", isWorkflow);
+  tabWorkflow.setAttribute("aria-selected", String(isWorkflow));
 
   if (isHistory) {
     show(historyScope);
     hide(diffScope);
-  } else {
+    hide(workflowScope);
+  } else if (isDiff) {
     hide(historyScope);
     show(diffScope);
+    hide(workflowScope);
     const diffContent = getEl<HTMLDivElement>("diff-content");
     // Populate when called from "View diff" (always) or tab click when empty
     if (preselectedId !== undefined || loadIfEmpty || !diffContent.hasChildNodes()) {
       loadDiffScope(preselectedId);
     }
+  } else {
+    hide(historyScope);
+    hide(diffScope);
+    show(workflowScope);
   }
 }
 
