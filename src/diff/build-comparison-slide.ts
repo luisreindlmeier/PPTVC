@@ -13,7 +13,7 @@ const PANEL_VPAD = 152400; // 0.167 in — tighter top/bottom padding inside pan
 const PANEL_TITLE_H = 355600; // 0.39 in — slightly larger "Comparing" title row height
 const PANEL_SECTION_GAP = 76200; // 0.083 in — compact gap between title and labels row
 const PANEL_FIELD_LABEL_H = 101600; // 0.11 in — small field label row above version boxes
-const PANEL_LABEL_TO_FIELD_GAP = 50800; // 0.056 in — more spacing from label to box
+const PANEL_LABEL_TO_FIELD_GAP = 76200; // 0.083 in — more spacing from label to box
 const PANEL_VERSION_H = 355600; // 0.39 in — version box row height
 const LABEL_HEIGHT =
   PANEL_VPAD +
@@ -199,7 +199,7 @@ function buildLabelShape(
     `<a:ln w="19050"><a:solidFill><a:srgbClr val="D4C9B8"/></a:solidFill></a:ln>` +
     `</p:spPr>` +
     `<p:txBody>` +
-    `<a:bodyPr anchor="ctr" lIns="152400" rIns="152400" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:bodyPr anchor="ctr" lIns="101600" rIns="101600" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="950" b="0" noProof="1" dirty="0">` +
@@ -242,7 +242,7 @@ function buildLabelShape(
     `<a:ln><a:noFill/></a:ln>` +
     `</p:spPr>` +
     `<p:txBody>` +
-    `<a:bodyPr anchor="ctr" lIns="152400" rIns="152400" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:bodyPr anchor="ctr" lIns="101600" rIns="101600" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="950" b="0" noProof="1" dirty="0">` +
@@ -265,7 +265,7 @@ function buildLabelShape(
     `<a:bodyPr anchor="ctr" lIns="0" rIns="0" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
-    `<a:r><a:rPr lang="en-US" sz="1050" b="1" noProof="1" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="950" b="1" noProof="1" dirty="0">` +
     `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>Below</a:t></a:r>` +
@@ -285,7 +285,7 @@ function buildLabelShape(
     `<a:bodyPr anchor="ctr" lIns="0" rIns="0" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
-    `<a:r><a:rPr lang="en-US" sz="1050" b="1" noProof="1" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="950" b="1" noProof="1" dirty="0">` +
     `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>Above</a:t></a:r>` +
