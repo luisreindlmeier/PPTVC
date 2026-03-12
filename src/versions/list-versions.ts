@@ -20,6 +20,8 @@ export async function listVersions(): Promise<Version[]> {
         id: metadata.id,
         name: metadata.name,
         displayName: metadata.displayName,
+        authorName: metadata.authorName,
+        authorEmail: metadata.authorEmail,
         tags: metadata.tags,
         timestamp: metadata.timestamp,
         filename: metadata.filename,

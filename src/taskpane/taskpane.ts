@@ -10,6 +10,7 @@ import {
   type Version,
 } from "../versions";
 import { buildComparisonSlide } from "../diff/build-comparison-slide";
+import { readUserSettings, writeUserSettings } from "../storage";
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -49,6 +50,10 @@ const globalSelectedSlides = new Set<number>();
 let displayedVersionId: string | null = null;
 let expandedTagPickerVersionId: string | null = null;
 let comparisonSlideId: string | null = null;
+const userSettings: { authorName: string; email: string } = {
+  authorName: "",
+  email: "",
+};
 
 // ── Boot ──────────────────────────────────────────────────────
 
@@ -185,6 +190,12 @@ function formatTimestamp(timestamp: number): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function getAuthorLabel(version: Version): string {
+  const versionAuthor = version.authorName?.trim();
+  const fallbackAuthor = userSettings.authorName.trim();
+  return versionAuthor || fallbackAuthor || "Unknown";
 }
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -556,6 +567,11 @@ function createVersionItem(version: Version): HTMLLIElement {
   versionTagAddBtns.set(version.id, addTagBtn);
 
   li.appendChild(meta);
+
+  const author = document.createElement("span");
+  author.className = "pptvc-version-author";
+  author.textContent = `Author: ${getAuthorLabel(version)}`;
+  li.appendChild(author);
 
   // Tags section — selected tags always visible below timestamp row.
   const tagsRow = document.createElement("div");
@@ -972,6 +988,8 @@ async function onSaveClick(): Promise<void> {
     const version = await saveVersion({
       name: customName || undefined,
       tags: pendingTags.length > 0 ? [...pendingTags] : [],
+      authorName: userSettings.authorName || undefined,
+      authorEmail: userSettings.email || undefined,
     });
 
     displayedVersionId = version.id;
@@ -1013,6 +1031,38 @@ function initSettings(): void {
   const settingsPage = getEl<HTMLDivElement>("settings-page");
   const btnOpen = getEl<HTMLButtonElement>("btn-settings");
   const btnBack = getEl<HTMLButtonElement>("btn-settings-back");
+  const nameInput = getEl<HTMLInputElement>("settings-name");
+  const emailInput = getEl<HTMLInputElement>("settings-email");
+
+  const persistSettings = (): void => {
+    userSettings.authorName = nameInput.value.trim();
+    userSettings.email = emailInput.value.trim();
+
+    void writeUserSettings({
+      authorName: userSettings.authorName || undefined,
+      email: userSettings.email || undefined,
+    });
+
+    // Re-render labels so fallback author updates immediately.
+    void loadVersionList();
+  };
+
+  void (async () => {
+    try {
+      const stored = await readUserSettings();
+      userSettings.authorName = stored.authorName?.trim() || "";
+      userSettings.email = stored.email?.trim() || "";
+      nameInput.value = userSettings.authorName;
+      emailInput.value = userSettings.email;
+    } catch {
+      // Non-blocking: settings fall back to empty values.
+    }
+  })();
+
+  nameInput.addEventListener("change", persistSettings);
+  nameInput.addEventListener("blur", persistSettings);
+  emailInput.addEventListener("change", persistSettings);
+  emailInput.addEventListener("blur", persistSettings);
 
   btnOpen.addEventListener("click", () => show(settingsPage));
   btnBack.addEventListener("click", () => hide(settingsPage));

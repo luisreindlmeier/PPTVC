@@ -225,6 +225,17 @@
           <section class="pptvc-settings-section">
             <h3 class="pptvc-settings-section-label">Account</h3>
             <div class="pptvc-settings-field">
+              <label class="pptvc-settings-field-label" for="settings-name">Name</label>
+              <input
+                id="settings-name"
+                type="text"
+                class="pptvc-text-input pptvc-settings-input"
+                placeholder="Your name"
+                autocomplete="name"
+              />
+              <p class="pptvc-settings-field-hint">Shown as author on newly saved versions.</p>
+            </div>
+            <div class="pptvc-settings-field">
               <label class="pptvc-settings-field-label" for="settings-email">Email</label>
               <input
                 id="settings-email"
@@ -233,7 +244,7 @@
                 placeholder="you@example.com"
                 autocomplete="email"
               />
-              <p class="pptvc-settings-field-hint">Used to pre-fill version update emails.</p>
+              <p class="pptvc-settings-field-hint">Saved for future email automation features.</p>
             </div>
           </section>
 

@@ -857,12 +857,14 @@ ul {
 
 .pptvc-version-header,
 .pptvc-version-meta,
+.pptvc-version-author,
 .pptvc-version-tags {
   transition: transform 0.12s var(--ease);
 }
 
 .pptvc-version-item:hover .pptvc-version-header,
 .pptvc-version-item:hover .pptvc-version-meta,
+.pptvc-version-item:hover .pptvc-version-author,
 .pptvc-version-item:hover .pptvc-version-tags {
   transform: translateX(2px);
 }
@@ -878,6 +880,7 @@ ul {
 
 .pptvc-version-item--newer .pptvc-version-name-input,
 .pptvc-version-item--newer .pptvc-version-time,
+.pptvc-version-item--newer .pptvc-version-author,
 .pptvc-version-item--newer .pptvc-version-tag-add,
 .pptvc-version-item--newer .pptvc-version-tag-chip {
   color: var(--color-text-muted);
@@ -946,6 +949,16 @@ ul {
   font-family: var(--font-sans);
   -ms-flex-negative: 0;
   flex-shrink: 0;
+}
+
+.pptvc-version-author {
+  display: block;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 6px 2px 12px;
 }
 
 /* Tags row (chips + options) — hidden when empty */
