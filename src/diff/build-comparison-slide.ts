@@ -9,7 +9,10 @@ interface SlideSize {
 
 // Layout constants (EMUs: 1 inch = 914400, 1 pt ≈ 12700)
 const GAP_ABOVE_LABEL = 457200; // 0.5 in — breathing room below main slide
-const LABEL_HEIGHT = 457200; // 0.5 in
+const LABEL_BOX_HEIGHT = 406400; // 0.44 in — button height
+const LABEL_SUBTEXT_GAP = 114300; // 0.125 in
+const LABEL_SUBTEXT_HEIGHT = 304800; // 0.33 in
+const LABEL_HEIGHT = LABEL_BOX_HEIGHT + LABEL_SUBTEXT_GAP + LABEL_SUBTEXT_HEIGHT;
 const GAP_BELOW_LABEL = 304800; // 0.33 in — space between label and comparison
 const COMPARISON_OFFSET = GAP_ABOVE_LABEL + LABEL_HEIGHT + GAP_BELOW_LABEL;
 
@@ -83,42 +86,85 @@ function buildBgRect(size: SlideSize): string {
 }
 
 /**
- * Brown pill label between the main slide and the comparison area.
- * Shows "toName  →  fromName".
+ * Locked group containing a brown button ("Compare Version") and a sub-label
+ * showing the from-version name — positioned between the main slide and the
+ * comparison area.
  */
-function buildLabelShape(size: SlideSize, toName: string, fromName: string): string {
-  const labelWidth = Math.round(size.cx * 0.4);
-  const labelX = Math.round((size.cx - labelWidth) / 2);
-  const labelY = size.cy + GAP_ABOVE_LABEL;
-  const text = `${escapeXml(toName)}  \u2192  ${escapeXml(fromName)}`;
+function buildLabelShape(size: SlideSize, _toName: string, fromName: string): string {
+  // Button width is fixed (~2 inches), centered on slide
+  const btnWidth = 1828800; // ~2 in
+  const btnX = Math.round((size.cx - btnWidth) / 2);
+  const groupY = size.cy + GAP_ABOVE_LABEL;
+  const subTextY = groupY + LABEL_BOX_HEIGHT + LABEL_SUBTEXT_GAP;
 
-  return (
+  // Shared lock attributes for child shapes
+  const spLocks = `<a:spLocks noSelect="1" noMove="1" noResize="1" noTextEdit="1"/>`;
+
+  const btn =
     `<p:sp>` +
     `<p:nvSpPr>` +
-    `<p:cNvPr id="9901" name="PPTVC_LABEL"/>` +
-    `<p:cNvSpPr txBox="1"/>` +
+    `<p:cNvPr id="9902" name="PPTVC_BTN"/>` +
+    `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr>` +
     `<p:nvPr/>` +
     `</p:nvSpPr>` +
     `<p:spPr>` +
-    `<a:xfrm><a:off x="${labelX}" y="${labelY}"/><a:ext cx="${labelWidth}" cy="${LABEL_HEIGHT}"/></a:xfrm>` +
-    `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 50000"/></a:avLst></a:prstGeom>` +
+    `<a:xfrm><a:off x="${btnX}" y="${groupY}"/><a:ext cx="${btnWidth}" cy="${LABEL_BOX_HEIGHT}"/></a:xfrm>` +
+    `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 8333"/></a:avLst></a:prstGeom>` +
     `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
     `<a:ln><a:noFill/></a:ln>` +
     `</p:spPr>` +
     `<p:txBody>` +
-    `<a:bodyPr anchor="ctr" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:bodyPr anchor="ctr" lIns="114300" rIns="114300" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="ctr"/>` +
-    `<a:r>` +
-    `<a:rPr lang="en-US" sz="1000" b="0" spc="-100" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="1000" b="0" spc="-100" dirty="0">` +
     `<a:solidFill><a:srgbClr val="F7F4EF"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
-    `</a:rPr>` +
-    `<a:t>${text}</a:t>` +
-    `</a:r>` +
-    `</a:p>` +
-    `</p:txBody>` +
-    `</p:sp>`
+    `</a:rPr><a:t>Compare Version</a:t></a:r>` +
+    `</a:p></p:txBody>` +
+    `</p:sp>`;
+
+  const sub =
+    `<p:sp>` +
+    `<p:nvSpPr>` +
+    `<p:cNvPr id="9903" name="PPTVC_SUBLABEL"/>` +
+    `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr>` +
+    `<p:nvPr/>` +
+    `</p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${btnX}" y="${subTextY}"/><a:ext cx="${btnWidth}" cy="${LABEL_SUBTEXT_HEIGHT}"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+    `<a:noFill/><a:ln><a:noFill/></a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody>` +
+    `<a:bodyPr anchor="t" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:lstStyle/>` +
+    `<a:p><a:pPr algn="ctr"/>` +
+    `<a:r><a:rPr lang="en-US" sz="900" b="0" dirty="0">` +
+    `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
+    `<a:latin typeface="+mj-lt"/>` +
+    `</a:rPr><a:t>${escapeXml(fromName)}</a:t></a:r>` +
+    `</a:p></p:txBody>` +
+    `</p:sp>`;
+
+  return (
+    `<p:grpSp>` +
+    `<p:nvGrpSpPr>` +
+    `<p:cNvPr id="9901" name="PPTVC_LABEL_GROUP"/>` +
+    `<p:cNvGrpSpPr><a:grpSpLocks noSelect="1" noResize="1" noMove="1"/></p:cNvGrpSpPr>` +
+    `<p:nvPr/>` +
+    `</p:nvGrpSpPr>` +
+    `<p:grpSpPr>` +
+    `<a:xfrm>` +
+    `<a:off x="${btnX}" y="${groupY}"/>` +
+    `<a:ext cx="${btnWidth}" cy="${LABEL_HEIGHT}"/>` +
+    `<a:chOff x="${btnX}" y="${groupY}"/>` +
+    `<a:chExt cx="${btnWidth}" cy="${LABEL_HEIGHT}"/>` +
+    `</a:xfrm>` +
+    `</p:grpSpPr>` +
+    btn +
+    sub +
+    `</p:grpSp>`
   );
 }
 
