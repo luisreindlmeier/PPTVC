@@ -137,6 +137,7 @@ Office.onReady((info) => {
     void initializeGlobalSlideScopePicker();
     renderSaveTagPicker();
     void loadVersionList();
+    initSettings();
   }
 });
 
@@ -988,6 +989,19 @@ async function onSaveClick(): Promise<void> {
     show(label);
     hide(spinner);
   }
+}
+
+// ── Restore ───────────────────────────────────────────────────
+
+// ── Settings ───────────────────────────────────────────────────
+
+function initSettings(): void {
+  const settingsPage = getEl<HTMLDivElement>("settings-page");
+  const btnOpen = getEl<HTMLButtonElement>("btn-settings");
+  const btnBack = getEl<HTMLButtonElement>("btn-settings-back");
+
+  btnOpen.addEventListener("click", () => show(settingsPage));
+  btnBack.addEventListener("click", () => hide(settingsPage));
 }
 
 // ── Restore ───────────────────────────────────────────────────
