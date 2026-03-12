@@ -880,7 +880,9 @@ async function runVisualComparison(
     ]);
 
     const slideIdx = (availableSlides[0]?.num ?? 1) - 1;
-    const modifiedBlob = await buildComparisonSlide(toBlob, fromBlob, slideIdx);
+    const toName = versionNameOverrides.get(toVersion.id) ?? toVersion.name;
+    const fromName = versionNameOverrides.get(fromVersion.id) ?? fromVersion.name;
+    const modifiedBlob = await buildComparisonSlide(toBlob, fromBlob, slideIdx, toName, fromName);
     const base64 = await blobToBase64(modifiedBlob);
 
     // Replace the entire document (same pattern as restoreVersion)
@@ -904,8 +906,6 @@ async function runVisualComparison(
 
     comparisonSlideId = toVersion.id; // store so Clear can restore it
 
-    const fromName = versionNameOverrides.get(fromVersion.id) ?? fromVersion.name;
-    const toName = versionNameOverrides.get(toVersion.id) ?? toVersion.name;
     banner.querySelector<HTMLSpanElement>(".pptvc-diff-banner-text")!.textContent =
       `Scroll down on the slide to see "${fromName}" below "${toName}"`;
     show(banner);

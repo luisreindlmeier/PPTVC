@@ -7,6 +7,12 @@ interface SlideSize {
   cy: number;
 }
 
+// Layout constants (EMUs: 1 inch = 914400, 1 pt ≈ 12700)
+const GAP_ABOVE_LABEL = 457200; // 0.5 in — breathing room below main slide
+const LABEL_HEIGHT = 457200; // 0.5 in
+const GAP_BELOW_LABEL = 304800; // 0.33 in — space between label and comparison
+const COMPARISON_OFFSET = GAP_ABOVE_LABEL + LABEL_HEIGHT + GAP_BELOW_LABEL;
+
 function parseSlideSize(presentationXml: string): SlideSize {
   const match = presentationXml.match(/<p:sldSz\s+cx="(\d+)"\s+cy="(\d+)"/);
   return match
@@ -15,11 +21,9 @@ function parseSlideSize(presentationXml: string): SlideSize {
 }
 
 function getSlidePaths(presentationXml: string, relsXml: string): string[] {
-  // r:ids in deck order from sldIdLst
   const idMatches = [...presentationXml.matchAll(/<p:sldId\b[^>]*\br:id="([^"]+)"/g)];
   const rIds = idMatches.map((m) => m[1]);
 
-  // Build r:id → file path map from rels
   const relMatches = [
     ...relsXml.matchAll(/<Relationship\b[^>]*\bId="([^"]+)"[^>]*\bTarget="([^"]+)"/g),
   ];
@@ -31,35 +35,108 @@ function getSlidePaths(presentationXml: string, relsXml: string): string[] {
     .map((p) => (p.startsWith("ppt/") ? p : `ppt/${p}`));
 }
 
-/**
- * Returns all shape XML from inside <p:spTree> (excludes the spTree metadata elements).
- */
 function extractShapeContent(slideXml: string): string {
   const treeMatch = slideXml.match(/<p:spTree>([\s\S]*?)<\/p:spTree>/);
   if (!treeMatch) return "";
 
-  // Strip nvGrpSpPr and grpSpPr — these belong to the tree root, not shapes
   let content = treeMatch[1];
   content = content.replace(/<p:nvGrpSpPr>[\s\S]*?<\/p:nvGrpSpPr>\s*/g, "");
   content = content.replace(/<p:grpSpPr>[\s\S]*?<\/p:grpSpPr>\s*/g, "");
   return content.trim();
 }
 
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 /**
- * Wraps the old slide's shapes in a group positioned at y = slideHeight so
- * they appear directly below the visible slide area in Normal view.
+ * White rectangle with subtle drop shadow covering the comparison area.
+ * Positioned at y = slideHeight + COMPARISON_OFFSET.
+ */
+function buildBgRect(size: SlideSize): string {
+  const y = size.cy + COMPARISON_OFFSET;
+  return (
+    `<p:sp>` +
+    `<p:nvSpPr>` +
+    `<p:cNvPr id="9900" name="PPTVC_BG"/>` +
+    `<p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>` +
+    `<p:nvPr/>` +
+    `</p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="0" y="${y}"/><a:ext cx="${size.cx}" cy="${size.cy}"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+    `<a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>` +
+    `<a:ln><a:noFill/></a:ln>` +
+    `<a:effectLst>` +
+    `<a:outerShdw blurRad="76200" dist="25400" dir="5400000" algn="ctr" rotWithShape="0">` +
+    `<a:srgbClr val="2C2820"><a:alpha val="10000"/></a:srgbClr>` +
+    `</a:outerShdw>` +
+    `</a:effectLst>` +
+    `</p:spPr>` +
+    `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>` +
+    `</p:sp>`
+  );
+}
+
+/**
+ * Brown pill label between the main slide and the comparison area.
+ * Shows "toName  →  fromName".
+ */
+function buildLabelShape(size: SlideSize, toName: string, fromName: string): string {
+  const labelWidth = Math.round(size.cx * 0.4);
+  const labelX = Math.round((size.cx - labelWidth) / 2);
+  const labelY = size.cy + GAP_ABOVE_LABEL;
+  const text = `${escapeXml(toName)}  \u2192  ${escapeXml(fromName)}`;
+
+  return (
+    `<p:sp>` +
+    `<p:nvSpPr>` +
+    `<p:cNvPr id="9901" name="PPTVC_LABEL"/>` +
+    `<p:cNvSpPr txBox="1"/>` +
+    `<p:nvPr/>` +
+    `</p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${labelX}" y="${labelY}"/><a:ext cx="${labelWidth}" cy="${LABEL_HEIGHT}"/></a:xfrm>` +
+    `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 50000"/></a:avLst></a:prstGeom>` +
+    `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
+    `<a:ln><a:noFill/></a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody>` +
+    `<a:bodyPr anchor="ctr" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:lstStyle/>` +
+    `<a:p><a:pPr algn="ctr"/>` +
+    `<a:r>` +
+    `<a:rPr lang="en-US" sz="1000" b="0" spc="-100" dirty="0">` +
+    `<a:solidFill><a:srgbClr val="F7F4EF"/></a:solidFill>` +
+    `<a:latin typeface="+mj-lt"/>` +
+    `</a:rPr>` +
+    `<a:t>${text}</a:t>` +
+    `</a:r>` +
+    `</a:p>` +
+    `</p:txBody>` +
+    `</p:sp>`
+  );
+}
+
+/**
+ * Wraps the old slide's shapes in a group offset to the comparison area.
  */
 function buildCompareGroup(shapeContent: string, size: SlideSize): string {
+  const y = size.cy + COMPARISON_OFFSET;
   return (
     `<p:grpSp>` +
     `<p:nvGrpSpPr>` +
-    `<p:cNvPr id="9901" name="PPTVC_COMPARE"/>` +
+    `<p:cNvPr id="9902" name="PPTVC_SHAPES"/>` +
     `<p:cNvGrpSpPr/>` +
     `<p:nvPr/>` +
     `</p:nvGrpSpPr>` +
     `<p:grpSpPr>` +
     `<a:xfrm>` +
-    `<a:off x="0" y="${size.cy}"/>` +
+    `<a:off x="0" y="${y}"/>` +
     `<a:ext cx="${size.cx}" cy="${size.cy}"/>` +
     `<a:chOff x="0" y="0"/>` +
     `<a:chExt cx="${size.cx}" cy="${size.cy}"/>` +
@@ -70,22 +147,26 @@ function buildCompareGroup(shapeContent: string, size: SlideSize): string {
   );
 }
 
-function injectIntoSpTree(slideXml: string, groupXml: string): string {
-  return slideXml.replace(/<\/p:spTree>/, `${groupXml}</p:spTree>`);
+function injectIntoSpTree(slideXml: string, ...elements: string[]): string {
+  return slideXml.replace(/<\/p:spTree>/, `${elements.join("")}</p:spTree>`);
 }
 
 /**
- * Builds a modified PPTX where the target slide also contains the
- * corresponding slide from the reference PPTX, offset below the visible area.
+ * Builds a modified PPTX where the target slide also shows the reference
+ * slide's content below the visible area — with a label and white background.
  *
- * @param toBlob   The "current" / newer version PPTX
- * @param fromBlob The older / reference version PPTX
+ * @param toBlob     The "current" / newer version PPTX
+ * @param fromBlob   The older / reference version PPTX
  * @param slideIndex 0-based index of the slide to compare
+ * @param toName     Display name of the newer version
+ * @param fromName   Display name of the older version
  */
 export async function buildComparisonSlide(
   toBlob: Blob,
   fromBlob: Blob,
-  slideIndex: number
+  slideIndex: number,
+  toName = "New",
+  fromName = "Old"
 ): Promise<Blob> {
   const [toZip, fromZip] = await Promise.all([
     JSZip.loadAsync(await toBlob.arrayBuffer()),
@@ -114,8 +195,10 @@ export async function buildComparisonSlide(
   ]);
 
   const oldShapes = extractShapeContent(fromSlideXml);
+  const bgRect = buildBgRect(slideSize);
+  const label = buildLabelShape(slideSize, toName, fromName);
   const compareGroup = buildCompareGroup(oldShapes, slideSize);
-  const modifiedSlideXml = injectIntoSpTree(toSlideXml, compareGroup);
+  const modifiedSlideXml = injectIntoSpTree(toSlideXml, bgRect, label, compareGroup);
 
   toZip.file(toSlidePath, modifiedSlideXml);
 
