@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
   <Id>bd34c85e-30c8-4f10-ab03-9438eab853f1</Id>
-  <Version>1.0.1.0</Version>
-  <ProviderName>Contoso</ProviderName>
+  <Version>1.0.2.0</Version>
+  <ProviderName>PPTVC</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="PPTVC"/>
-  <Description DefaultValue="A template to get started."/>
+  <Description DefaultValue="Local-first version control for PowerPoint presentations."/>
   <IconUrl DefaultValue="https://localhost:3000/assets/logo-filled-32.png?v=2"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/logo-filled-80.png?v=2"/>
-  <SupportUrl DefaultValue="https://www.contoso.com/help"/>
+  <SupportUrl DefaultValue="https://github.com/luisreindlmeier/PPTVC"/>
   <AppDomains>
-    <AppDomain>https://www.contoso.com</AppDomain>
+    <AppDomain>https://github.com</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Presentation"/>
@@ -67,18 +67,18 @@
         <bt:Image id="Icon.80x80" DefaultValue="https://localhost:3000/assets/logo-filled-80.png?v=2"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://go.microsoft.com/fwlink/?LinkId=276812"/>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://github.com/luisreindlmeier/PPTVC"/>
         <bt:Url id="Commands.Url" DefaultValue="https://localhost:3000/commands.html"/>
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Get started with your sample add-in!"/>
-        <bt:String id="CommandsGroup.Label" DefaultValue="Commands Group"/>
-        <bt:String id="TaskpaneButton.Label" DefaultValue="Show Task Pane"/>
+        <bt:String id="GetStarted.Title" DefaultValue="PPTVC is ready in PowerPoint"/>
+        <bt:String id="CommandsGroup.Label" DefaultValue="PPTVC"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="PPTVC"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="GetStarted.Description" DefaultValue="Your sample add-in loaded successfully. Go to the HOME tab and click the 'Show Task Pane' button to get started."/>
-        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to Show a Taskpane"/>
+        <bt:String id="GetStarted.Description" DefaultValue="Open PPTVC from the Home tab to save versions, compare slides, and restore snapshots locally."/>
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open PPTVC version control panel"/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
