@@ -11,7 +11,7 @@ interface SlideSize {
 const GAP_ABOVE_LABEL = 457200; // 0.5 in — breathing room below main slide
 const PANEL_VPAD = 228600; // 0.25 in — top/bottom padding inside panel
 const PANEL_TITLE_H = 330200; // 0.36 in — "Comparing" title row height
-const PANEL_SECTION_GAP = 152400; // 0.167 in — gap between title and version row
+const PANEL_SECTION_GAP = 76200; // 0.083 in — tighter gap between title and version row
 const PANEL_VERSION_H = 355600; // 0.39 in — version box row height
 const LABEL_HEIGHT = PANEL_VPAD + PANEL_TITLE_H + PANEL_SECTION_GAP + PANEL_VERSION_H + PANEL_VPAD;
 const GAP_BELOW_LABEL = 152400; // 0.167 in — space before comparison
@@ -94,6 +94,9 @@ function buildBgRect(size: SlideSize): string {
 function buildLabelShape(size: SlideSize, toName: string, fromName: string): string {
   const groupY = size.cy + GAP_ABOVE_LABEL;
   const hPad = 304800; // 0.33 in horizontal padding
+  const boxW = 2743200; // 3.0 in fixed chip width to keep both labels compact and left aligned
+  const arrowW = 228600; // 0.25 in
+  const arrowGap = 76200; // 0.083 in gap on each side of arrow
 
   // Row Y positions (absolute slide coordinates)
   const titleY = groupY + PANEL_VPAD;
@@ -101,16 +104,12 @@ function buildLabelShape(size: SlideSize, toName: string, fromName: string): str
 
   // Divider: horizontal line, vertically centered in title row, from after label to near right edge
   const titleLabelW = 1143000; // ~1.25 in — enough for "Comparing"
-  const dividerX = hPad + titleLabelW + 152400;
+  const dividerX = hPad + titleLabelW + 76200;
   const dividerW = size.cx - hPad - dividerX;
   const dividerY = titleY + Math.round(PANEL_TITLE_H / 2) - 9525;
   const dividerH = 19050; // ~0.021 in
 
-  // Version boxes: two equal-width chips with a small arrow between them
-  const arrowW = 304800; // 0.33 in
-  const arrowGap = 114300; // 0.125 in gap on each side of arrow
-  const contentW = size.cx - 2 * hPad;
-  const boxW = Math.round((contentW - arrowW - 2 * arrowGap) / 2);
+  // Version boxes: compact chips anchored to the left, with arrow between them
   const box1X = hPad;
   const arrowX = box1X + boxW + arrowGap;
   const box2X = arrowX + arrowW + arrowGap;
@@ -173,7 +172,7 @@ function buildLabelShape(size: SlideSize, toName: string, fromName: string): str
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${box1X}" y="${versionRowY}"/><a:ext cx="${boxW}" cy="${PANEL_VERSION_H}"/></a:xfrm>` +
-    `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 4167"/></a:avLst></a:prstGeom>` +
+    `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 12500"/></a:avLst></a:prstGeom>` +
     `<a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>` +
     `<a:ln w="19050"><a:solidFill><a:srgbClr val="D4C9B8"/></a:solidFill></a:ln>` +
     `</p:spPr>` +
@@ -216,7 +215,7 @@ function buildLabelShape(size: SlideSize, toName: string, fromName: string): str
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${box2X}" y="${versionRowY}"/><a:ext cx="${boxW}" cy="${PANEL_VERSION_H}"/></a:xfrm>` +
-    `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 4167"/></a:avLst></a:prstGeom>` +
+    `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 12500"/></a:avLst></a:prstGeom>` +
     `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
     `<a:ln><a:noFill/></a:ln>` +
     `</p:spPr>` +
