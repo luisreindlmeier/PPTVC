@@ -1208,6 +1208,13 @@ ul {
   gap: 8px;
 }
 
+.pptvc-diff-select-wrap {
+  position: relative;
+  -ms-flex: 1 1 0;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .pptvc-diff-target-row {
   margin-top: 10px;
   display: -ms-flexbox;
@@ -1218,9 +1225,9 @@ ul {
 }
 
 .pptvc-diff-select {
-  -ms-flex: 1 1 0;
-  flex: 1 1 0;
+  width: 100%;
   padding: 7px 10px;
+  padding-right: 34px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface-raised);
@@ -1231,11 +1238,36 @@ ul {
   cursor: pointer;
   min-width: 0;
   transition: border-color 0.15s;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 .pptvc-diff-select:focus {
   border-color: var(--color-border-focus);
   box-shadow: 0 0 0 3px rgba(121, 173, 116, 0.14);
+}
+
+.pptvc-diff-select-caret {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-muted);
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.pptvc-diff-select-caret svg {
+  width: 10px;
+  height: 10px;
 }
 
 .pptvc-diff-arrow {

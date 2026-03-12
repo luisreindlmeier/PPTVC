@@ -731,6 +731,20 @@ function loadDiffScope(preselectedId?: string): void {
   selectTo.className = "pptvc-diff-select";
   selectTo.setAttribute("aria-label", "To version");
 
+  const makeSelectWrap = (select: HTMLElement): HTMLDivElement => {
+    const wrap = document.createElement("div");
+    wrap.className = "pptvc-diff-select-wrap";
+
+    const caret = document.createElement("span");
+    caret.className = "pptvc-diff-select-caret";
+    caret.innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true"><path d="M0 0l5 6 5-6H0z"/></svg>';
+
+    wrap.appendChild(select);
+    wrap.appendChild(caret);
+    return wrap;
+  };
+
   for (const v of loadedVersions) {
     const label = `${versionNameOverrides.get(v.id) ?? v.name}`;
 
@@ -761,9 +775,9 @@ function loadDiffScope(preselectedId?: string): void {
   arrow.className = "pptvc-diff-arrow";
   arrow.textContent = "→";
 
-  selectors.appendChild(selectFrom);
+  selectors.appendChild(makeSelectWrap(selectFrom));
   selectors.appendChild(arrow);
-  selectors.appendChild(selectTo);
+  selectors.appendChild(makeSelectWrap(selectTo));
   comparing.appendChild(selectors);
 
   container.appendChild(comparing);
