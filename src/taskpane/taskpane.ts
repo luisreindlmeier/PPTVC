@@ -1,4 +1,4 @@
-/* global document, Office, PowerPoint, Blob, btoa, setTimeout, URL, HTMLElement, HTMLDivElement, HTMLUListElement, HTMLParagraphElement, HTMLLIElement, HTMLButtonElement, HTMLSpanElement, HTMLInputElement, HTMLHeadingElement */
+/* global document, Office, PowerPoint, Blob, btoa, URL, HTMLElement, HTMLDivElement, HTMLUListElement, HTMLParagraphElement, HTMLLIElement, HTMLButtonElement, HTMLSpanElement, HTMLInputElement, HTMLHeadingElement */
 
 import {
   saveVersion,
@@ -25,35 +25,26 @@ import {
   findInstallation,
   testGedonusCommit,
 } from "../sync/github-sync";
+import {
+  DEFAULT_TAGS,
+  ICON_CHECK,
+  ICON_DIFF,
+  ICON_RESTORE,
+  ICON_TAG,
+  ICON_VERSIONS,
+  MAX_TAGS,
+  SETTINGS_TAB_ORDER,
+  TAB_ORDER,
+  formatBytes,
+  formatTimestamp,
+  getEl,
+  hide,
+  show,
+  showStatus,
+  type SettingsTab,
+} from "../ui";
 
 // ── Constants ─────────────────────────────────────────────────
-
-const DEFAULT_TAGS = ["draft", "reviewed", "final", "sent", "archived", "important", "wip"];
-
-const MAX_TAGS = 3;
-
-const TAB_ORDER: Record<"history" | "diff" | "workflow", number> = {
-  history: 0,
-  diff: 1,
-  workflow: 2,
-};
-
-type SettingsTab = "general" | "storage" | "versioning" | "tags";
-
-const SETTINGS_TAB_ORDER: Record<SettingsTab, number> = {
-  general: 0,
-  storage: 1,
-  versioning: 2,
-  tags: 3,
-};
-
-// ── Heroicons (inline SVG, 24px viewBox outline) ──────────────
-
-const ICON_DIFF = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 3M21 7.5H7.5" /></svg>`;
-const ICON_TAG = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.595.45a18.634 18.634 0 0 0 5.652-4.475 1.876 1.876 0 0 0-.45-2.594L10.455 3.659A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>`;
-const ICON_VERSIONS = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`;
-const ICON_RESTORE = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" /></svg>`;
-const ICON_CHECK = `<svg class="pptvc-slide-scope-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"></polyline></svg>`;
 
 type SlideInfo = { num: number; name: string };
 
@@ -87,7 +78,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   authorName: "",
   email: "",
   autoSaveOnDocumentSave: false,
-  namingTemplate: "Die Version {version_number}",
+  namingTemplate: "Version {version_number}",
   customTags: [],
 };
 
@@ -189,28 +180,6 @@ Office.onReady((info) => {
 
 // ── Utility ───────────────────────────────────────────────────
 
-function getEl<T extends HTMLElement>(id: string): T {
-  return document.getElementById(id) as T;
-}
-
-function hide(el: HTMLElement): void {
-  el.classList.add("pptvc-hidden");
-}
-
-function show(el: HTMLElement): void {
-  el.classList.remove("pptvc-hidden");
-}
-
-function showStatus(message: string, isError: boolean): void {
-  const el = getEl<HTMLDivElement>("status-msg");
-  el.textContent = message;
-  el.className = `pptvc-status ${isError ? "pptvc-status--error" : "pptvc-status--success"}`;
-  setTimeout(() => {
-    el.textContent = "";
-    el.className = "pptvc-status";
-  }, 4000);
-}
-
 async function blobToBase64(blob: Blob): Promise<string> {
   const buffer = await blob.arrayBuffer();
   const bytes = new Uint8Array(buffer);
@@ -219,16 +188,6 @@ async function blobToBase64(blob: Blob): Promise<string> {
     binary += String.fromCharCode(bytes[i]);
   }
   return btoa(binary);
-}
-
-function formatTimestamp(timestamp: number): string {
-  return new Date(timestamp).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function getDefaultVersionName(nextIndex: number): string {
@@ -259,16 +218,6 @@ function getDefaultVersionName(nextIndex: number): string {
         return match;
     }
   });
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const kb = bytes / 1024;
-  if (kb < 1024) return `${kb.toFixed(1)} KB`;
-  const mb = kb / 1024;
-  if (mb < 1024) return `${mb.toFixed(1)} MB`;
-  const gb = mb / 1024;
-  return `${gb.toFixed(1)} GB`;
 }
 
 async function calculateStorageUsage(): Promise<number> {
@@ -342,7 +291,7 @@ function getAvailableTags(): string[] {
   const customTags = (userSettings.customTags ?? [])
     .map((tag) => tag.trim())
     .filter((tag) => tag.length > 0);
-  return customTags.length > 0 ? customTags : DEFAULT_TAGS;
+  return customTags.length > 0 ? customTags : [...DEFAULT_TAGS];
 }
 
 function registerAutoSaveHandler(): void {
