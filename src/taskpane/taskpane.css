@@ -2113,19 +2113,36 @@ ul {
   color: var(--color-text);
 }
 
-.pptvc-settings-hint-list {
-  margin: 0;
-  padding-left: 16px;
+.pptvc-settings-hint-table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: 11px;
   color: var(--color-text-muted);
-  line-height: 1.5;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
 }
 
-.pptvc-settings-hint-list li {
-  margin: 0;
+.pptvc-settings-hint-table th,
+.pptvc-settings-hint-table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.pptvc-settings-hint-list code {
+.pptvc-settings-hint-table th {
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.pptvc-settings-hint-table tr:last-child td {
+  border-bottom: none;
+}
+
+.pptvc-settings-hint-list code,
+.pptvc-settings-hint-table code {
   font-family: var(
     --font-mono,
     ui-monospace,
