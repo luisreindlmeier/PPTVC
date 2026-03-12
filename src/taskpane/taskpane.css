@@ -331,6 +331,32 @@ ul {
   z-index: 0;
 }
 
+.pptvc-scope-bar__indicator::before,
+.pptvc-scope-bar__indicator::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 9px;
+  pointer-events: none;
+}
+
+/* Concave corner arcs on the indicator's left edge */
+.pptvc-scope-bar__indicator::before {
+  right: 100%;
+  background:
+    radial-gradient(circle at 100% 0%, var(--color-bg) 9px, transparent 9.5px),
+    radial-gradient(circle at 100% 100%, var(--color-bg) 9px, transparent 9.5px);
+}
+
+/* Concave corner arcs on the indicator's right edge */
+.pptvc-scope-bar__indicator::after {
+  left: 100%;
+  background:
+    radial-gradient(circle at 0% 0%, var(--color-bg) 9px, transparent 9.5px),
+    radial-gradient(circle at 0% 100%, var(--color-bg) 9px, transparent 9.5px);
+}
+
 .pptvc-scope-tab {
   -ms-flex: 1 1 0;
   flex: 1 1 0;
@@ -343,17 +369,16 @@ ul {
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 500;
-  color: var(--color-text-muted);
+  color: var(--color-border-focus);
   cursor: pointer;
   transition:
-    color 0.2s var(--ease),
-    background 0.16s var(--ease);
+    color 0.2s var(--ease);
   letter-spacing: 0.01em;
   text-align: center;
 }
 
 .pptvc-scope-tab:hover {
-  background: rgba(121, 173, 116, 0.12);
+  background: transparent;
 }
 
 .pptvc-scope-tab--active:hover {
