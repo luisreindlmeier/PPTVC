@@ -9,6 +9,7 @@ import {
   getVersionBlob,
   type Version,
 } from "../versions";
+import { buildComparisonSlide } from "../diff/build-comparison-slide";
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -849,17 +850,18 @@ function loadDiffScope(preselectedId?: string): void {
 
   // ── Wire compare button ──
   compareBtn.addEventListener("click", () => {
-    const fromId = selectFrom.value;
-    const fromVersion = loadedVersions.find((v) => v.id === fromId);
-    if (!fromVersion) return;
-    void runVisualComparison(fromVersion, comparisonBanner, compareBtn);
+    const fromVersion = loadedVersions.find((v) => v.id === selectFrom.value);
+    const toVersion = loadedVersions.find((v) => v.id === selectTo.value);
+    if (!fromVersion || !toVersion || fromVersion.id === toVersion.id) return;
+    void runVisualComparison(fromVersion, toVersion, comparisonBanner, compareBtn);
   });
 }
 
-// ── Visual comparison (insert old slide below current) ────────
+// ── Visual comparison (old shapes below current slide) ────────
 
 async function runVisualComparison(
   fromVersion: Version,
+  toVersion: Version,
   banner: HTMLDivElement,
   btn: HTMLButtonElement
 ): Promise<void> {
@@ -872,57 +874,43 @@ async function runVisualComparison(
   hide(banner);
 
   try {
-    // Clear any previous comparison first
-    if (comparisonSlideId) {
-      await deleteComparisonSlide();
-    }
+    const [toBlob, fromBlob] = await Promise.all([
+      getVersionBlob(toVersion.snapshotPath),
+      getVersionBlob(fromVersion.snapshotPath),
+    ]);
 
-    const blob = await getVersionBlob(fromVersion.snapshotPath);
-    const base64 = await blobToBase64(blob);
-    const currentSlideIdx = (availableSlides[0]?.num ?? 1) - 1;
+    const slideIdx = (availableSlides[0]?.num ?? 1) - 1;
+    const modifiedBlob = await buildComparisonSlide(toBlob, fromBlob, slideIdx);
+    const base64 = await blobToBase64(modifiedBlob);
 
+    // Replace the entire document (same pattern as restoreVersion)
     await PowerPoint.run(async (context) => {
       const slides = context.presentation.slides;
       slides.load("items/id");
       await context.sync();
 
-      const existingIds = new Set(slides.items.map((s) => s.id));
-      const targetSlide = slides.items[currentSlideIdx];
-      const targetSlideId = targetSlide?.id;
+      const existingIds = slides.items.map((s) => s.id);
 
-      // Insert all slides from the old version after the current slide
       context.presentation.insertSlidesFromBase64(base64, {
-        formatting: PowerPoint.InsertSlideFormatting.useDestinationTheme,
-        targetSlideId,
+        formatting: PowerPoint.InsertSlideFormatting.keepSourceFormatting,
       });
       await context.sync();
 
-      // Find the newly inserted slides
-      slides.load("items/id");
-      await context.sync();
-
-      const newIds = slides.items.filter((s) => !existingIds.has(s.id)).map((s) => s.id);
-
-      // Keep the slide at the same index as current; delete the rest
-      const keepId = newIds[currentSlideIdx] ?? newIds[0];
-      comparisonSlideId = keepId ?? null;
-
-      for (const id of newIds) {
-        if (id !== keepId) {
-          context.presentation.slides.getItem(id).delete();
-        }
+      for (const id of existingIds) {
+        context.presentation.slides.getItem(id).delete();
       }
       await context.sync();
     });
 
-    if (comparisonSlideId) {
-      const fromName = versionNameOverrides.get(fromVersion.id) ?? fromVersion.name;
-      banner.querySelector<HTMLSpanElement>(".pptvc-diff-banner-text")!.textContent =
-        `"${fromName}" inserted below — scroll down to compare`;
-      show(banner);
-    }
+    comparisonSlideId = toVersion.id; // store so Clear can restore it
+
+    const fromName = versionNameOverrides.get(fromVersion.id) ?? fromVersion.name;
+    const toName = versionNameOverrides.get(toVersion.id) ?? toVersion.name;
+    banner.querySelector<HTMLSpanElement>(".pptvc-diff-banner-text")!.textContent =
+      `Scroll down on the slide to see "${fromName}" below "${toName}"`;
+    show(banner);
   } catch (err) {
-    showStatus(err instanceof Error ? err.message : "Failed to insert comparison slide.", true);
+    showStatus(err instanceof Error ? err.message : "Failed to build comparison.", true);
   } finally {
     btn.disabled = false;
     show(label);
@@ -934,30 +922,18 @@ async function clearVisualComparison(
   banner: HTMLDivElement,
   btn: HTMLButtonElement
 ): Promise<void> {
+  if (!comparisonSlideId) return;
   btn.disabled = true;
+
   try {
-    await deleteComparisonSlide();
+    await restoreVersion(comparisonSlideId);
+    comparisonSlideId = null;
     hide(banner);
   } catch (err) {
     showStatus(err instanceof Error ? err.message : "Failed to clear comparison.", true);
   } finally {
     btn.disabled = false;
   }
-}
-
-async function deleteComparisonSlide(): Promise<void> {
-  if (!comparisonSlideId) return;
-  const idToDelete = comparisonSlideId;
-  comparisonSlideId = null;
-
-  await PowerPoint.run(async (context) => {
-    try {
-      context.presentation.slides.getItem(idToDelete).delete();
-      await context.sync();
-    } catch {
-      // Slide may have been manually deleted — that's fine
-    }
-  });
 }
 
 // ── Save ──────────────────────────────────────────────────────
