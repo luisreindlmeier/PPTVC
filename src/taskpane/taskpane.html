@@ -402,23 +402,6 @@
                 </button>
               </div>
 
-              <div class="pptvc-settings-section">
-                <div class="pptvc-settings-section-header">
-                  <h3 class="pptvc-settings-section-label">Reset</h3>
-                  <span class="pptvc-settings-section-divider" aria-hidden="true"></span>
-                  <span
-                    class="pptvc-settings-info"
-                    role="img"
-                    aria-label="Reset info"
-                    data-tooltip="Delete all saved versions on this device."
-                  >
-                    i
-                  </span>
-                </div>
-                <button id="btn-settings-reset" class="pptvc-btn pptvc-btn--danger" type="button">
-                  Delete All Versions
-                </button>
-              </div>
             </section>
 
             <!-- Versioning panel -->
@@ -465,33 +448,23 @@
                     i
                   </span>
                 </div>
-                <div class="pptvc-settings-radio-group">
-                  <label class="pptvc-settings-radio">
-                    <input type="radio" name="settings-name-scheme" value="version" checked />
-                    <span>Version N</span>
+                <div class="pptvc-settings-field">
+                  <label class="pptvc-settings-field-label" for="settings-name-template">
+                    Naming Template
                   </label>
-                  <label class="pptvc-settings-radio">
-                    <input type="radio" name="settings-name-scheme" value="date" />
-                    <span>Date-based</span>
-                  </label>
-                  <label class="pptvc-settings-radio">
-                    <input type="radio" name="settings-name-scheme" value="prefix" />
-                    <span>Prefix</span>
-                  </label>
-                </div>
-                <div class="pptvc-settings-inline">
                   <input
-                    id="settings-name-prefix"
+                    id="settings-name-template"
                     type="text"
                     class="pptvc-text-input pptvc-settings-input"
-                    placeholder="Sprint"
+                    placeholder="Die Version {version_number}"
                   />
-                  <select id="settings-date-format" class="pptvc-text-input pptvc-settings-input">
-                    <option value="iso">YYYY-MM-DD</option>
-                    <option value="short">Mar 12, 2026</option>
-                    <option value="long">March 12, 2026</option>
-                  </select>
                 </div>
+                <ul class="pptvc-settings-hint-list">
+                  <li><code>{version_number}</code> -> 12</li>
+                  <li><code>{date}</code> -> Mar 12, 2026</li>
+                  <li><code>{time}</code> -> 18:04</li>
+                  <li><code>{datetime}</code> -> Mar 12, 2026 18:04</li>
+                </ul>
               </div>
             </section>
 

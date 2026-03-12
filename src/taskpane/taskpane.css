@@ -2085,6 +2085,24 @@ ul {
   color: var(--color-text);
 }
 
+.pptvc-settings-hint-list {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.pptvc-settings-hint-list li {
+  margin: 0;
+}
+
+.pptvc-settings-hint-list code {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+  font-size: 11px;
+  color: var(--color-text);
+}
+
 .pptvc-settings-tag-list {
   display: -ms-flexbox;
   display: flex;
