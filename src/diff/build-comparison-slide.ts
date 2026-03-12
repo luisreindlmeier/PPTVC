@@ -76,7 +76,7 @@ function buildBgRect(size: SlideSize): string {
     `<p:sp>` +
     `<p:nvSpPr>` +
     `<p:cNvPr id="9900" name="PPTVC_BG"/>` +
-    `<p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>` +
+    `<p:cNvSpPr><a:spLocks noGrp="1" noSelect="1" noMove="1" noResize="1" noRot="1"/></p:cNvSpPr>` +
     `<p:nvPr/>` +
     `</p:nvSpPr>` +
     `<p:spPr>` +
