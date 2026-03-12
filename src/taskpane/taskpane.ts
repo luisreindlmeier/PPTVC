@@ -918,7 +918,17 @@ async function runVisualComparison(
     const slideIdx = (availableSlides[0]?.num ?? 1) - 1;
     const toName = versionNameOverrides.get(toVersion.id) ?? toVersion.name;
     const fromName = versionNameOverrides.get(fromVersion.id) ?? fromVersion.name;
-    const modifiedBlob = await buildComparisonSlide(toBlob, fromBlob, slideIdx, toName, fromName);
+    const toTimestamp = formatTimestamp(toVersion.timestamp);
+    const toAuthor = getAuthorLabel(toVersion);
+    const modifiedBlob = await buildComparisonSlide(
+      toBlob,
+      fromBlob,
+      slideIdx,
+      toName,
+      fromName,
+      toTimestamp,
+      toAuthor
+    );
     const base64 = await blobToBase64(modifiedBlob);
 
     // Replace the entire document (same pattern as restoreVersion)

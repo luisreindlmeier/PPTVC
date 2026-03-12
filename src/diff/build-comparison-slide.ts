@@ -91,11 +91,17 @@ function buildBgRect(size: SlideSize): string {
  * Contains a "Comparing" headline with a horizontal divider, then two version
  * chips (from = muted, to = highlighted brown) — read-only, all shapes locked.
  */
-function buildLabelShape(size: SlideSize, toName: string, fromName: string): string {
+function buildLabelShape(
+  size: SlideSize,
+  toName: string,
+  fromName: string,
+  toTimestamp: string,
+  toAuthor: string
+): string {
   const groupY = size.cy + GAP_ABOVE_LABEL;
   const hPad = 228600; // 0.25 in horizontal padding
-  const boxW = 2057400; // 2.25 in fixed chip width to keep both labels compact and left aligned
-  const arrowW = 228600; // 0.25 in
+  const boxW = 1828800; // 2.0 in fixed chip width to keep both labels compact and left aligned
+  const arrowW = 254000; // slightly larger arrow hit-area
   const arrowGap = 76200; // 0.083 in gap on each side of arrow
 
   // Row Y positions (absolute slide coordinates)
@@ -103,11 +109,17 @@ function buildLabelShape(size: SlideSize, toName: string, fromName: string): str
   const versionRowY = titleY + PANEL_TITLE_H + PANEL_SECTION_GAP;
 
   // Divider: horizontal line, vertically centered in title row, from after label to near right edge
-  const titleLabelW = 1219200; // ~1.33 in — closer fit around "Comparing"
-  const dividerX = hPad + titleLabelW + 12700;
+  const titleLabelW = 914400; // 1.0 in — remove large visual gap before divider
+  const dividerX = hPad + titleLabelW;
   const dividerW = size.cx - hPad - dividerX;
   const dividerY = titleY + Math.round(PANEL_TITLE_H / 2) - 9525;
   const dividerH = 19050; // ~0.021 in
+
+  // Right-side meta block (under divider): timestamp above author
+  const metaW = 1828800;
+  const metaX = size.cx - hPad - metaW;
+  const metaTimeY = versionRowY + 25400;
+  const metaAuthorY = metaTimeY + 152400;
 
   // Version boxes: compact chips anchored to the left, with arrow between them
   const box1X = hPad;
@@ -141,7 +153,7 @@ function buildLabelShape(size: SlideSize, toName: string, fromName: string): str
     `<a:noFill/><a:ln><a:noFill/></a:ln>` +
     `</p:spPr>` +
     `<p:txBody>` +
-    `<a:bodyPr anchor="ctr" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:bodyPr anchor="ctr" lIns="0" rIns="0" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="1300" b="1" dirty="0">` +
@@ -180,10 +192,10 @@ function buildLabelShape(size: SlideSize, toName: string, fromName: string): str
     `<a:bodyPr anchor="ctr" lIns="152400" rIns="152400" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
-    `<a:r><a:rPr lang="en-US" sz="1000" b="0" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="950" b="0" dirty="0">` +
     `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
-    `</a:rPr><a:t>${escapeXml(fromName)}</a:t></a:r>` +
+    `</a:rPr><a:t>Bottom (Diff): ${escapeXml(fromName)}</a:t></a:r>` +
     `</a:p></p:txBody>` +
     `</p:sp>`;
 
@@ -201,7 +213,7 @@ function buildLabelShape(size: SlideSize, toName: string, fromName: string): str
     `<a:bodyPr anchor="ctr" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="ctr"/>` +
-    `<a:r><a:rPr lang="en-US" sz="1200" b="1" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="1300" b="1" dirty="0">` +
     `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>&#x2192;</a:t></a:r>` +
@@ -223,10 +235,50 @@ function buildLabelShape(size: SlideSize, toName: string, fromName: string): str
     `<a:bodyPr anchor="ctr" lIns="152400" rIns="152400" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
-    `<a:r><a:rPr lang="en-US" sz="1000" b="0" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="950" b="0" dirty="0">` +
     `<a:solidFill><a:srgbClr val="F7F4EF"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
-    `</a:rPr><a:t>${escapeXml(toName)}</a:t></a:r>` +
+    `</a:rPr><a:t>Top (Normal): ${escapeXml(toName)}</a:t></a:r>` +
+    `</a:p></p:txBody>` +
+    `</p:sp>`;
+
+  const timeMeta =
+    `<p:sp>` +
+    `<p:nvSpPr><p:cNvPr id="9916" name="PPTVC_META_TIME"/>` +
+    `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${metaX}" y="${metaTimeY}"/><a:ext cx="${metaW}" cy="127000"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+    `<a:noFill/><a:ln><a:noFill/></a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody>` +
+    `<a:bodyPr anchor="ctr" lIns="0" rIns="0" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:lstStyle/>` +
+    `<a:p><a:pPr algn="r"/>` +
+    `<a:r><a:rPr lang="en-US" sz="1000" b="0" dirty="0">` +
+    `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
+    `<a:latin typeface="+mj-lt"/>` +
+    `</a:rPr><a:t>${escapeXml(toTimestamp)}</a:t></a:r>` +
+    `</a:p></p:txBody>` +
+    `</p:sp>`;
+
+  const authorMeta =
+    `<p:sp>` +
+    `<p:nvSpPr><p:cNvPr id="9917" name="PPTVC_META_AUTHOR"/>` +
+    `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${metaX}" y="${metaAuthorY}"/><a:ext cx="${metaW}" cy="127000"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+    `<a:noFill/><a:ln><a:noFill/></a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody>` +
+    `<a:bodyPr anchor="ctr" lIns="0" rIns="0" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:lstStyle/>` +
+    `<a:p><a:pPr algn="r"/>` +
+    `<a:r><a:rPr lang="en-US" sz="900" b="0" dirty="0">` +
+    `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
+    `<a:latin typeface="+mj-lt"/>` +
+    `</a:rPr><a:t>Author: ${escapeXml(toAuthor)}</a:t></a:r>` +
     `</a:p></p:txBody>` +
     `</p:sp>`;
 
@@ -251,6 +303,8 @@ function buildLabelShape(size: SlideSize, toName: string, fromName: string): str
     fromBox +
     arrow +
     toBox +
+    timeMeta +
+    authorMeta +
     `</p:grpSp>`
   );
 }
@@ -299,7 +353,9 @@ export async function buildComparisonSlide(
   fromBlob: Blob,
   slideIndex: number,
   toName = "New",
-  fromName = "Old"
+  fromName = "Old",
+  toTimestamp = "",
+  toAuthor = "Unknown"
 ): Promise<Blob> {
   const [toZip, fromZip] = await Promise.all([
     JSZip.loadAsync(await toBlob.arrayBuffer()),
@@ -329,7 +385,7 @@ export async function buildComparisonSlide(
 
   const oldShapes = extractShapeContent(fromSlideXml);
   const bgRect = buildBgRect(slideSize);
-  const label = buildLabelShape(slideSize, toName, fromName);
+  const label = buildLabelShape(slideSize, toName, fromName, toTimestamp, toAuthor);
   const compareGroup = buildCompareGroup(oldShapes, slideSize);
   const modifiedSlideXml = injectIntoSpTree(toSlideXml, bgRect, label, compareGroup);
 
