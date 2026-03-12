@@ -1248,7 +1248,7 @@ ul {
 }
 
 .pptvc-diff-title {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
 }
 
 .pptvc-diff-title::after {
@@ -1256,7 +1256,7 @@ ul {
   -ms-flex: 1 1 auto;
   flex: 1 1 auto;
   height: 1px;
-  margin-left: 8px;
+  margin-left: 5px;
   background: var(--color-border);
 }
 
@@ -1270,7 +1270,7 @@ ul {
   display: flex;
   -ms-flex-direction: column;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -1295,13 +1295,16 @@ ul {
   display: flex;
   -ms-flex-align: center;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
 }
 
 .pptvc-diff-select-wrap {
   position: relative;
-  -ms-flex: 1 1 0;
-  flex: 1 1 0;
+  -ms-flex: 0 1 180px;
+  flex: 0 1 180px;
+  width: 100%;
+  max-width: 180px;
   min-width: 0;
 }
 
@@ -1319,7 +1322,7 @@ ul {
   padding: 7px 10px;
   padding-right: 34px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   background: var(--color-surface-raised);
   font-family: var(--font-sans);
   font-size: 13px;
@@ -1709,31 +1712,25 @@ ul {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: none;
   background: transparent;
   border-radius: var(--radius-xs);
   cursor: pointer;
   color: var(--color-text-muted);
-  transition:
-    color 0.15s var(--ease),
-    background 0.15s var(--ease);
+  transform-origin: center;
+  transition: transform 0.15s var(--ease);
 }
 
 .pptvc-footer-settings-btn svg {
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
 }
 
 .pptvc-footer-settings-btn:hover {
-  color: var(--color-text);
-  background: var(--color-green-light);
-}
-
-.pptvc-footer-settings-btn:active {
-  background: var(--color-tag-bg);
+  transform: scale(1.08);
 }
 
 /* ════════════════════════════════════════════
