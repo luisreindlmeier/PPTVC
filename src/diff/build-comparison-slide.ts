@@ -9,11 +9,12 @@ interface SlideSize {
 
 // Layout constants (EMUs: 1 inch = 914400, 1 pt ≈ 12700)
 const GAP_ABOVE_LABEL = 457200; // 0.5 in — breathing room below main slide
-const LABEL_BOX_HEIGHT = 355600; // 0.39 in — button height
-const LABEL_SUBTEXT_GAP = 50800; // 0.056 in — tight gap
-const LABEL_SUBTEXT_HEIGHT = 279400; // 0.31 in
-const LABEL_HEIGHT = LABEL_BOX_HEIGHT + LABEL_SUBTEXT_GAP + LABEL_SUBTEXT_HEIGHT;
-const GAP_BELOW_LABEL = 152400; // 0.167 in — compact space before comparison
+const PANEL_VPAD = 228600; // 0.25 in — top/bottom padding inside panel
+const PANEL_TITLE_H = 330200; // 0.36 in — "Comparing" title row height
+const PANEL_SECTION_GAP = 152400; // 0.167 in — gap between title and version row
+const PANEL_VERSION_H = 355600; // 0.39 in — version box row height
+const LABEL_HEIGHT = PANEL_VPAD + PANEL_TITLE_H + PANEL_SECTION_GAP + PANEL_VERSION_H + PANEL_VPAD;
+const GAP_BELOW_LABEL = 152400; // 0.167 in — space before comparison
 const COMPARISON_OFFSET = GAP_ABOVE_LABEL + LABEL_HEIGHT + GAP_BELOW_LABEL;
 
 function parseSlideSize(presentationXml: string): SlideSize {
@@ -86,64 +87,147 @@ function buildBgRect(size: SlideSize): string {
 }
 
 /**
- * Locked group containing a brown button ("Compare Version") and a sub-label
- * showing the from-version name — positioned between the main slide and the
- * comparison area.
+ * Full-width beige panel between the main slide and the comparison area.
+ * Contains a "Comparing" headline with a horizontal divider, then two version
+ * chips (from = muted, to = highlighted brown) — read-only, all shapes locked.
  */
-function buildLabelShape(size: SlideSize, _toName: string, fromName: string): string {
-  // Button left-aligned with the diff slide, compact width
-  const btnWidth = 1143000; // ~1.25 in
-  const btnX = 0;
+function buildLabelShape(size: SlideSize, toName: string, fromName: string): string {
   const groupY = size.cy + GAP_ABOVE_LABEL;
-  const subTextY = groupY + LABEL_BOX_HEIGHT + LABEL_SUBTEXT_GAP;
+  const hPad = 304800; // 0.33 in horizontal padding
 
-  // Shared lock attributes for child shapes
+  // Row Y positions (absolute slide coordinates)
+  const titleY = groupY + PANEL_VPAD;
+  const versionRowY = titleY + PANEL_TITLE_H + PANEL_SECTION_GAP;
+
+  // Divider: horizontal line, vertically centered in title row, from after label to near right edge
+  const titleLabelW = 1143000; // ~1.25 in — enough for "Comparing"
+  const dividerX = hPad + titleLabelW + 152400;
+  const dividerW = size.cx - hPad - dividerX;
+  const dividerY = titleY + Math.round(PANEL_TITLE_H / 2) - 9525;
+  const dividerH = 19050; // ~0.021 in
+
+  // Version boxes: two equal-width chips with a small arrow between them
+  const arrowW = 304800; // 0.33 in
+  const arrowGap = 114300; // 0.125 in gap on each side of arrow
+  const contentW = size.cx - 2 * hPad;
+  const boxW = Math.round((contentW - arrowW - 2 * arrowGap) / 2);
+  const box1X = hPad;
+  const arrowX = box1X + boxW + arrowGap;
+  const box2X = arrowX + arrowW + arrowGap;
+
   const spLocks = `<a:spLocks noSelect="1" noMove="1" noResize="1" noTextEdit="1"/>`;
 
-  const btn =
+  // Background panel — beige fill, full slide width
+  const bg =
     `<p:sp>` +
-    `<p:nvSpPr>` +
-    `<p:cNvPr id="9902" name="PPTVC_BTN"/>` +
-    `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr>` +
-    `<p:nvPr/>` +
-    `</p:nvSpPr>` +
+    `<p:nvSpPr><p:cNvPr id="9910" name="PPTVC_PANEL_BG"/>` +
+    `<p:cNvSpPr>${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
-    `<a:xfrm><a:off x="${btnX}" y="${groupY}"/><a:ext cx="${btnWidth}" cy="${LABEL_BOX_HEIGHT}"/></a:xfrm>` +
-    `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 8333"/></a:avLst></a:prstGeom>` +
-    `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
+    `<a:xfrm><a:off x="0" y="${groupY}"/><a:ext cx="${size.cx}" cy="${LABEL_HEIGHT}"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+    `<a:solidFill><a:srgbClr val="F3EDE2"/></a:solidFill>` +
     `<a:ln><a:noFill/></a:ln>` +
     `</p:spPr>` +
-    `<p:txBody>` +
-    `<a:bodyPr anchor="ctr" lIns="114300" rIns="114300" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
-    `<a:lstStyle/>` +
-    `<a:p><a:pPr algn="ctr"/>` +
-    `<a:r><a:rPr lang="en-US" sz="1000" b="0" spc="-100" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="F7F4EF"/></a:solidFill>` +
-    `<a:latin typeface="+mj-lt"/>` +
-    `</a:rPr><a:t>Compare Version</a:t></a:r>` +
-    `</a:p></p:txBody>` +
+    `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>` +
     `</p:sp>`;
 
-  const sub =
+  // "Comparing" title text
+  const title =
     `<p:sp>` +
-    `<p:nvSpPr>` +
-    `<p:cNvPr id="9903" name="PPTVC_SUBLABEL"/>` +
-    `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr>` +
-    `<p:nvPr/>` +
-    `</p:nvSpPr>` +
+    `<p:nvSpPr><p:cNvPr id="9911" name="PPTVC_TITLE"/>` +
+    `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
-    `<a:xfrm><a:off x="${btnX}" y="${subTextY}"/><a:ext cx="${btnWidth}" cy="${LABEL_SUBTEXT_HEIGHT}"/></a:xfrm>` +
+    `<a:xfrm><a:off x="${hPad}" y="${titleY}"/><a:ext cx="${titleLabelW}" cy="${PANEL_TITLE_H}"/></a:xfrm>` +
     `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
     `<a:noFill/><a:ln><a:noFill/></a:ln>` +
     `</p:spPr>` +
     `<p:txBody>` +
-    `<a:bodyPr anchor="t" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:bodyPr anchor="ctr" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
-    `<a:p><a:pPr algn="ctr"/>` +
-    `<a:r><a:rPr lang="en-US" sz="900" b="0" dirty="0">` +
+    `<a:p><a:pPr algn="l"/>` +
+    `<a:r><a:rPr lang="en-US" sz="1100" b="1" dirty="0">` +
+    `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
+    `<a:latin typeface="+mj-lt"/>` +
+    `</a:rPr><a:t>Comparing</a:t></a:r>` +
+    `</a:p></p:txBody>` +
+    `</p:sp>`;
+
+  // Horizontal divider line after title
+  const divider =
+    `<p:sp>` +
+    `<p:nvSpPr><p:cNvPr id="9912" name="PPTVC_DIVIDER"/>` +
+    `<p:cNvSpPr>${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${dividerX}" y="${dividerY}"/><a:ext cx="${dividerW}" cy="${dividerH}"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+    `<a:solidFill><a:srgbClr val="D4C9B8"/></a:solidFill>` +
+    `<a:ln><a:noFill/></a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>` +
+    `</p:sp>`;
+
+  // From-version chip — white with muted border, grey text
+  const fromBox =
+    `<p:sp>` +
+    `<p:nvSpPr><p:cNvPr id="9913" name="PPTVC_FROM_BOX"/>` +
+    `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${box1X}" y="${versionRowY}"/><a:ext cx="${boxW}" cy="${PANEL_VERSION_H}"/></a:xfrm>` +
+    `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 4167"/></a:avLst></a:prstGeom>` +
+    `<a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>` +
+    `<a:ln w="19050"><a:solidFill><a:srgbClr val="D4C9B8"/></a:solidFill></a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody>` +
+    `<a:bodyPr anchor="ctr" lIns="152400" rIns="152400" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:lstStyle/>` +
+    `<a:p><a:pPr algn="l"/>` +
+    `<a:r><a:rPr lang="en-US" sz="1000" b="0" dirty="0">` +
     `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>${escapeXml(fromName)}</a:t></a:r>` +
+    `</a:p></p:txBody>` +
+    `</p:sp>`;
+
+  // Arrow "→" between chips
+  const arrow =
+    `<p:sp>` +
+    `<p:nvSpPr><p:cNvPr id="9914" name="PPTVC_ARROW"/>` +
+    `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${arrowX}" y="${versionRowY}"/><a:ext cx="${arrowW}" cy="${PANEL_VERSION_H}"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+    `<a:noFill/><a:ln><a:noFill/></a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody>` +
+    `<a:bodyPr anchor="ctr" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:lstStyle/>` +
+    `<a:p><a:pPr algn="ctr"/>` +
+    `<a:r><a:rPr lang="en-US" sz="1000" b="0" dirty="0">` +
+    `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
+    `<a:latin typeface="+mj-lt"/>` +
+    `</a:rPr><a:t>&#x2192;</a:t></a:r>` +
+    `</a:p></p:txBody>` +
+    `</p:sp>`;
+
+  // To-version chip — brown fill, cream text (highlighted as current)
+  const toBox =
+    `<p:sp>` +
+    `<p:nvSpPr><p:cNvPr id="9915" name="PPTVC_TO_BOX"/>` +
+    `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${box2X}" y="${versionRowY}"/><a:ext cx="${boxW}" cy="${PANEL_VERSION_H}"/></a:xfrm>` +
+    `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 4167"/></a:avLst></a:prstGeom>` +
+    `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
+    `<a:ln><a:noFill/></a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody>` +
+    `<a:bodyPr anchor="ctr" lIns="152400" rIns="152400" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:lstStyle/>` +
+    `<a:p><a:pPr algn="l"/>` +
+    `<a:r><a:rPr lang="en-US" sz="1000" b="0" dirty="0">` +
+    `<a:solidFill><a:srgbClr val="F7F4EF"/></a:solidFill>` +
+    `<a:latin typeface="+mj-lt"/>` +
+    `</a:rPr><a:t>${escapeXml(toName)}</a:t></a:r>` +
     `</a:p></p:txBody>` +
     `</p:sp>`;
 
@@ -156,14 +240,18 @@ function buildLabelShape(size: SlideSize, _toName: string, fromName: string): st
     `</p:nvGrpSpPr>` +
     `<p:grpSpPr>` +
     `<a:xfrm>` +
-    `<a:off x="${btnX}" y="${groupY}"/>` +
-    `<a:ext cx="${btnWidth}" cy="${LABEL_HEIGHT}"/>` +
-    `<a:chOff x="${btnX}" y="${groupY}"/>` +
-    `<a:chExt cx="${btnWidth}" cy="${LABEL_HEIGHT}"/>` +
+    `<a:off x="0" y="${groupY}"/>` +
+    `<a:ext cx="${size.cx}" cy="${LABEL_HEIGHT}"/>` +
+    `<a:chOff x="0" y="${groupY}"/>` +
+    `<a:chExt cx="${size.cx}" cy="${LABEL_HEIGHT}"/>` +
     `</a:xfrm>` +
     `</p:grpSpPr>` +
-    btn +
-    sub +
+    bg +
+    title +
+    divider +
+    fromBox +
+    arrow +
+    toBox +
     `</p:grpSp>`
   );
 }
