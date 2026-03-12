@@ -216,12 +216,13 @@ async function initializeGlobalSlideScopePicker(): Promise<void> {
           if (result.status === Office.AsyncResultStatus.Succeeded && slides?.length) {
             resolve(slides[0]);
           } else {
-            resolve({ index: 0, title: "" });
+            resolve({ index: 1, title: "" });
           }
         }
       );
     });
-    slideNum = selected.index + 1;
+    // SlideRange index is already 1-based in PowerPoint.
+    slideNum = Math.max(1, selected.index);
   } catch {
     // Fallback: default to slide 1
   }
@@ -243,7 +244,7 @@ async function initializeGlobalSlideScopePicker(): Promise<void> {
       (result: Office.AsyncResult<{ slides?: { index: number; title: string }[] }>) => {
         const slides = result.value?.slides;
         if (result.status === Office.AsyncResultStatus.Succeeded && slides?.length) {
-          const newNum = slides[0].index + 1;
+          const newNum = Math.max(1, slides[0].index);
           if (availableSlides[0]?.num !== newNum) {
             availableSlides[0] = { num: newNum, name: `Slide ${newNum}` };
             globalSelectedSlides.clear();
