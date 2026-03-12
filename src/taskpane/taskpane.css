@@ -1488,9 +1488,15 @@ ul {
   margin-left: 8px;
 }
 
-/* Per-slide shape changes (expandable) */
+.pptvc-diff-changes-section {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
 .pptvc-diff-change-list {
-  padding: 0 8px 8px 42px;
+  padding: 0;
 }
 
 .pptvc-diff-change-item {
@@ -1500,14 +1506,18 @@ ul {
   align-items: center;
   -ms-flex-pack: justify;
   justify-content: space-between;
-  padding: 4px 0;
-  border-top: 1px solid var(--color-bg);
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pptvc-diff-change-item:last-child {
+  border-bottom: none;
 }
 
 .pptvc-diff-change-name {
-  font-size: 11px;
+  font-size: 12px;
   font-family: var(--font-sans);
-  color: var(--color-text-muted);
+  color: var(--color-text);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1524,9 +1534,35 @@ ul {
   -ms-flex-negative: 0;
   flex-shrink: 0;
   margin-left: 8px;
-  padding: 1px 5px;
+  padding: 2px 6px;
   background: var(--color-green-light);
   border-radius: 3px;
+  text-transform: capitalize;
+}
+
+.pptvc-diff-change-delta--added {
+  background: #eaf4e8;
+  color: #2e7d32;
+}
+
+.pptvc-diff-change-delta--removed {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.pptvc-diff-change-delta--moved {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.pptvc-diff-change-empty {
+  padding: 20px 14px;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  font-style: italic;
+  text-align: center;
+  margin: 0;
 }
 
 /* Empty / placeholder state for diff */

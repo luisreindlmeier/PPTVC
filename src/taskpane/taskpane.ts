@@ -843,6 +843,7 @@ function loadDiffScope(preselectedId?: string): void {
 
   container.appendChild(comparing);
 
+  // ── Summary (single-slide stats) ──
   const summaryTitle = document.createElement("h3");
   summaryTitle.className = "pptvc-section-title pptvc-diff-title";
   summaryTitle.textContent = "Summary";
@@ -851,150 +852,87 @@ function loadDiffScope(preselectedId?: string): void {
   const summary = document.createElement("div");
   summary.className = "pptvc-diff-summary-grid";
 
-  const summaryTotal = document.createElement("div");
-  summaryTotal.className = "pptvc-diff-summary-card pptvc-diff-summary-card--primary";
-  const summaryTotalLabel = document.createElement("span");
-  summaryTotalLabel.className = "pptvc-diff-summary-label";
-  summaryTotalLabel.textContent = "Total Changes";
-  const summaryTotalValue = document.createElement("span");
-  summaryTotalValue.className = "pptvc-diff-summary-value";
+  const makeSummaryCard = (label: string, primary: boolean): [HTMLDivElement, HTMLSpanElement] => {
+    const card = document.createElement("div");
+    card.className = `pptvc-diff-summary-card${primary ? " pptvc-diff-summary-card--primary" : ""}`;
+    const lbl = document.createElement("span");
+    lbl.className = "pptvc-diff-summary-label";
+    lbl.textContent = label;
+    const val = document.createElement("span");
+    val.className = "pptvc-diff-summary-value";
+    card.appendChild(lbl);
+    card.appendChild(val);
+    return [card, val];
+  };
 
-  const summarySlides = document.createElement("div");
-  summarySlides.className = "pptvc-diff-summary-card";
-  const summarySlidesLabel = document.createElement("span");
-  summarySlidesLabel.className = "pptvc-diff-summary-label";
-  summarySlidesLabel.textContent = "Changed Slides";
-  const summarySlidesValue = document.createElement("span");
-  summarySlidesValue.className = "pptvc-diff-summary-value";
-
-  const summaryKinds = document.createElement("div");
-  summaryKinds.className = "pptvc-diff-summary-card";
-  const summaryKindsLabel = document.createElement("span");
-  summaryKindsLabel.className = "pptvc-diff-summary-label";
-  summaryKindsLabel.textContent = "Modified Items";
-  const summaryKindsValue = document.createElement("span");
-  summaryKindsValue.className = "pptvc-diff-summary-value";
-
-  summaryTotal.appendChild(summaryTotalLabel);
-  summaryTotal.appendChild(summaryTotalValue);
-  summarySlides.appendChild(summarySlidesLabel);
-  summarySlides.appendChild(summarySlidesValue);
-  summaryKinds.appendChild(summaryKindsLabel);
-  summaryKinds.appendChild(summaryKindsValue);
-  summary.appendChild(summaryTotal);
-  summary.appendChild(summarySlides);
-  summary.appendChild(summaryKinds);
+  const [cardTotal, valTotal] = makeSummaryCard("Changes", true);
+  const [cardModified, valModified] = makeSummaryCard("Modified", false);
+  const [cardAdded, valAdded] = makeSummaryCard("Added", false);
+  summary.appendChild(cardTotal);
+  summary.appendChild(cardModified);
+  summary.appendChild(cardAdded);
   container.appendChild(summary);
 
-  // Changed Slides section
+  // ── Slide Changes section ──
   const slidesTitle = document.createElement("h3");
   slidesTitle.className = "pptvc-section-title pptvc-diff-title";
-  slidesTitle.textContent = "Changed Slides";
+  slidesTitle.textContent = "Slide Changes";
   container.appendChild(slidesTitle);
 
-  const slidesSection = document.createElement("div");
-  slidesSection.className = "pptvc-diff-slides-section";
+  const changesSection = document.createElement("div");
+  changesSection.className = "pptvc-diff-changes-section";
 
-  const slideList = document.createElement("ul");
-  slideList.className = "pptvc-diff-slide-list pptvc-diff-slide-list--timeline";
+  const changeListEl = document.createElement("div");
+  changeListEl.className = "pptvc-diff-change-list";
+  changesSection.appendChild(changeListEl);
+  container.appendChild(changesSection);
 
   const renderDiffResults = (): void => {
-    const visibleSlides = isGlobalPresentationSelected()
-      ? availableSlides
-      : availableSlides.filter((slide) => globalSelectedSlides.has(slide.num));
+    const slide = availableSlides[0];
+    const slideChanges = slide ? getHardcodedChangesForSlide(slide) : [];
 
-    const allChanges = visibleSlides.flatMap((slide) => getHardcodedChangesForSlide(slide));
-    const totalChanges = allChanges.length;
-    const modifiedChanges = getChangeKindCount(allChanges, "modified");
-    const updatedChanges = getChangeKindCount(allChanges, "updated");
-    const modifiedCount = modifiedChanges + updatedChanges;
+    const addedCount = getChangeKindCount(slideChanges, "added");
+    const removedCount = getChangeKindCount(slideChanges, "removed");
+    const modifiedCount = slideChanges.length - addedCount - removedCount;
 
-    summaryTotalValue.textContent = String(totalChanges);
-    summarySlidesValue.textContent = `${visibleSlides.length}`;
-    summaryKindsValue.textContent = String(modifiedCount);
+    valTotal.textContent = String(slideChanges.length);
+    valModified.textContent = String(modifiedCount);
+    valAdded.textContent =
+      addedCount > 0 || removedCount > 0 ? `+${addedCount} / −${removedCount}` : "—";
+    // Relabel "Added" card to "+/−" when both present, keep "Added" otherwise
+    cardAdded.querySelector<HTMLSpanElement>(".pptvc-diff-summary-label")!.textContent =
+      removedCount > 0 ? "+/−" : "Added";
 
-    slideList.innerHTML = "";
+    changeListEl.innerHTML = "";
 
-    if (visibleSlides.length === 0) {
-      const emptyItem = document.createElement("li");
-      emptyItem.className = "pptvc-diff-slide-item";
-      const emptyRow = document.createElement("div");
-      emptyRow.className = "pptvc-diff-slide-row";
-      const emptyText = document.createElement("span");
-      emptyText.className = "pptvc-diff-slide-name";
-      emptyText.textContent = "No detected changes for this slide.";
-      emptyRow.appendChild(emptyText);
-      emptyItem.appendChild(emptyRow);
-      slideList.appendChild(emptyItem);
+    if (slideChanges.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "pptvc-diff-change-empty";
+      empty.textContent = "No changes detected on this slide.";
+      changeListEl.appendChild(empty);
       return;
     }
 
-    for (const slide of visibleSlides) {
-      const slideChanges = getHardcodedChangesForSlide(slide);
+    for (const change of slideChanges) {
+      const item = document.createElement("div");
+      item.className = "pptvc-diff-change-item";
 
-      const item = document.createElement("li");
-      item.className = "pptvc-diff-slide-item";
+      const nameEl = document.createElement("span");
+      nameEl.className = "pptvc-diff-change-name";
+      nameEl.textContent = change.name;
 
-      const timelineDot = document.createElement("div");
-      timelineDot.className = "pptvc-diff-slide-dot";
-      item.appendChild(timelineDot);
+      const deltaEl = document.createElement("span");
+      deltaEl.className = `pptvc-diff-change-delta pptvc-diff-change-delta--${change.delta}`;
+      deltaEl.textContent = change.delta;
 
-      const row = document.createElement("div");
-      row.className = "pptvc-diff-slide-row";
-
-      const numBox = document.createElement("div");
-      numBox.className = "pptvc-diff-slide-number";
-      numBox.textContent = String(slide.num);
-
-      const name = document.createElement("span");
-      name.className = "pptvc-diff-slide-name";
-      name.textContent = slide.name;
-
-      const dot = document.createElement("div");
-      dot.className = "pptvc-diff-slide-indicator";
-
-      row.appendChild(numBox);
-      row.appendChild(name);
-      row.appendChild(dot);
-      item.appendChild(row);
-
-      const meta = document.createElement("div");
-      meta.className = "pptvc-diff-slide-meta";
-      meta.textContent = `${slideChanges.length} changes detected in this slide`;
-      item.appendChild(meta);
-
-      const changeList = document.createElement("div");
-      changeList.className = "pptvc-diff-change-list";
-
-      for (const change of slideChanges) {
-        const changeItem = document.createElement("div");
-        changeItem.className = "pptvc-diff-change-item";
-
-        const changeName = document.createElement("span");
-        changeName.className = "pptvc-diff-change-name";
-        changeName.textContent = change.name;
-
-        const changeDelta = document.createElement("span");
-        changeDelta.className = "pptvc-diff-change-delta";
-        changeDelta.textContent = change.delta;
-
-        changeItem.appendChild(changeName);
-        changeItem.appendChild(changeDelta);
-        changeList.appendChild(changeItem);
-      }
-
-      item.appendChild(changeList);
-      slideList.appendChild(item);
+      item.appendChild(nameEl);
+      item.appendChild(deltaEl);
+      changeListEl.appendChild(item);
     }
   };
-  compareBtn.addEventListener("click", () => {
-    renderDiffResults();
-  });
 
+  compareBtn.addEventListener("click", renderDiffResults);
   renderDiffResults();
-
-  slidesSection.appendChild(slideList);
-  container.appendChild(slidesSection);
 
   const note = document.createElement("p");
   note.className = "pptvc-diff-placeholder-note";
