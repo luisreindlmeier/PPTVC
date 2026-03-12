@@ -2,7 +2,7 @@
 
 import JSZip from "jszip";
 import { createStorageAdapter, type StorageAdapter } from "../storage";
-import type { Version, VersionSnapshotMetadata } from "./types";
+import type { Version, VersionSnapshotMetadata, SaveVersionOptions } from "./types";
 
 const VERSION_ROOT_PATH = "versions";
 const SNAPSHOT_FILE_NAME = "snapshot.pptx";
@@ -122,7 +122,7 @@ async function readCurrentPresentationAsBlob(): Promise<PptxFileData> {
     const filename = getFileNameFromUrl(getDocumentUrl());
 
     return {
-      blob: new Blob([content], {
+      blob: new Blob([content.buffer as ArrayBuffer], {
         type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
       }),
       filename,
@@ -151,7 +151,7 @@ async function createVersionName(storage: StorageAdapter): Promise<string> {
   return `Version ${versionNumber}`;
 }
 
-export async function saveVersion(): Promise<Version> {
+export async function saveVersion(options: SaveVersionOptions = {}): Promise<Version> {
   const storage = createStorageAdapter();
   const { blob, filename } = await readCurrentPresentationAsBlob();
   const xmlFiles = await getXmlFileList(blob);
@@ -159,6 +159,8 @@ export async function saveVersion(): Promise<Version> {
   const timestamp = Date.now();
   const id = createVersionId(timestamp);
   const name = await createVersionName(storage);
+  const displayName = options.name?.trim() || undefined;
+  const tags = options.tags ?? [];
 
   const snapshotPath = `${VERSION_ROOT_PATH}/${id}/${SNAPSHOT_FILE_NAME}`;
   const metadataPath = `${VERSION_ROOT_PATH}/${id}/${METADATA_FILE_NAME}`;
@@ -166,6 +168,8 @@ export async function saveVersion(): Promise<Version> {
   const metadata: VersionSnapshotMetadata = {
     id,
     name,
+    displayName,
+    tags,
     timestamp,
     filename,
     xmlFiles,
@@ -177,6 +181,8 @@ export async function saveVersion(): Promise<Version> {
   return {
     id,
     name,
+    displayName,
+    tags,
     timestamp,
     filename,
     snapshotPath,

@@ -103,6 +103,11 @@ export class OpfsStorageAdapter implements StorageAdapter {
     return JSON.parse(text) as T;
   }
 
+  async deleteDirectory(path: string): Promise<void> {
+    const { parentHandle, fileName } = await this.getParentDirectoryHandle(path, false);
+    await parentHandle.removeEntry(fileName, { recursive: true });
+  }
+
   async listDirectory(path: string): Promise<string[]> {
     let directoryHandle: FileSystemDirectoryHandle;
 
