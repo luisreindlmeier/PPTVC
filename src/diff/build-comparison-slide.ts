@@ -9,11 +9,11 @@ interface SlideSize {
 
 // Layout constants (EMUs: 1 inch = 914400, 1 pt ≈ 12700)
 const GAP_ABOVE_LABEL = 457200; // 0.5 in — breathing room below main slide
-const LABEL_BOX_HEIGHT = 406400; // 0.44 in — button height
-const LABEL_SUBTEXT_GAP = 114300; // 0.125 in
-const LABEL_SUBTEXT_HEIGHT = 304800; // 0.33 in
+const LABEL_BOX_HEIGHT = 355600; // 0.39 in — button height
+const LABEL_SUBTEXT_GAP = 50800; // 0.056 in — tight gap
+const LABEL_SUBTEXT_HEIGHT = 279400; // 0.31 in
 const LABEL_HEIGHT = LABEL_BOX_HEIGHT + LABEL_SUBTEXT_GAP + LABEL_SUBTEXT_HEIGHT;
-const GAP_BELOW_LABEL = 304800; // 0.33 in — space between label and comparison
+const GAP_BELOW_LABEL = 152400; // 0.167 in — compact space before comparison
 const COMPARISON_OFFSET = GAP_ABOVE_LABEL + LABEL_HEIGHT + GAP_BELOW_LABEL;
 
 function parseSlideSize(presentationXml: string): SlideSize {
@@ -91,9 +91,9 @@ function buildBgRect(size: SlideSize): string {
  * comparison area.
  */
 function buildLabelShape(size: SlideSize, _toName: string, fromName: string): string {
-  // Button width is fixed (~2 inches), centered on slide
-  const btnWidth = 1828800; // ~2 in
-  const btnX = Math.round((size.cx - btnWidth) / 2);
+  // Button left-aligned with the diff slide, compact width
+  const btnWidth = 1143000; // ~1.25 in
+  const btnX = 0;
   const groupY = size.cy + GAP_ABOVE_LABEL;
   const subTextY = groupY + LABEL_BOX_HEIGHT + LABEL_SUBTEXT_GAP;
 
@@ -177,7 +177,7 @@ function buildCompareGroup(shapeContent: string, size: SlideSize): string {
     `<p:grpSp>` +
     `<p:nvGrpSpPr>` +
     `<p:cNvPr id="9902" name="PPTVC_SHAPES"/>` +
-    `<p:cNvGrpSpPr/>` +
+    `<p:cNvGrpSpPr><a:grpSpLocks noSelect="1" noResize="1" noMove="1"/></p:cNvGrpSpPr>` +
     `<p:nvPr/>` +
     `</p:nvGrpSpPr>` +
     `<p:grpSpPr>` +
