@@ -9,8 +9,8 @@ interface SlideSize {
 
 // Layout constants (EMUs: 1 inch = 914400, 1 pt ≈ 12700)
 const GAP_ABOVE_LABEL = 457200; // 0.5 in — breathing room below main slide
-const PANEL_VPAD = 228600; // 0.25 in — top/bottom padding inside panel
-const PANEL_TITLE_H = 330200; // 0.36 in — "Comparing" title row height
+const PANEL_VPAD = 152400; // 0.167 in — tighter top/bottom padding inside panel
+const PANEL_TITLE_H = 355600; // 0.39 in — slightly larger "Comparing" title row height
 const PANEL_SECTION_GAP = 76200; // 0.083 in — tighter gap between title and version row
 const PANEL_VERSION_H = 355600; // 0.39 in — version box row height
 const LABEL_HEIGHT = PANEL_VPAD + PANEL_TITLE_H + PANEL_SECTION_GAP + PANEL_VERSION_H + PANEL_VPAD;
@@ -93,8 +93,8 @@ function buildBgRect(size: SlideSize): string {
  */
 function buildLabelShape(size: SlideSize, toName: string, fromName: string): string {
   const groupY = size.cy + GAP_ABOVE_LABEL;
-  const hPad = 304800; // 0.33 in horizontal padding
-  const boxW = 2743200; // 3.0 in fixed chip width to keep both labels compact and left aligned
+  const hPad = 228600; // 0.25 in horizontal padding
+  const boxW = 2286000; // 2.5 in fixed chip width to keep both labels compact and left aligned
   const arrowW = 228600; // 0.25 in
   const arrowGap = 76200; // 0.083 in gap on each side of arrow
 
@@ -103,8 +103,8 @@ function buildLabelShape(size: SlideSize, toName: string, fromName: string): str
   const versionRowY = titleY + PANEL_TITLE_H + PANEL_SECTION_GAP;
 
   // Divider: horizontal line, vertically centered in title row, from after label to near right edge
-  const titleLabelW = 1143000; // ~1.25 in — enough for "Comparing"
-  const dividerX = hPad + titleLabelW + 76200;
+  const titleLabelW = 1295400; // ~1.42 in — a bit more room for larger title
+  const dividerX = hPad + titleLabelW + 38100;
   const dividerW = size.cx - hPad - dividerX;
   const dividerY = titleY + Math.round(PANEL_TITLE_H / 2) - 9525;
   const dividerH = 19050; // ~0.021 in
@@ -144,7 +144,7 @@ function buildLabelShape(size: SlideSize, toName: string, fromName: string): str
     `<a:bodyPr anchor="ctr" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
-    `<a:r><a:rPr lang="en-US" sz="1100" b="1" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="1300" b="1" dirty="0">` +
     `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>Comparing</a:t></a:r>` +
