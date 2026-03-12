@@ -459,12 +459,35 @@
                     placeholder="Die Version {version_number}"
                   />
                 </div>
-                <ul class="pptvc-settings-hint-list">
-                  <li><code>{version_number}</code> -> 12</li>
-                  <li><code>{date}</code> -> Mar 12, 2026</li>
-                  <li><code>{time}</code> -> 18:04</li>
-                  <li><code>{datetime}</code> -> Mar 12, 2026 18:04</li>
-                </ul>
+                <p class="pptvc-settings-field-hint">
+                  Use variables in curly braces to build names dynamically:
+                </p>
+                <table class="pptvc-settings-hint-table" aria-label="Naming template variables">
+                  <thead>
+                    <tr>
+                      <th scope="col">Variable</th>
+                      <th scope="col">Example</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>{version_number}</code></td>
+                      <td>12</td>
+                    </tr>
+                    <tr>
+                      <td><code>{date}</code></td>
+                      <td>Mar 12, 2026</td>
+                    </tr>
+                    <tr>
+                      <td><code>{time}</code></td>
+                      <td>18:04</td>
+                    </tr>
+                    <tr>
+                      <td><code>{datetime}</code></td>
+                      <td>Mar 12, 2026 18:04</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </section>
 
