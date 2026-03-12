@@ -1,11 +1,10 @@
-/* global document, Office, PowerPoint, Blob, btoa, setTimeout, window, URL, HTMLElement, HTMLDivElement, HTMLUListElement, HTMLParagraphElement, HTMLLIElement, HTMLButtonElement, HTMLSpanElement, HTMLInputElement, HTMLHeadingElement, HTMLSelectElement */
+/* global document, Office, PowerPoint, Blob, btoa, setTimeout, URL, HTMLElement, HTMLDivElement, HTMLUListElement, HTMLParagraphElement, HTMLLIElement, HTMLButtonElement, HTMLSpanElement, HTMLInputElement, HTMLHeadingElement */
 
 import {
   saveVersion,
   listVersions,
   restoreVersion,
   deleteVersion,
-  deleteAllVersions,
   updateVersionMeta,
   getVersionBlob,
   exportVersionsZip,
@@ -88,7 +87,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   authorName: "",
   email: "",
   autoSaveOnDocumentSave: false,
-  namingScheme: { mode: "version", dateFormat: "iso" },
+  namingTemplate: "Die Version {version_number}",
   customTags: [],
 };
 
@@ -232,31 +231,34 @@ function formatTimestamp(timestamp: number): string {
   });
 }
 
-function formatDateForName(date: Date, format: "iso" | "short" | "long"): string {
-  if (format === "iso") {
-    return date.toISOString().slice(0, 10);
-  }
-
-  return date.toLocaleDateString(undefined, {
-    month: format === "long" ? "long" : "short",
+function getDefaultVersionName(nextIndex: number): string {
+  const template = userSettings.namingTemplate?.trim() || DEFAULT_SETTINGS.namingTemplate!;
+  const now = new Date();
+  const date = now.toLocaleDateString(undefined, {
+    month: "short",
     day: "numeric",
     year: "numeric",
   });
-}
+  const time = now.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const datetime = `${date} ${time}`;
 
-function getDefaultVersionName(nextIndex: number): string {
-  const scheme = userSettings.namingScheme?.mode ?? "version";
-  if (scheme === "date") {
-    const format = userSettings.namingScheme?.dateFormat ?? "iso";
-    return formatDateForName(new Date(), format);
-  }
-  if (scheme === "prefix") {
-    const prefix = userSettings.namingScheme?.prefix?.trim();
-    if (prefix) {
-      return `${prefix} ${nextIndex}`;
+  return template.replace(/\{(version_number|date|time|datetime)\}/g, (match, key) => {
+    switch (key) {
+      case "version_number":
+        return String(nextIndex);
+      case "date":
+        return date;
+      case "time":
+        return time;
+      case "datetime":
+        return datetime;
+      default:
+        return match;
     }
-  }
-  return `Version ${nextIndex}`;
+  });
 }
 
 function formatBytes(bytes: number): string {
@@ -378,13 +380,11 @@ function registerAutoSaveHandler(): void {
 }
 
 function mergeSettings(stored: UserSettings): UserSettings {
+  const storedTemplate = stored.namingTemplate?.trim();
   return {
     ...DEFAULT_SETTINGS,
     ...stored,
-    namingScheme: {
-      ...DEFAULT_SETTINGS.namingScheme,
-      ...stored.namingScheme,
-    },
+    namingTemplate: storedTemplate || DEFAULT_SETTINGS.namingTemplate,
     customTags: stored.customTags ?? DEFAULT_SETTINGS.customTags ?? [],
   };
 }
@@ -1313,17 +1313,12 @@ function initSettings(): void {
   const autoSaveToggle = getEl<HTMLInputElement>("settings-autosave");
   const limitEnabledToggle = getEl<HTMLInputElement>("settings-limit-enabled");
   const maxVersionsInput = getEl<HTMLInputElement>("settings-max-versions");
-  const prefixInput = getEl<HTMLInputElement>("settings-name-prefix");
-  const dateFormatSelect = getEl<HTMLSelectElement>("settings-date-format");
+  const nameTemplateInput = getEl<HTMLInputElement>("settings-name-template");
   const tagInput = getEl<HTMLInputElement>("settings-tag-input");
   const tagAddBtn = getEl<HTMLButtonElement>("btn-settings-tag-add");
   const tagList = getEl<HTMLDivElement>("settings-tag-list");
   const storageUsedEl = getEl<HTMLSpanElement>("settings-storage-used");
   const exportBtn = getEl<HTMLButtonElement>("btn-settings-export");
-  const resetBtn = getEl<HTMLButtonElement>("btn-settings-reset");
-  const nameSchemeRadios = document.querySelectorAll<HTMLInputElement>(
-    'input[name="settings-name-scheme"]'
-  );
   const settingsTabs = document.querySelectorAll<HTMLButtonElement>(".pptvc-settings-tab");
 
   const refreshStorageUsage = async (): Promise<void> => {
@@ -1372,13 +1367,7 @@ function initSettings(): void {
       isLimitEnabled && Number.isFinite(maxValue) && maxValue > 0 ? maxValue : undefined;
     maxVersionsInput.disabled = !isLimitEnabled;
 
-    const selectedScheme = Array.from(nameSchemeRadios).find((radio) => radio.checked);
-    const mode = (selectedScheme?.value ?? "version") as "version" | "date" | "prefix";
-    userSettings.namingScheme = {
-      mode,
-      prefix: prefixInput.value.trim() || undefined,
-      dateFormat: (dateFormatSelect.value as "iso" | "short" | "long") || "iso",
-    };
+    userSettings.namingTemplate = nameTemplateInput.value.trim() || DEFAULT_SETTINGS.namingTemplate;
 
     void writeUserSettings(userSettings);
     renderSaveTagPicker();
@@ -1399,11 +1388,8 @@ function initSettings(): void {
       limitEnabledToggle.checked = userSettings.maxVersions !== undefined;
       maxVersionsInput.value = userSettings.maxVersions?.toString() ?? "";
       maxVersionsInput.disabled = !limitEnabledToggle.checked;
-      prefixInput.value = userSettings.namingScheme?.prefix ?? "";
-      dateFormatSelect.value = userSettings.namingScheme?.dateFormat ?? "iso";
-      nameSchemeRadios.forEach((radio) => {
-        radio.checked = radio.value === (userSettings.namingScheme?.mode ?? "version");
-      });
+      nameTemplateInput.value =
+        userSettings.namingTemplate ?? DEFAULT_SETTINGS.namingTemplate ?? "";
       renderTagList();
     } catch {
       // Non-blocking: settings fall back to empty values.
@@ -1417,9 +1403,7 @@ function initSettings(): void {
   autoSaveToggle.addEventListener("change", persistSettings);
   limitEnabledToggle.addEventListener("change", persistSettings);
   maxVersionsInput.addEventListener("change", persistSettings);
-  prefixInput.addEventListener("change", persistSettings);
-  dateFormatSelect.addEventListener("change", persistSettings);
-  nameSchemeRadios.forEach((radio) => radio.addEventListener("change", persistSettings));
+  nameTemplateInput.addEventListener("change", persistSettings);
 
   tagAddBtn.addEventListener("click", () => {
     const next = tagInput.value.trim();
@@ -1455,24 +1439,6 @@ function initSettings(): void {
     } finally {
       exportBtn.textContent = "Download ZIP";
       exportBtn.disabled = false;
-    }
-  });
-
-  resetBtn.addEventListener("click", async () => {
-    const confirmed = window.confirm("Delete all saved versions? This cannot be undone.");
-    if (!confirmed) {
-      return;
-    }
-    resetBtn.disabled = true;
-    try {
-      await deleteAllVersions();
-      await loadVersionList();
-      await refreshStorageUsage();
-      showStatus("All versions deleted.", false);
-    } catch (err) {
-      showStatus(err instanceof Error ? err.message : "Failed to delete versions.", true);
-    } finally {
-      resetBtn.disabled = false;
     }
   });
 

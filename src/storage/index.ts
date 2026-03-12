@@ -6,8 +6,6 @@ export {
   readUserSettings,
   writeUserSettings,
   type UserSettings,
-  type NamingScheme,
-  type NamingSchemeMode,
   type GitHubSyncConfig,
 } from "./user-settings";
 

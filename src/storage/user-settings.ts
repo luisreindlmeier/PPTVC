@@ -16,17 +16,9 @@ export interface UserSettings {
   email?: string;
   maxVersions?: number;
   autoSaveOnDocumentSave?: boolean;
-  namingScheme?: NamingScheme;
+  namingTemplate?: string;
   customTags?: string[];
   githubSync?: GitHubSyncConfig;
-}
-
-export type NamingSchemeMode = "version" | "date" | "prefix";
-
-export interface NamingScheme {
-  mode: NamingSchemeMode;
-  prefix?: string;
-  dateFormat?: "iso" | "short" | "long";
 }
 
 function isNotFoundError(error: unknown): boolean {
