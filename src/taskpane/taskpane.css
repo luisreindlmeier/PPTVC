@@ -1669,6 +1669,8 @@ ul {
    ════════════════════════════════════════════ */
 
 .pptvc-footer {
+  position: relative;
+  z-index: 101;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1862,6 +1864,14 @@ ul {
   color: var(--color-text-muted);
   margin: 0;
   font-style: italic;
+}
+
+.pptvc-settings-section-note {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+  font-family: var(--font-sans);
 }
 
 .pptvc-settings-card {

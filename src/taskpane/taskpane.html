@@ -42,7 +42,7 @@
       <header class="pptvc-header">
         <div class="pptvc-header-main">
           <h1 class="pptvc-title">PPTVC</h1>
-          <p class="pptvc-subtitle">Version Control for PowerPoint</p>
+          <p class="pptvc-subtitle">Advanced Version Control for PowerPoint</p>
         </div>
         <div class="pptvc-slide-scope">
           <button
@@ -224,6 +224,11 @@
           <!-- Account section -->
           <section class="pptvc-settings-section">
             <h3 class="pptvc-settings-section-label">Account</h3>
+            <p class="pptvc-settings-section-note">
+              Stored only on this device — never sent to any server. Your name and email are saved
+              in each version's metadata so you and collaborators can see who made which changes,
+              even after a file is shared.
+            </p>
             <div class="pptvc-settings-field">
               <label class="pptvc-settings-field-label" for="settings-name">Name</label>
               <input
@@ -233,7 +238,6 @@
                 placeholder="Your name"
                 autocomplete="name"
               />
-              <p class="pptvc-settings-field-hint">Shown as author on newly saved versions.</p>
             </div>
             <div class="pptvc-settings-field">
               <label class="pptvc-settings-field-label" for="settings-email">Email</label>
@@ -244,38 +248,6 @@
                 placeholder="you@example.com"
                 autocomplete="email"
               />
-              <p class="pptvc-settings-field-hint">Saved for future email automation features.</p>
-            </div>
-          </section>
-
-          <!-- Email automation section -->
-          <section class="pptvc-settings-section">
-            <h3 class="pptvc-settings-section-label">Email Automation</h3>
-            <div class="pptvc-settings-card pptvc-settings-card--coming-soon">
-              <div class="pptvc-settings-card-icon">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="1.5"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"
-                  />
-                </svg>
-              </div>
-              <div class="pptvc-settings-card-content">
-                <p class="pptvc-settings-card-title">One-click version email</p>
-                <p class="pptvc-settings-card-desc">
-                  Save a version and instantly draft an email with the PPTX attached and an
-                  AI-generated diff summary since the last version — ready to send.
-                </p>
-              </div>
-              <span class="pptvc-settings-soon-badge">Soon</span>
             </div>
           </section>
 
