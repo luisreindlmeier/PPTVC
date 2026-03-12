@@ -40,6 +40,11 @@ const availableSlides: SlideInfo[] = [];
 // ── In-memory state ───────────────────────────────────────────
 // Names and tags are UI-only for now — backend persistence coming soon.
 
+interface SlideComparison {
+  fromVersion: Version;
+  toVersion: Version;
+}
+
 const pendingTags: string[] = [];
 const versionNameOverrides = new Map<string, string>();
 const versionTagsMap = new Map<string, string[]>();
@@ -49,7 +54,11 @@ let loadedVersions: Version[] = [];
 const globalSelectedSlides = new Set<number>();
 let displayedVersionId: string | null = null;
 let expandedTagPickerVersionId: string | null = null;
-let comparisonSlideId: string | null = null;
+// Per-slide comparison state: key = 1-based slide number
+const activeComparisons = new Map<number, SlideComparison>();
+// References to the current diff-tab banner and compare button (set by loadDiffScope)
+let currentDiffBanner: HTMLDivElement | null = null;
+let currentCompareBtn: HTMLButtonElement | null = null;
 const userSettings: { authorName: string; email: string } = {
   authorName: "",
   email: "",
@@ -250,11 +259,26 @@ async function initializeGlobalSlideScopePicker(): Promise<void> {
             globalSelectedSlides.clear();
             globalSelectedSlides.add(newNum);
             updateGlobalSlideScopeLabel();
+            syncDiffBannerToSlide(newNum);
           }
         }
       }
     );
   });
+}
+
+function syncDiffBannerToSlide(slideNum: number): void {
+  if (!currentDiffBanner || !currentCompareBtn) return;
+  const comp = activeComparisons.get(slideNum);
+  if (comp) {
+    const fromName = versionNameOverrides.get(comp.fromVersion.id) ?? comp.fromVersion.name;
+    const toName = versionNameOverrides.get(comp.toVersion.id) ?? comp.toVersion.name;
+    currentDiffBanner.querySelector<HTMLSpanElement>(".pptvc-diff-banner-text")!.textContent =
+      `Scroll down on the slide to see "${fromName}" below "${toName}"`;
+    show(currentDiffBanner);
+  } else {
+    hide(currentDiffBanner);
+  }
 }
 
 function isGlobalPresentationSelected(): boolean {
@@ -870,7 +894,7 @@ function loadDiffScope(preselectedId?: string): void {
 
   const bannerText = document.createElement("span");
   bannerText.className = "pptvc-diff-banner-text";
-  bannerText.textContent = "Comparison slide inserted below current slide";
+  bannerText.textContent = "Comparison active on this slide";
 
   const clearBtn = document.createElement("button");
   clearBtn.type = "button";
@@ -883,6 +907,13 @@ function loadDiffScope(preselectedId?: string): void {
   comparisonBanner.appendChild(bannerText);
   comparisonBanner.appendChild(clearBtn);
   container.appendChild(comparisonBanner);
+
+  // Store module-level refs so slide navigation can update banner visibility
+  currentDiffBanner = comparisonBanner;
+  currentCompareBtn = compareBtn;
+
+  // Restore banner if this slide already has an active comparison
+  syncDiffBannerToSlide(availableSlides[0]?.num ?? 1);
 
   // ── Wire compare button ──
   compareBtn.addEventListener("click", () => {
@@ -950,7 +981,9 @@ async function runVisualComparison(
       await context.sync();
     });
 
-    comparisonSlideId = toVersion.id; // store so Clear can restore it
+    // Persist comparison state for this slide so it survives navigation
+    const currentSlideNum = availableSlides[0]?.num ?? 1;
+    activeComparisons.set(currentSlideNum, { fromVersion, toVersion });
 
     banner.querySelector<HTMLSpanElement>(".pptvc-diff-banner-text")!.textContent =
       `Scroll down on the slide to see "${fromName}" below "${toName}"`;
@@ -968,12 +1001,14 @@ async function clearVisualComparison(
   banner: HTMLDivElement,
   btn: HTMLButtonElement
 ): Promise<void> {
-  if (!comparisonSlideId) return;
+  const currentSlideNum = availableSlides[0]?.num ?? 1;
+  const comp = activeComparisons.get(currentSlideNum);
+  if (!comp) return;
   btn.disabled = true;
 
   try {
-    await restoreVersion(comparisonSlideId);
-    comparisonSlideId = null;
+    await restoreVersion(comp.toVersion.id);
+    activeComparisons.delete(currentSlideNum);
     hide(banner);
   } catch (err) {
     showStatus(err instanceof Error ? err.message : "Failed to clear comparison.", true);
