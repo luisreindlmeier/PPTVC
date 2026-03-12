@@ -53,9 +53,223 @@ function extractShapeContent(slideXml: string): string {
   if (!treeMatch) return "";
 
   let content = treeMatch[1];
-  content = content.replace(/<p:nvGrpSpPr>[\s\S]*?<\/p:nvGrpSpPr>\s*/g, "");
-  content = content.replace(/<p:grpSpPr>[\s\S]*?<\/p:grpSpPr>\s*/g, "");
+  // Remove only the FIRST occurrence — the spTree's own group-level props.
+  // Not a global replace: nested <p:grpSp> children also contain these elements
+  // and must be preserved.
+  content = content.replace(/<p:nvGrpSpPr>[\s\S]*?<\/p:nvGrpSpPr>\s*/, "");
+  content = content.replace(/<p:grpSpPr>[\s\S]*?<\/p:grpSpPr>\s*/, "");
   return content.trim();
+}
+
+// ── Resource-copying helpers (for diff: copy FROM slide assets into TO zip) ──
+
+function dirOf(p: string): string {
+  return p.substring(0, p.lastIndexOf("/") + 1);
+}
+
+function basenameOf(p: string): string {
+  return p.substring(p.lastIndexOf("/") + 1);
+}
+
+function relsPathOf(filePath: string): string {
+  return `${dirOf(filePath)}_rels/${basenameOf(filePath)}.rels`;
+}
+
+function resolveRelPath(contextPath: string, relative: string): string {
+  const parts = (dirOf(contextPath) + relative).split("/");
+  const out: string[] = [];
+  for (const p of parts) {
+    if (p === "..") out.pop();
+    else if (p && p !== ".") out.push(p);
+  }
+  return out.join("/");
+}
+
+function relativePathTo(fromFile: string, toFile: string): string {
+  const fromParts = dirOf(fromFile).split("/").filter(Boolean);
+  const toParts = toFile.split("/").filter(Boolean);
+  let i = 0;
+  while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) i++;
+  return "../".repeat(fromParts.length - i) + toParts.slice(i).join("/");
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+interface RelEntry {
+  id: string;
+  type: string;
+  target: string;
+  targetMode?: string;
+  raw: string;
+}
+
+function parseRelsXml(xml: string): RelEntry[] {
+  const entries: RelEntry[] = [];
+  for (const m of xml.matchAll(/<Relationship\b[^>]*\/>/g)) {
+    const s = m[0];
+    const idM = s.match(/\bId="([^"]+)"/);
+    const typeM = s.match(/\bType="([^"]+)"/);
+    const targetM = s.match(/\bTarget="([^"]+)"/);
+    const modeM = s.match(/\bTargetMode="([^"]+)"/);
+    if (idM && typeM && targetM) {
+      entries.push({
+        id: idM[1],
+        type: typeM[1],
+        target: targetM[1],
+        targetMode: modeM?.[1],
+        raw: s,
+      });
+    }
+  }
+  return entries;
+}
+
+// Relationship types that reference content files that must travel with the slide
+function isContentRelType(type: string): boolean {
+  return (
+    type.includes("/relationships/image") ||
+    type.includes("/relationships/chart") ||
+    type.includes("/relationships/oleObject") ||
+    type.includes("/relationships/video") ||
+    type.includes("/relationships/audio") ||
+    type.includes("/relationships/package") ||
+    type.includes("office/2007/relationships/media")
+  );
+}
+
+// Returns an <Override> content-type string for chart/embedding XML files, or null for others.
+function contentTypeOverrideFor(path: string): string | null {
+  if (/\/charts\//.test(path) && path.endsWith(".xml")) {
+    const name = basenameOf(path);
+    if (name.startsWith("chartStyle")) return "application/vnd.ms-office.chartstyle+xml";
+    if (name.startsWith("chartColorStyle")) return "application/vnd.ms-office.chartcolorstyle+xml";
+    return "application/vnd.openxmlformats-officedocument.drawingml.chart+xml";
+  }
+  if (/\/embeddings\//.test(path)) {
+    if (path.endsWith(".xlsx") || path.endsWith(".xlsm") || path.endsWith(".xltx"))
+      return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    if (path.endsWith(".bin")) return "application/vnd.openxmlformats-officedocument.oleObject";
+  }
+  return null;
+}
+
+/**
+ * Copies all content files referenced by srcSlidePath's rels from srcZip into destZip,
+ * adds corresponding <Relationship> entries to destSlidePath's rels file, and returns
+ * a map of old-rId → new-rId for rewriting shape XML attributes.
+ */
+async function copySlideResources(
+  srcZip: JSZip,
+  destZip: JSZip,
+  srcSlidePath: string,
+  destSlidePath: string,
+  counter: { n: number },
+  ctOverrides: Array<{ partName: string; contentType: string }>
+): Promise<Map<string, string>> {
+  const rIdMap = new Map<string, string>();
+
+  const srcRelsPath = relsPathOf(srcSlidePath);
+  const srcRelsFile = srcZip.file(srcRelsPath);
+  if (!srcRelsFile) return rIdMap;
+
+  const srcRelsXml = await srcRelsFile.async("string");
+  const entries = parseRelsXml(srcRelsXml);
+
+  const destRelsPath = relsPathOf(destSlidePath);
+  const destRelsFile = destZip.file(destRelsPath);
+  const destRelsXml = destRelsFile
+    ? await destRelsFile.async("string")
+    : '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
+
+  const newRelEntries: string[] = [];
+
+  for (const rel of entries) {
+    if (rel.targetMode === "External") continue;
+    if (!isContentRelType(rel.type)) continue;
+
+    const srcContent = resolveRelPath(srcSlidePath, rel.target);
+    const srcFile = srcZip.file(srcContent);
+    if (!srcFile) continue;
+
+    // Give the copied file a unique name to avoid colliding with TO zip's existing files
+    const ext = srcContent.split(".").pop() ?? "bin";
+    const stem = basenameOf(srcContent).split(".").slice(0, -1).join(".");
+    const destContent = dirOf(srcContent) + `pptvc_cmp_${stem}_${counter.n}.${ext}`;
+    counter.n++;
+
+    destZip.file(destContent, await srcFile.async("uint8array"));
+
+    const ct = contentTypeOverrideFor(destContent);
+    if (ct) ctOverrides.push({ partName: destContent, contentType: ct });
+
+    // For charts, also recursively copy chart rels + embeddings
+    if (rel.type.includes("/chart")) {
+      await copyChartSubResources(srcZip, destZip, srcContent, destContent, counter, ctOverrides);
+    }
+
+    const newRId = `pptvcR${counter.n++}`;
+    rIdMap.set(rel.id, newRId);
+
+    const newTarget = relativePathTo(destSlidePath, destContent);
+    newRelEntries.push(`<Relationship Id="${newRId}" Type="${rel.type}" Target="${newTarget}"/>`);
+  }
+
+  if (newRelEntries.length > 0) {
+    const updated = destRelsXml.replace(
+      "</Relationships>",
+      newRelEntries.join("\n") + "\n</Relationships>"
+    );
+    destZip.file(destRelsPath, updated);
+  }
+
+  return rIdMap;
+}
+
+/**
+ * Copies chart sub-resources (embedded spreadsheets, color-style, chart-style XML)
+ * from srcZip into destZip, and writes a remapped rels file for destChartPath.
+ */
+async function copyChartSubResources(
+  srcZip: JSZip,
+  destZip: JSZip,
+  srcChartPath: string,
+  destChartPath: string,
+  counter: { n: number },
+  ctOverrides: Array<{ partName: string; contentType: string }>
+): Promise<void> {
+  const srcChartRelsPath = relsPathOf(srcChartPath);
+  const srcChartRelsFile = srcZip.file(srcChartRelsPath);
+  if (!srcChartRelsFile) return;
+
+  const srcChartRelsXml = await srcChartRelsFile.async("string");
+  const entries = parseRelsXml(srcChartRelsXml);
+
+  let updatedRelsXml = srcChartRelsXml;
+
+  for (const rel of entries) {
+    if (rel.targetMode === "External") continue;
+
+    const srcSubPath = resolveRelPath(srcChartPath, rel.target);
+    const subFile = srcZip.file(srcSubPath);
+    if (!subFile) continue;
+
+    const ext = srcSubPath.split(".").pop() ?? "bin";
+    const stem = basenameOf(srcSubPath).split(".").slice(0, -1).join(".");
+    const destSubPath = dirOf(srcSubPath) + `pptvc_cmp_${stem}_${counter.n}.${ext}`;
+    counter.n++;
+
+    destZip.file(destSubPath, await subFile.async("uint8array"));
+
+    const ct = contentTypeOverrideFor(destSubPath);
+    if (ct) ctOverrides.push({ partName: destSubPath, contentType: ct });
+
+    const newTarget = relativePathTo(destChartPath, destSubPath);
+    updatedRelsXml = updatedRelsXml.replace(rel.raw, rel.raw.replace(rel.target, newTarget));
+  }
+
+  destZip.file(relsPathOf(destChartPath), updatedRelsXml);
 }
 
 function escapeXml(str: string): string {
@@ -435,7 +649,42 @@ export async function buildComparisonSlide(
     fromZip.file(fromSlidePath)!.async("string"),
   ]);
 
-  const oldShapes = extractShapeContent(fromSlideXml);
+  const rawOldShapes = extractShapeContent(fromSlideXml);
+
+  // ── Copy FROM-slide content resources (images, charts, embeddings) into TO zip ──
+  // Without this, the injected shapes reference r:id values that don't exist in
+  // the TO slide's .rels file, making the PPTX invalid → insertSlidesFromBase64
+  // throws "InvalidArgument".
+  const ctOverrides: Array<{ partName: string; contentType: string }> = [];
+  const counter = { n: 1 };
+  const rIdMap = await copySlideResources(
+    fromZip,
+    toZip,
+    fromSlidePath,
+    toSlidePath,
+    counter,
+    ctOverrides
+  );
+
+  // Rewrite every r:id / r:embed / r:link attribute that belongs to copied resources
+  let oldShapes = rawOldShapes;
+  for (const [oldId, newId] of rIdMap) {
+    const pat = new RegExp(`\\br:(id|embed|link)="${escapeRegex(oldId)}"`, "g");
+    oldShapes = oldShapes.replace(pat, `r:$1="${newId}"`);
+  }
+
+  // Add <Override> content-type entries for any new chart/embedding files
+  if (ctOverrides.length > 0) {
+    const ctFile = toZip.file("[Content_Types].xml");
+    if (ctFile) {
+      const ctXml = await ctFile.async("string");
+      const overrideXml = ctOverrides
+        .map((o) => `<Override PartName="/${o.partName}" ContentType="${o.contentType}"/>`)
+        .join("\n");
+      toZip.file("[Content_Types].xml", ctXml.replace("</Types>", overrideXml + "\n</Types>"));
+    }
+  }
+
   const bgRect = buildBgRect(slideSize);
   const label = buildLabelShape(slideSize, toName, fromName, toTimestamp, toAuthor);
   const compareGroup = buildCompareGroup(oldShapes, slideSize);
