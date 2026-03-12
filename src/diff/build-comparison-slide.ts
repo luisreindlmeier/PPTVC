@@ -11,9 +11,18 @@ interface SlideSize {
 const GAP_ABOVE_LABEL = 457200; // 0.5 in — breathing room below main slide
 const PANEL_VPAD = 152400; // 0.167 in — tighter top/bottom padding inside panel
 const PANEL_TITLE_H = 355600; // 0.39 in — slightly larger "Comparing" title row height
-const PANEL_SECTION_GAP = 38100; // 0.042 in — very tight gap between title and version row
+const PANEL_SECTION_GAP = 76200; // 0.083 in — compact gap between title and labels row
+const PANEL_FIELD_LABEL_H = 101600; // 0.11 in — small field label row above version boxes
+const PANEL_LABEL_TO_FIELD_GAP = 50800; // 0.056 in — more spacing from label to box
 const PANEL_VERSION_H = 355600; // 0.39 in — version box row height
-const LABEL_HEIGHT = PANEL_VPAD + PANEL_TITLE_H + PANEL_SECTION_GAP + PANEL_VERSION_H + PANEL_VPAD;
+const LABEL_HEIGHT =
+  PANEL_VPAD +
+  PANEL_TITLE_H +
+  PANEL_SECTION_GAP +
+  PANEL_FIELD_LABEL_H +
+  PANEL_LABEL_TO_FIELD_GAP +
+  PANEL_VERSION_H +
+  PANEL_VPAD;
 const GAP_BELOW_LABEL = 152400; // 0.167 in — space before comparison
 const COMPARISON_OFFSET = GAP_ABOVE_LABEL + LABEL_HEIGHT + GAP_BELOW_LABEL;
 
@@ -106,7 +115,8 @@ function buildLabelShape(
 
   // Row Y positions (absolute slide coordinates)
   const titleY = groupY + PANEL_VPAD;
-  const versionRowY = titleY + PANEL_TITLE_H + PANEL_SECTION_GAP;
+  const fieldLabelY = titleY + PANEL_TITLE_H + PANEL_SECTION_GAP;
+  const versionRowY = fieldLabelY + PANEL_FIELD_LABEL_H + PANEL_LABEL_TO_FIELD_GAP;
 
   // Divider: horizontal line, vertically centered in title row, from after label to near right edge
   const titleLabelW = 914400; // 1.0 in — remove large visual gap before divider
@@ -156,7 +166,7 @@ function buildLabelShape(
     `<a:bodyPr anchor="ctr" lIns="0" rIns="0" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
-    `<a:r><a:rPr lang="en-US" sz="1300" b="1" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="1300" b="1" noProof="1" dirty="0">` +
     `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>Comparing</a:t></a:r>` +
@@ -192,10 +202,10 @@ function buildLabelShape(
     `<a:bodyPr anchor="ctr" lIns="152400" rIns="152400" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
-    `<a:r><a:rPr lang="en-US" sz="950" b="0" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="950" b="0" noProof="1" dirty="0">` +
     `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
-    `</a:rPr><a:t>Bottom (Diff): ${escapeXml(fromName)}</a:t></a:r>` +
+    `</a:rPr><a:t>${escapeXml(fromName)}</a:t></a:r>` +
     `</a:p></p:txBody>` +
     `</p:sp>`;
 
@@ -213,7 +223,7 @@ function buildLabelShape(
     `<a:bodyPr anchor="ctr" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="ctr"/>` +
-    `<a:r><a:rPr lang="en-US" sz="1300" b="1" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="1300" b="1" noProof="1" dirty="0">` +
     `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>&#x2192;</a:t></a:r>` +
@@ -235,10 +245,50 @@ function buildLabelShape(
     `<a:bodyPr anchor="ctr" lIns="152400" rIns="152400" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
-    `<a:r><a:rPr lang="en-US" sz="950" b="0" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="950" b="0" noProof="1" dirty="0">` +
     `<a:solidFill><a:srgbClr val="F7F4EF"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
-    `</a:rPr><a:t>Top (Normal): ${escapeXml(toName)}</a:t></a:r>` +
+    `</a:rPr><a:t>${escapeXml(toName)}</a:t></a:r>` +
+    `</a:p></p:txBody>` +
+    `</p:sp>`;
+
+  const belowLabel =
+    `<p:sp>` +
+    `<p:nvSpPr><p:cNvPr id="9918" name="PPTVC_BELOW_LABEL"/>` +
+    `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${box1X}" y="${fieldLabelY}"/><a:ext cx="${boxW}" cy="${PANEL_FIELD_LABEL_H}"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+    `<a:noFill/><a:ln><a:noFill/></a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody>` +
+    `<a:bodyPr anchor="ctr" lIns="0" rIns="0" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:lstStyle/>` +
+    `<a:p><a:pPr algn="l"/>` +
+    `<a:r><a:rPr lang="en-US" sz="1050" b="1" noProof="1" dirty="0">` +
+    `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
+    `<a:latin typeface="+mj-lt"/>` +
+    `</a:rPr><a:t>Below</a:t></a:r>` +
+    `</a:p></p:txBody>` +
+    `</p:sp>`;
+
+  const aboveLabel =
+    `<p:sp>` +
+    `<p:nvSpPr><p:cNvPr id="9919" name="PPTVC_ABOVE_LABEL"/>` +
+    `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${box2X}" y="${fieldLabelY}"/><a:ext cx="${boxW}" cy="${PANEL_FIELD_LABEL_H}"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+    `<a:noFill/><a:ln><a:noFill/></a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody>` +
+    `<a:bodyPr anchor="ctr" lIns="0" rIns="0" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:lstStyle/>` +
+    `<a:p><a:pPr algn="l"/>` +
+    `<a:r><a:rPr lang="en-US" sz="1050" b="1" noProof="1" dirty="0">` +
+    `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
+    `<a:latin typeface="+mj-lt"/>` +
+    `</a:rPr><a:t>Above</a:t></a:r>` +
     `</a:p></p:txBody>` +
     `</p:sp>`;
 
@@ -255,7 +305,7 @@ function buildLabelShape(
     `<a:bodyPr anchor="ctr" lIns="0" rIns="0" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="r"/>` +
-    `<a:r><a:rPr lang="en-US" sz="1000" b="0" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="1000" b="0" noProof="1" dirty="0">` +
     `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>${escapeXml(toTimestamp)}</a:t></a:r>` +
@@ -275,7 +325,7 @@ function buildLabelShape(
     `<a:bodyPr anchor="ctr" lIns="0" rIns="0" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="r"/>` +
-    `<a:r><a:rPr lang="en-US" sz="900" b="0" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="900" b="0" noProof="1" dirty="0">` +
     `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>Author: ${escapeXml(toAuthor)}</a:t></a:r>` +
@@ -300,6 +350,8 @@ function buildLabelShape(
     bg +
     title +
     divider +
+    belowLabel +
+    aboveLabel +
     fromBox +
     arrow +
     toBox +
