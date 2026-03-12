@@ -396,6 +396,7 @@ ul {
 
 .pptvc-save-panel-title {
   /* Uses shared .pptvc-section-title formatting */
+  margin-bottom: 0;
 }
 
 .pptvc-save-panel-title::after {
@@ -421,7 +422,7 @@ ul {
   display: flex;
   -ms-flex-direction: column;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 /* Name input + tag dropdown row */
@@ -786,6 +787,22 @@ ul {
   background: var(--color-border);
   border: 2px solid var(--color-bg);
   z-index: 1;
+  cursor: pointer;
+  padding: 0;
+  box-sizing: border-box;
+  transition:
+    transform 0.12s var(--ease),
+    box-shadow 0.12s var(--ease),
+    background 0.12s var(--ease);
+}
+
+.pptvc-version-dot:hover {
+  box-shadow: 0 0 0 3px rgba(121, 173, 116, 0.12);
+}
+
+.pptvc-version-dot:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(121, 173, 116, 0.2);
 }
 
 .pptvc-version-dot--latest {

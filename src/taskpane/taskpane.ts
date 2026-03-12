@@ -411,8 +411,22 @@ function createVersionItem(version: Version): HTMLLIElement {
   li.dataset["versionId"] = version.id;
 
   // Timeline dot
-  const dot = document.createElement("div");
+  const dot = document.createElement("button");
+  dot.type = "button";
   dot.className = `pptvc-version-dot${displayedVersionId === version.id ? " pptvc-version-dot--latest" : ""}`;
+  dot.setAttribute("aria-label", `Select ${versionNameOverrides.get(version.id) ?? version.name}`);
+  dot.addEventListener("click", () => {
+    displayedVersionId = version.id;
+    updateDisplayedVersionDot();
+  });
+  dot.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.preventDefault();
+    displayedVersionId = version.id;
+    updateDisplayedVersionDot();
+  });
   li.appendChild(dot);
 
   // Header row: editable name + delete button
@@ -643,7 +657,7 @@ function isVersionNewerThanDisplayed(versionId: string): boolean {
 function updateDisplayedVersionDot(): void {
   const items = document.querySelectorAll<HTMLLIElement>(".pptvc-version-item");
   for (const item of items) {
-    const dot = item.querySelector<HTMLDivElement>(".pptvc-version-dot");
+    const dot = item.querySelector<HTMLButtonElement>(".pptvc-version-dot");
     if (!dot) {
       continue;
     }
