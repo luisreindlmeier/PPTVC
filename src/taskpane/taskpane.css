@@ -337,13 +337,17 @@ ul {
   cursor: pointer;
   transition:
     color 0.2s var(--ease),
-    font-size 0.14s var(--ease);
+    background 0.16s var(--ease);
   letter-spacing: 0.01em;
   text-align: center;
 }
 
 .pptvc-scope-tab:hover {
-  font-size: 12.3px;
+  background: rgba(121, 173, 116, 0.12);
+}
+
+.pptvc-scope-tab--active:hover {
+  background: transparent;
 }
 
 .pptvc-scope-tab--active {
