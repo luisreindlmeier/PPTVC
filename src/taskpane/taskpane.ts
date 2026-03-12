@@ -805,6 +805,12 @@ function loadDiffScope(preselectedId?: string): void {
   selectors.appendChild(makeSelectWrap(selectTo));
   comparing.appendChild(selectors);
 
+  const compareBtn = document.createElement("button");
+  compareBtn.type = "button";
+  compareBtn.className = "pptvc-btn pptvc-btn--primary";
+  compareBtn.textContent = "Compare Versions";
+  comparing.appendChild(compareBtn);
+
   container.appendChild(comparing);
 
   const summaryTitle = document.createElement("h3");
@@ -951,8 +957,9 @@ function loadDiffScope(preselectedId?: string): void {
       slideList.appendChild(item);
     }
   };
-  selectFrom.addEventListener("change", renderDiffResults);
-  selectTo.addEventListener("change", renderDiffResults);
+  compareBtn.addEventListener("click", () => {
+    renderDiffResults();
+  });
 
   renderDiffResults();
 

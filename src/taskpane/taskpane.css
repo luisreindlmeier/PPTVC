@@ -1205,6 +1205,11 @@ ul {
 
 /* COMPARING section */
 .pptvc-diff-comparing {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  gap: 6px;
   background: transparent;
   border: none;
   border-radius: 0;
