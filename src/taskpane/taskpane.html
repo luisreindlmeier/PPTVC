@@ -221,65 +221,296 @@
         </header>
 
         <div class="pptvc-settings-body">
-          <!-- Account section -->
-          <section class="pptvc-settings-section">
-            <h3 class="pptvc-settings-section-label">Account</h3>
-            <p class="pptvc-settings-section-note">
-              Stored only on this device — never sent to any server. Your name and email are saved
-              in each version's metadata so you and collaborators can see who made which changes,
-              even after a file is shared.
-            </p>
-            <div class="pptvc-settings-field">
-              <label class="pptvc-settings-field-label" for="settings-name">Name</label>
-              <input
-                id="settings-name"
-                type="text"
-                class="pptvc-text-input pptvc-settings-input"
-                placeholder="Your name"
-                autocomplete="name"
-              />
+          <div class="pptvc-settings-tabs" role="tablist" aria-label="Settings sections">
+            <div class="pptvc-settings-tabs__track">
+              <div class="pptvc-settings-tabs__indicator" id="settings-tab-indicator"></div>
+              <button
+                type="button"
+                class="pptvc-settings-tab pptvc-settings-tab--active"
+                data-settings-tab="general"
+                aria-selected="true"
+              >
+                General
+              </button>
+              <button
+                type="button"
+                class="pptvc-settings-tab"
+                data-settings-tab="storage"
+                aria-selected="false"
+              >
+                Storage
+              </button>
+              <button
+                type="button"
+                class="pptvc-settings-tab"
+                data-settings-tab="versioning"
+                aria-selected="false"
+              >
+                Versioning
+              </button>
+              <button
+                type="button"
+                class="pptvc-settings-tab"
+                data-settings-tab="tags"
+                aria-selected="false"
+              >
+                Tags
+              </button>
             </div>
-            <div class="pptvc-settings-field">
-              <label class="pptvc-settings-field-label" for="settings-email">Email</label>
-              <input
-                id="settings-email"
-                type="email"
-                class="pptvc-text-input pptvc-settings-input"
-                placeholder="you@example.com"
-                autocomplete="email"
-              />
-            </div>
-          </section>
+          </div>
 
-          <!-- Integrations section -->
-          <section class="pptvc-settings-section">
-            <h3 class="pptvc-settings-section-label">Integrations</h3>
-            <div class="pptvc-settings-card pptvc-settings-card--coming-soon">
-              <div class="pptvc-settings-card-icon">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="1.5"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z"
+          <div class="pptvc-settings-panels">
+            <!-- General panel -->
+            <section class="pptvc-settings-panel" data-settings-panel="general">
+              <div class="pptvc-settings-section">
+                <div class="pptvc-settings-section-header">
+                  <h3 class="pptvc-settings-section-label">Account</h3>
+                  <span
+                    class="pptvc-settings-info"
+                    role="img"
+                    aria-label="Account settings info"
+                    data-tooltip="Stored only on this device. Name and email are saved in each version's metadata so collaborators can see who made changes."
+                  >
+                    i
+                  </span>
+                </div>
+                <div class="pptvc-settings-field">
+                  <label class="pptvc-settings-field-label" for="settings-name">Name</label>
+                  <input
+                    id="settings-name"
+                    type="text"
+                    class="pptvc-text-input pptvc-settings-input"
+                    placeholder="Your name"
+                    autocomplete="name"
                   />
-                </svg>
+                </div>
+                <div class="pptvc-settings-field">
+                  <label class="pptvc-settings-field-label" for="settings-email">Email</label>
+                  <input
+                    id="settings-email"
+                    type="email"
+                    class="pptvc-text-input pptvc-settings-input"
+                    placeholder="you@example.com"
+                    autocomplete="email"
+                  />
+                </div>
               </div>
-              <div class="pptvc-settings-card-content">
-                <p class="pptvc-settings-card-title">GitHub / GitLab sync</p>
-                <p class="pptvc-settings-card-desc">
-                  Push versions to a remote repository for team access and backup.
-                </p>
+
+              <div class="pptvc-settings-section">
+                <div class="pptvc-settings-section-header">
+                  <h3 class="pptvc-settings-section-label">Auto-Save</h3>
+                  <span
+                    class="pptvc-settings-info"
+                    role="img"
+                    aria-label="Auto-save info"
+                    data-tooltip="When enabled, a snapshot is captured each time the presentation is saved."
+                  >
+                    i
+                  </span>
+                </div>
+                <label class="pptvc-settings-toggle">
+                  <input id="settings-autosave" type="checkbox" />
+                  <span class="pptvc-settings-toggle__track"></span>
+                  <span class="pptvc-settings-toggle__label">Save snapshot on file save</span>
+                </label>
               </div>
-              <span class="pptvc-settings-soon-badge">Soon</span>
-            </div>
-          </section>
+
+              <div class="pptvc-settings-section">
+                <div class="pptvc-settings-section-header">
+                  <h3 class="pptvc-settings-section-label">Integrations</h3>
+                  <span
+                    class="pptvc-settings-info"
+                    role="img"
+                    aria-label="Integrations info"
+                    data-tooltip="Connect to GitHub or GitLab when available."
+                  >
+                    i
+                  </span>
+                </div>
+                <div class="pptvc-settings-card pptvc-settings-card--coming-soon">
+                  <div class="pptvc-settings-card-icon">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.5"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z"
+                      />
+                    </svg>
+                  </div>
+                  <div class="pptvc-settings-card-content">
+                    <p class="pptvc-settings-card-title">GitHub / GitLab sync</p>
+                    <p class="pptvc-settings-card-desc">
+                      Push versions to a remote repository for team access and backup.
+                    </p>
+                  </div>
+                  <span class="pptvc-settings-soon-badge">Soon</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- Storage panel -->
+            <section class="pptvc-settings-panel pptvc-hidden" data-settings-panel="storage">
+              <div class="pptvc-settings-section">
+                <div class="pptvc-settings-section-header">
+                  <h3 class="pptvc-settings-section-label">Storage Usage</h3>
+                  <span
+                    class="pptvc-settings-info"
+                    role="img"
+                    aria-label="Storage usage info"
+                    data-tooltip="OPFS data can be cleared by browser resets. Export regularly to keep a backup."
+                  >
+                    i
+                  </span>
+                </div>
+                <div class="pptvc-settings-row">
+                  <span class="pptvc-settings-row-label">Used</span>
+                  <span id="settings-storage-used" class="pptvc-settings-row-value">Calculating...</span>
+                </div>
+              </div>
+
+              <div class="pptvc-settings-section">
+                <div class="pptvc-settings-section-header">
+                  <h3 class="pptvc-settings-section-label">Export / Backup</h3>
+                  <span
+                    class="pptvc-settings-info"
+                    role="img"
+                    aria-label="Backup info"
+                    data-tooltip="Download a ZIP containing all versions and metadata."
+                  >
+                    i
+                  </span>
+                </div>
+                <button id="btn-settings-export" class="pptvc-btn pptvc-btn--primary" type="button">
+                  Download ZIP
+                </button>
+              </div>
+
+              <div class="pptvc-settings-section">
+                <div class="pptvc-settings-section-header">
+                  <h3 class="pptvc-settings-section-label">Reset</h3>
+                  <span
+                    class="pptvc-settings-info"
+                    role="img"
+                    aria-label="Reset info"
+                    data-tooltip="Delete all saved versions on this device."
+                  >
+                    i
+                  </span>
+                </div>
+                <button id="btn-settings-reset" class="pptvc-btn pptvc-btn--danger" type="button">
+                  Delete All Versions
+                </button>
+              </div>
+            </section>
+
+            <!-- Versioning panel -->
+            <section class="pptvc-settings-panel pptvc-hidden" data-settings-panel="versioning">
+              <div class="pptvc-settings-section">
+                <div class="pptvc-settings-section-header">
+                  <h3 class="pptvc-settings-section-label">Max Versions</h3>
+                  <span
+                    class="pptvc-settings-info"
+                    role="img"
+                    aria-label="Max versions info"
+                    data-tooltip="When enabled, the oldest versions are deleted after the limit is reached."
+                  >
+                    i
+                  </span>
+                </div>
+                <div class="pptvc-settings-inline">
+                  <label class="pptvc-settings-toggle">
+                    <input id="settings-limit-enabled" type="checkbox" />
+                    <span class="pptvc-settings-toggle__track"></span>
+                    <span class="pptvc-settings-toggle__label">Enable limit</span>
+                  </label>
+                  <input
+                    id="settings-max-versions"
+                    type="number"
+                    min="1"
+                    class="pptvc-text-input pptvc-settings-input pptvc-settings-input--number"
+                    placeholder="20"
+                  />
+                </div>
+              </div>
+
+              <div class="pptvc-settings-section">
+                <div class="pptvc-settings-section-header">
+                  <h3 class="pptvc-settings-section-label">Naming Scheme</h3>
+                  <span
+                    class="pptvc-settings-info"
+                    role="img"
+                    aria-label="Naming scheme info"
+                    data-tooltip="Choose how new versions are named when the input is empty."
+                  >
+                    i
+                  </span>
+                </div>
+                <div class="pptvc-settings-radio-group">
+                  <label class="pptvc-settings-radio">
+                    <input type="radio" name="settings-name-scheme" value="version" checked />
+                    <span>Version N</span>
+                  </label>
+                  <label class="pptvc-settings-radio">
+                    <input type="radio" name="settings-name-scheme" value="date" />
+                    <span>Date-based</span>
+                  </label>
+                  <label class="pptvc-settings-radio">
+                    <input type="radio" name="settings-name-scheme" value="prefix" />
+                    <span>Prefix</span>
+                  </label>
+                </div>
+                <div class="pptvc-settings-inline">
+                  <input
+                    id="settings-name-prefix"
+                    type="text"
+                    class="pptvc-text-input pptvc-settings-input"
+                    placeholder="Sprint"
+                  />
+                  <select id="settings-date-format" class="pptvc-text-input pptvc-settings-input">
+                    <option value="iso">YYYY-MM-DD</option>
+                    <option value="short">Mar 12, 2026</option>
+                    <option value="long">March 12, 2026</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <!-- Tags panel -->
+            <section class="pptvc-settings-panel pptvc-hidden" data-settings-panel="tags">
+              <div class="pptvc-settings-section">
+                <div class="pptvc-settings-section-header">
+                  <h3 class="pptvc-settings-section-label">Custom Tags</h3>
+                  <span
+                    class="pptvc-settings-info"
+                    role="img"
+                    aria-label="Custom tags info"
+                    data-tooltip="Override the predefined tag list used in version tagging."
+                  >
+                    i
+                  </span>
+                </div>
+                <div class="pptvc-settings-inline">
+                  <input
+                    id="settings-tag-input"
+                    type="text"
+                    class="pptvc-text-input pptvc-settings-input"
+                    placeholder="Add tag"
+                  />
+                  <button id="btn-settings-tag-add" class="pptvc-btn pptvc-btn--ghost" type="button">
+                    Add
+                  </button>
+                </div>
+                <div id="settings-tag-list" class="pptvc-settings-tag-list"></div>
+              </div>
+            </section>
+          </div>
         </div>
       </div>
 

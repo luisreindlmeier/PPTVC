@@ -7,6 +7,18 @@ const USER_SETTINGS_PATH = "settings/user-settings.json";
 export interface UserSettings {
   authorName?: string;
   email?: string;
+  maxVersions?: number;
+  autoSaveOnDocumentSave?: boolean;
+  namingScheme?: NamingScheme;
+  customTags?: string[];
+}
+
+export type NamingSchemeMode = "version" | "date" | "prefix";
+
+export interface NamingScheme {
+  mode: NamingSchemeMode;
+  prefix?: string;
+  dateFormat?: "iso" | "short" | "long";
 }
 
 function isNotFoundError(error: unknown): boolean {
