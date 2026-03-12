@@ -822,7 +822,8 @@ ul {
 
 .pptvc-version-item--newer .pptvc-version-name-input,
 .pptvc-version-item--newer .pptvc-version-time,
-.pptvc-version-item--newer .pptvc-tags-toggle {
+.pptvc-version-item--newer .pptvc-version-tag-add,
+.pptvc-version-item--newer .pptvc-version-tag-chip {
   color: var(--color-text-muted);
 }
 
@@ -891,43 +892,7 @@ ul {
   flex-shrink: 0;
 }
 
-/* Tags toggle — styled like a tag chip but green-outlined */
-.pptvc-tags-toggle {
-  display: -ms-inline-flexbox;
-  display: inline-flex;
-  -ms-flex-align: center;
-  align-items: center;
-  gap: 4px;
-  border: 1px solid var(--color-tag-bg);
-  border-radius: 3px;
-  background: transparent;
-  padding: 1px 7px 1px 5px;
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--color-green-active);
-  cursor: pointer;
-  letter-spacing: 0.02em;
-  transition:
-    background 0.12s,
-    border-color 0.12s,
-    color 0.12s;
-}
-
-.pptvc-tags-toggle svg {
-  width: 11px;
-  height: 11px;
-  -ms-flex-negative: 0;
-  flex-shrink: 0;
-}
-
-.pptvc-tags-toggle:hover {
-  background: var(--color-green-light);
-  border-color: var(--color-green);
-  color: var(--color-green-active);
-}
-
-/* Tags expandable section (below meta, hidden by default) */
+/* Tags row directly below timestamp */
 .pptvc-version-tags {
   display: -ms-flexbox;
   display: flex;
@@ -937,6 +902,44 @@ ul {
   align-items: center;
   gap: 4px;
   padding: 0 10px 8px;
+}
+
+.pptvc-version-tag-add {
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -ms-flex-align: center;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 3px;
+  border: 1px dashed var(--color-border-focus);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    color 0.12s,
+    background 0.12s;
+}
+
+.pptvc-version-tag-add:hover,
+.pptvc-version-tag-add--open {
+  border-color: var(--color-green);
+  color: var(--color-green-active);
+  background: var(--color-green-light);
+}
+
+.pptvc-version-tag-options {
+  -ms-flex-preferred-size: 100%;
+  flex-basis: 100%;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 3px;
 }
 
 .pptvc-version-tag-chip {

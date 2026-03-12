@@ -26,7 +26,6 @@ const TAB_ORDER: Record<"history" | "diff" | "workflow", number> = {
 const ICON_DIFF = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 3M21 7.5H7.5" /></svg>`;
 const ICON_VERSIONS = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`;
 const ICON_RESTORE = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" /></svg>`;
-const ICON_TAG = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.595.45a18.634 18.634 0 0 0 5.652-4.475 1.876 1.876 0 0 0-.45-2.594L10.455 3.659A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>`;
 const ICON_CHECK = `<svg class="pptvc-slide-scope-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"></polyline></svg>`;
 
 type PlaceholderChange = { name: string; delta: string };
@@ -41,9 +40,11 @@ const availableSlides: PlaceholderSlide[] = [];
 const pendingTags: string[] = [];
 const versionNameOverrides = new Map<string, string>();
 const versionTagsMap = new Map<string, string[]>();
+const versionTagContainers = new Map<string, HTMLDivElement>();
 let loadedVersions: Version[] = [];
 const globalSelectedSlides = new Set<number>();
 let displayedVersionId: string | null = null;
+let expandedTagPickerVersionId: string | null = null;
 
 // ── Boot ──────────────────────────────────────────────────────
 
@@ -94,6 +95,12 @@ Office.onReady((info) => {
       const onDeleteTrigger = target.closest(".pptvc-delete-trigger");
       if (!insideDeletePopup && !onDeleteTrigger) {
         closeAllDeletePopups();
+      }
+
+      const insideVersionTags = target.closest(".pptvc-version-tags");
+      if (!insideVersionTags && expandedTagPickerVersionId !== null) {
+        expandedTagPickerVersionId = null;
+        rerenderAllVersionTagRows();
       }
     });
 
@@ -166,11 +173,6 @@ function formatTimestamp(timestamp: number): string {
 }
 
 // ── Helpers ───────────────────────────────────────────────────
-
-function setTagsToggleLabel(btn: HTMLButtonElement, count: number): void {
-  const label = count > 0 ? `Tags (${count})` : `Tags`;
-  btn.innerHTML = `${ICON_TAG}<span>${label}</span>`;
-}
 
 async function initializeGlobalSlideScopePicker(): Promise<void> {
   availableSlides.length = 0;
@@ -346,6 +348,7 @@ async function loadVersionList(): Promise<void> {
 
   show(loadingEl);
   listEl.innerHTML = "";
+  versionTagContainers.clear();
   hide(emptyEl);
 
   try {
@@ -353,6 +356,7 @@ async function loadVersionList(): Promise<void> {
 
     if (loadedVersions.length === 0) {
       displayedVersionId = null;
+      expandedTagPickerVersionId = null;
     } else if (
       displayedVersionId === null ||
       !loadedVersions.some((version) => version.id === displayedVersionId)
@@ -477,32 +481,13 @@ function createVersionItem(version: Version): HTMLLIElement {
   time.textContent = formatTimestamp(version.timestamp);
   meta.appendChild(time);
 
-  const tagsToggle = document.createElement("button");
-  tagsToggle.type = "button";
-  tagsToggle.className = "pptvc-tags-toggle";
-  const existingTags = versionTagsMap.get(version.id) ?? [];
-  setTagsToggleLabel(tagsToggle, existingTags.length);
-  meta.appendChild(tagsToggle);
-
   li.appendChild(meta);
 
-  // Tags section — hidden by default, toggled by button
+  // Tags section — selected tags always visible below timestamp row.
   const tagsRow = document.createElement("div");
-  tagsRow.className = "pptvc-version-tags pptvc-hidden";
+  tagsRow.className = "pptvc-version-tags";
+  versionTagContainers.set(version.id, tagsRow);
   renderVersionTags(version.id, tagsRow);
-
-  tagsToggle.addEventListener("click", () => {
-    const isOpen = !tagsRow.classList.contains("pptvc-hidden");
-    if (isOpen) {
-      hide(tagsRow);
-      const current = versionTagsMap.get(version.id) ?? [];
-      setTagsToggleLabel(tagsToggle, current.length);
-    } else {
-      renderVersionTags(version.id, tagsRow);
-      show(tagsRow);
-      setTagsToggleLabel(tagsToggle, (versionTagsMap.get(version.id) ?? []).length);
-    }
-  });
 
   li.appendChild(tagsRow);
 
@@ -530,6 +515,9 @@ function renderVersionTags(id: string, container: HTMLDivElement): void {
       const newTags = current.filter((t) => t !== tag);
       versionTagsMap.set(id, newTags);
       void updateVersionMeta(id, { tags: newTags });
+      if (newTags.length < MAX_TAGS && expandedTagPickerVersionId === null) {
+        expandedTagPickerVersionId = id;
+      }
       renderVersionTags(id, container);
     });
 
@@ -537,30 +525,53 @@ function renderVersionTags(id: string, container: HTMLDivElement): void {
     container.appendChild(chip);
   }
 
-  // Directly show available tags as selectable chips (no intermediate add button)
   const used = versionTagsMap.get(id) ?? [];
-  if (used.length >= MAX_TAGS) return;
   const available = PREDEFINED_TAGS.filter((t) => !used.includes(t));
-  if (available.length === 0) return;
 
-  for (const tag of available) {
-    const chip = document.createElement("button");
-    chip.type = "button";
-    chip.className = "pptvc-tag-option";
-    chip.textContent = tag;
-    chip.addEventListener("click", () => {
-      const current = versionTagsMap.get(id) ?? [];
-      if (current.length < MAX_TAGS) {
-        const newTags = [...current, tag];
-        versionTagsMap.set(id, newTags);
-        void updateVersionMeta(id, { tags: newTags });
-      }
-      renderVersionTags(id, container);
-      const li = container.closest<HTMLLIElement>(".pptvc-version-item");
-      const toggle = li?.querySelector<HTMLButtonElement>(".pptvc-tags-toggle");
-      if (toggle) setTagsToggleLabel(toggle, versionTagsMap.get(id)?.length ?? 0);
+  if (available.length > 0) {
+    const addTagBtn = document.createElement("button");
+    addTagBtn.type = "button";
+    addTagBtn.className = `pptvc-version-tag-add${expandedTagPickerVersionId === id ? " pptvc-version-tag-add--open" : ""}`;
+    addTagBtn.textContent = "Tags";
+    addTagBtn.setAttribute("aria-expanded", String(expandedTagPickerVersionId === id));
+    addTagBtn.addEventListener("click", () => {
+      expandedTagPickerVersionId = expandedTagPickerVersionId === id ? null : id;
+      rerenderAllVersionTagRows();
     });
-    container.appendChild(chip);
+    container.appendChild(addTagBtn);
+
+    if (expandedTagPickerVersionId === id) {
+      const options = document.createElement("div");
+      options.className = "pptvc-version-tag-options";
+
+      for (const tag of available) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "pptvc-tag-option";
+        chip.textContent = tag;
+        chip.addEventListener("click", () => {
+          const current = versionTagsMap.get(id) ?? [];
+          if (current.length < MAX_TAGS) {
+            const newTags = [...current, tag];
+            versionTagsMap.set(id, newTags);
+            void updateVersionMeta(id, { tags: newTags });
+            if (newTags.length >= MAX_TAGS) {
+              expandedTagPickerVersionId = null;
+            }
+          }
+          rerenderAllVersionTagRows();
+        });
+        options.appendChild(chip);
+      }
+
+      container.appendChild(options);
+    }
+  }
+}
+
+function rerenderAllVersionTagRows(): void {
+  for (const [id, container] of versionTagContainers) {
+    renderVersionTags(id, container);
   }
 }
 
