@@ -1,4 +1,4 @@
-/* global document, Office, setTimeout, HTMLElement, HTMLDivElement, HTMLUListElement, HTMLParagraphElement, HTMLLIElement, HTMLButtonElement, HTMLSpanElement, HTMLInputElement, HTMLHeadingElement */
+/* global document, Office, PowerPoint, Blob, btoa, setTimeout, HTMLElement, HTMLDivElement, HTMLUListElement, HTMLParagraphElement, HTMLLIElement, HTMLButtonElement, HTMLSpanElement, HTMLInputElement, HTMLHeadingElement */
 
 import {
   saveVersion,
@@ -6,6 +6,7 @@ import {
   restoreVersion,
   deleteVersion,
   updateVersionMeta,
+  getVersionBlob,
   type Version,
 } from "../versions";
 
@@ -29,11 +30,10 @@ const ICON_VERSIONS = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewB
 const ICON_RESTORE = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" /></svg>`;
 const ICON_CHECK = `<svg class="pptvc-slide-scope-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"></polyline></svg>`;
 
-type PlaceholderChange = { name: string; delta: string };
-type PlaceholderSlide = { num: number; name: string; changes: PlaceholderChange[] };
+type SlideInfo = { num: number; name: string };
 
 // Populated at runtime from the active PowerPoint presentation
-const availableSlides: PlaceholderSlide[] = [];
+const availableSlides: SlideInfo[] = [];
 
 // ── In-memory state ───────────────────────────────────────────
 // Names and tags are UI-only for now — backend persistence coming soon.
@@ -47,6 +47,7 @@ let loadedVersions: Version[] = [];
 const globalSelectedSlides = new Set<number>();
 let displayedVersionId: string | null = null;
 let expandedTagPickerVersionId: string | null = null;
+let comparisonSlideId: string | null = null;
 
 // ── Boot ──────────────────────────────────────────────────────
 
@@ -165,6 +166,16 @@ function showStatus(message: string, isError: boolean): void {
   }, 4000);
 }
 
+async function blobToBase64(blob: Blob): Promise<string> {
+  const buffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
 function formatTimestamp(timestamp: number): string {
   return new Date(timestamp).toLocaleString(undefined, {
     month: "short",
@@ -203,7 +214,7 @@ async function initializeGlobalSlideScopePicker(): Promise<void> {
     // Fallback: default to slide 1
   }
 
-  availableSlides.push({ num: slideNum, name: `Slide ${slideNum}`, changes: [] });
+  availableSlides.push({ num: slideNum, name: `Slide ${slideNum}` });
   globalSelectedSlides.add(slideNum);
 
   // Disable the picker — tool currently focuses on the active slide only
@@ -726,35 +737,6 @@ async function onDeleteConfirm(id: string, li: HTMLLIElement): Promise<void> {
 
 // ── Diff scope ────────────────────────────────────────────────
 
-function getHardcodedChangesForSlide(slide: PlaceholderSlide): PlaceholderChange[] {
-  if (slide.changes.length > 0) {
-    return slide.changes;
-  }
-
-  const presets: PlaceholderChange[][] = [
-    [
-      { name: "Title text", delta: "modified" },
-      { name: "Subtitle text", delta: "modified" },
-      { name: "Background shape", delta: "moved" },
-    ],
-    [
-      { name: "Data table", delta: "updated" },
-      { name: "Chart legend", delta: "added" },
-    ],
-    [
-      { name: "Icon group", delta: "added" },
-      { name: "Footer note", delta: "removed" },
-      { name: "Bullet list", delta: "modified" },
-    ],
-  ];
-
-  return presets[(slide.num - 1) % presets.length];
-}
-
-function getChangeKindCount(changes: PlaceholderChange[], kind: string): number {
-  return changes.filter((change) => change.delta === kind).length;
-}
-
 function loadDiffScope(preselectedId?: string): void {
   const container = getEl<HTMLDivElement>("diff-content");
   container.innerHTML = "";
@@ -839,106 +821,143 @@ function loadDiffScope(preselectedId?: string): void {
   const compareBtn = document.createElement("button");
   compareBtn.type = "button";
   compareBtn.className = "pptvc-btn pptvc-btn--primary";
-  compareBtn.textContent = "Compare Versions";
+  compareBtn.innerHTML =
+    '<span class="btn-label">Compare Versions</span><span class="btn-spinner pptvc-hidden" aria-hidden="true"></span>';
   comparing.appendChild(compareBtn);
 
   container.appendChild(comparing);
 
-  // ── Summary (single-slide stats) ──
-  const summaryTitle = document.createElement("h3");
-  summaryTitle.className = "pptvc-section-title pptvc-diff-title";
-  summaryTitle.textContent = "Summary";
-  container.appendChild(summaryTitle);
+  // ── Visual comparison status banner ──
+  const comparisonBanner = document.createElement("div");
+  comparisonBanner.className = "pptvc-diff-banner pptvc-hidden";
 
-  const summary = document.createElement("div");
-  summary.className = "pptvc-diff-summary-grid";
+  const bannerText = document.createElement("span");
+  bannerText.className = "pptvc-diff-banner-text";
+  bannerText.textContent = "Comparison slide inserted below current slide";
 
-  const makeSummaryCard = (label: string, primary: boolean): [HTMLDivElement, HTMLSpanElement] => {
-    const card = document.createElement("div");
-    card.className = `pptvc-diff-summary-card${primary ? " pptvc-diff-summary-card--primary" : ""}`;
-    const lbl = document.createElement("span");
-    lbl.className = "pptvc-diff-summary-label";
-    lbl.textContent = label;
-    const val = document.createElement("span");
-    val.className = "pptvc-diff-summary-value";
-    card.appendChild(lbl);
-    card.appendChild(val);
-    return [card, val];
-  };
+  const clearBtn = document.createElement("button");
+  clearBtn.type = "button";
+  clearBtn.className = "pptvc-diff-banner-clear";
+  clearBtn.textContent = "Clear";
+  clearBtn.addEventListener("click", () => {
+    void clearVisualComparison(comparisonBanner, compareBtn);
+  });
 
-  const [cardTotal, valTotal] = makeSummaryCard("Changes", true);
-  const [cardModified, valModified] = makeSummaryCard("Modified", false);
-  const [cardAdded, valAdded] = makeSummaryCard("Added", false);
-  summary.appendChild(cardTotal);
-  summary.appendChild(cardModified);
-  summary.appendChild(cardAdded);
-  container.appendChild(summary);
+  comparisonBanner.appendChild(bannerText);
+  comparisonBanner.appendChild(clearBtn);
+  container.appendChild(comparisonBanner);
 
-  // ── Slide Changes section ──
-  const slidesTitle = document.createElement("h3");
-  slidesTitle.className = "pptvc-section-title pptvc-diff-title";
-  slidesTitle.textContent = "Slide Changes";
-  container.appendChild(slidesTitle);
+  // ── Wire compare button ──
+  compareBtn.addEventListener("click", () => {
+    const fromId = selectFrom.value;
+    const fromVersion = loadedVersions.find((v) => v.id === fromId);
+    if (!fromVersion) return;
+    void runVisualComparison(fromVersion, comparisonBanner, compareBtn);
+  });
+}
 
-  const changesSection = document.createElement("div");
-  changesSection.className = "pptvc-diff-changes-section";
+// ── Visual comparison (insert old slide below current) ────────
 
-  const changeListEl = document.createElement("div");
-  changeListEl.className = "pptvc-diff-change-list";
-  changesSection.appendChild(changeListEl);
-  container.appendChild(changesSection);
+async function runVisualComparison(
+  fromVersion: Version,
+  banner: HTMLDivElement,
+  btn: HTMLButtonElement
+): Promise<void> {
+  const label = btn.querySelector<HTMLSpanElement>(".btn-label")!;
+  const spinner = btn.querySelector<HTMLSpanElement>(".btn-spinner")!;
 
-  const renderDiffResults = (): void => {
-    const slide = availableSlides[0];
-    const slideChanges = slide ? getHardcodedChangesForSlide(slide) : [];
+  btn.disabled = true;
+  hide(label);
+  show(spinner);
+  hide(banner);
 
-    const addedCount = getChangeKindCount(slideChanges, "added");
-    const removedCount = getChangeKindCount(slideChanges, "removed");
-    const modifiedCount = slideChanges.length - addedCount - removedCount;
-
-    valTotal.textContent = String(slideChanges.length);
-    valModified.textContent = String(modifiedCount);
-    valAdded.textContent =
-      addedCount > 0 || removedCount > 0 ? `+${addedCount} / −${removedCount}` : "—";
-    // Relabel "Added" card to "+/−" when both present, keep "Added" otherwise
-    cardAdded.querySelector<HTMLSpanElement>(".pptvc-diff-summary-label")!.textContent =
-      removedCount > 0 ? "+/−" : "Added";
-
-    changeListEl.innerHTML = "";
-
-    if (slideChanges.length === 0) {
-      const empty = document.createElement("p");
-      empty.className = "pptvc-diff-change-empty";
-      empty.textContent = "No changes detected on this slide.";
-      changeListEl.appendChild(empty);
-      return;
+  try {
+    // Clear any previous comparison first
+    if (comparisonSlideId) {
+      await deleteComparisonSlide();
     }
 
-    for (const change of slideChanges) {
-      const item = document.createElement("div");
-      item.className = "pptvc-diff-change-item";
+    const blob = await getVersionBlob(fromVersion.snapshotPath);
+    const base64 = await blobToBase64(blob);
+    const currentSlideIdx = (availableSlides[0]?.num ?? 1) - 1;
 
-      const nameEl = document.createElement("span");
-      nameEl.className = "pptvc-diff-change-name";
-      nameEl.textContent = change.name;
+    await PowerPoint.run(async (context) => {
+      const slides = context.presentation.slides;
+      slides.load("items/id");
+      await context.sync();
 
-      const deltaEl = document.createElement("span");
-      deltaEl.className = `pptvc-diff-change-delta pptvc-diff-change-delta--${change.delta}`;
-      deltaEl.textContent = change.delta;
+      const existingIds = new Set(slides.items.map((s) => s.id));
+      const targetSlide = slides.items[currentSlideIdx];
+      const targetSlideId = targetSlide?.id;
 
-      item.appendChild(nameEl);
-      item.appendChild(deltaEl);
-      changeListEl.appendChild(item);
+      // Insert all slides from the old version after the current slide
+      context.presentation.insertSlidesFromBase64(base64, {
+        formatting: PowerPoint.InsertSlideFormatting.useDestinationTheme,
+        targetSlideId,
+      });
+      await context.sync();
+
+      // Find the newly inserted slides
+      slides.load("items/id");
+      await context.sync();
+
+      const newIds = slides.items.filter((s) => !existingIds.has(s.id)).map((s) => s.id);
+
+      // Keep the slide at the same index as current; delete the rest
+      const keepId = newIds[currentSlideIdx] ?? newIds[0];
+      comparisonSlideId = keepId ?? null;
+
+      for (const id of newIds) {
+        if (id !== keepId) {
+          context.presentation.slides.getItem(id).delete();
+        }
+      }
+      await context.sync();
+    });
+
+    if (comparisonSlideId) {
+      const fromName = versionNameOverrides.get(fromVersion.id) ?? fromVersion.name;
+      banner.querySelector<HTMLSpanElement>(".pptvc-diff-banner-text")!.textContent =
+        `"${fromName}" inserted below — scroll down to compare`;
+      show(banner);
     }
-  };
+  } catch (err) {
+    showStatus(err instanceof Error ? err.message : "Failed to insert comparison slide.", true);
+  } finally {
+    btn.disabled = false;
+    show(label);
+    hide(spinner);
+  }
+}
 
-  compareBtn.addEventListener("click", renderDiffResults);
-  renderDiffResults();
+async function clearVisualComparison(
+  banner: HTMLDivElement,
+  btn: HTMLButtonElement
+): Promise<void> {
+  btn.disabled = true;
+  try {
+    await deleteComparisonSlide();
+    hide(banner);
+  } catch (err) {
+    showStatus(err instanceof Error ? err.message : "Failed to clear comparison.", true);
+  } finally {
+    btn.disabled = false;
+  }
+}
 
-  const note = document.createElement("p");
-  note.className = "pptvc-diff-placeholder-note";
-  note.textContent = "Diff engine coming soon — actual changes will appear here.";
-  container.appendChild(note);
+async function deleteComparisonSlide(): Promise<void> {
+  if (!comparisonSlideId) return;
+  const idToDelete = comparisonSlideId;
+  comparisonSlideId = null;
+
+  await PowerPoint.run(async (context) => {
+    try {
+      context.presentation.slides.getItem(idToDelete).delete();
+      await context.sync();
+    } catch {
+      // Slide may have been manually deleted — that's fine
+    }
+  });
 }
 
 // ── Save ──────────────────────────────────────────────────────

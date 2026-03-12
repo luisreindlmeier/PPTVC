@@ -9,3 +9,4 @@ export { listVersions } from "./list-versions";
 export { restoreVersion } from "./restore-version";
 export { deleteVersion } from "./delete-version";
 export { updateVersionMeta } from "./update-version-meta";
+export { getVersionBlob } from "./get-version-blob";
