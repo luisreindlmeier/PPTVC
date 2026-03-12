@@ -1,4 +1,4 @@
-/* global document, Office, PowerPoint, setTimeout, HTMLElement, HTMLDivElement, HTMLUListElement, HTMLParagraphElement, HTMLLIElement, HTMLButtonElement, HTMLSpanElement, HTMLInputElement, HTMLHeadingElement */
+/* global document, Office, setTimeout, HTMLElement, HTMLDivElement, HTMLUListElement, HTMLParagraphElement, HTMLLIElement, HTMLButtonElement, HTMLSpanElement, HTMLInputElement, HTMLHeadingElement */
 
 import {
   saveVersion,
@@ -24,6 +24,7 @@ const TAB_ORDER: Record<"history" | "diff" | "workflow", number> = {
 // ── Heroicons (inline SVG, 24px viewBox outline) ──────────────
 
 const ICON_DIFF = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 3M21 7.5H7.5" /></svg>`;
+const ICON_TAG = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.595.45a18.634 18.634 0 0 0 5.652-4.475 1.876 1.876 0 0 0-.45-2.594L10.455 3.659A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>`;
 const ICON_VERSIONS = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>`;
 const ICON_RESTORE = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" /></svg>`;
 const ICON_CHECK = `<svg class="pptvc-slide-scope-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"></polyline></svg>`;
@@ -41,6 +42,7 @@ const pendingTags: string[] = [];
 const versionNameOverrides = new Map<string, string>();
 const versionTagsMap = new Map<string, string[]>();
 const versionTagContainers = new Map<string, HTMLDivElement>();
+const versionTagAddBtns = new Map<string, HTMLButtonElement>();
 let loadedVersions: Version[] = [];
 const globalSelectedSlides = new Set<number>();
 let displayedVersionId: string | null = null;
@@ -178,25 +180,34 @@ async function initializeGlobalSlideScopePicker(): Promise<void> {
   availableSlides.length = 0;
   globalSelectedSlides.clear();
 
+  let slideNum = 1;
+
   try {
-    await PowerPoint.run(async (context) => {
-      const slides = context.presentation.slides;
-      slides.load("id,name");
-      await context.sync();
-      slides.items.forEach((slide, index) => {
-        availableSlides.push({
-          num: index + 1,
-          name: slide.name || `Slide ${index + 1}`,
-          changes: [],
-        });
-        globalSelectedSlides.add(index + 1);
-      });
+    // Get the currently selected slide via the Office document API
+    const selected = await new Promise<{ index: number; title: string }>((resolve) => {
+      Office.context.document.getSelectedDataAsync(
+        Office.CoercionType.SlideRange,
+        (result: Office.AsyncResult<{ slides?: { index: number; title: string }[] }>) => {
+          const slides = result.value?.slides;
+          if (result.status === Office.AsyncResultStatus.Succeeded && slides?.length) {
+            resolve(slides[0]);
+          } else {
+            resolve({ index: 0, title: "" });
+          }
+        }
+      );
     });
+    slideNum = selected.index + 1;
   } catch {
-    // Fallback when PowerPoint API is unavailable (e.g., dev/test)
-    availableSlides.push({ num: 1, name: "Slide 1", changes: [] });
-    globalSelectedSlides.add(1);
+    // Fallback: default to slide 1
   }
+
+  availableSlides.push({ num: slideNum, name: `Slide ${slideNum}`, changes: [] });
+  globalSelectedSlides.add(slideNum);
+
+  // Disable the picker — tool currently focuses on the active slide only
+  const scopeBtn = getEl<HTMLButtonElement>("btn-slide-scope");
+  scopeBtn.disabled = true;
 
   renderGlobalSlideScopeOptions();
   updateGlobalSlideScopeLabel();
@@ -208,6 +219,10 @@ function isGlobalPresentationSelected(): boolean {
 
 function updateGlobalSlideScopeLabel(): void {
   const labelEl = getEl<HTMLSpanElement>("slide-scope-label");
+  if (availableSlides.length === 1) {
+    labelEl.textContent = `Slide ${availableSlides[0].num}`;
+    return;
+  }
   if (isGlobalPresentationSelected()) {
     labelEl.textContent = "Presentation";
     return;
@@ -349,6 +364,7 @@ async function loadVersionList(): Promise<void> {
   show(loadingEl);
   listEl.innerHTML = "";
   versionTagContainers.clear();
+  versionTagAddBtns.clear();
   hide(emptyEl);
 
   try {
@@ -495,6 +511,18 @@ function createVersionItem(version: Version): HTMLLIElement {
   time.textContent = formatTimestamp(version.timestamp);
   meta.appendChild(time);
 
+  const addTagBtn = document.createElement("button");
+  addTagBtn.type = "button";
+  addTagBtn.className = "pptvc-version-tag-add";
+  addTagBtn.setAttribute("aria-expanded", "false");
+  addTagBtn.innerHTML = `${ICON_TAG}<span>Tags</span>`;
+  addTagBtn.addEventListener("click", () => {
+    expandedTagPickerVersionId = expandedTagPickerVersionId === version.id ? null : version.id;
+    rerenderAllVersionTagRows();
+  });
+  meta.appendChild(addTagBtn);
+  versionTagAddBtns.set(version.id, addTagBtn);
+
   li.appendChild(meta);
 
   // Tags section — selected tags always visible below timestamp row.
@@ -513,6 +541,14 @@ function createVersionItem(version: Version): HTMLLIElement {
 function renderVersionTags(id: string, container: HTMLDivElement): void {
   container.innerHTML = "";
   const tags = versionTagsMap.get(id) ?? [];
+
+  // Sync inline add-button state
+  const addBtn = versionTagAddBtns.get(id);
+  if (addBtn) {
+    const isOpen = expandedTagPickerVersionId === id;
+    addBtn.setAttribute("aria-expanded", String(isOpen));
+    addBtn.classList.toggle("pptvc-version-tag-add--open", isOpen);
+  }
 
   for (const tag of tags) {
     const chip = document.createElement("span");
@@ -542,44 +578,38 @@ function renderVersionTags(id: string, container: HTMLDivElement): void {
   const used = versionTagsMap.get(id) ?? [];
   const available = PREDEFINED_TAGS.filter((t) => !used.includes(t));
 
-  if (available.length > 0) {
-    const addTagBtn = document.createElement("button");
-    addTagBtn.type = "button";
-    addTagBtn.className = `pptvc-version-tag-add${expandedTagPickerVersionId === id ? " pptvc-version-tag-add--open" : ""}`;
-    addTagBtn.textContent = "Tags";
-    addTagBtn.setAttribute("aria-expanded", String(expandedTagPickerVersionId === id));
-    addTagBtn.addEventListener("click", () => {
-      expandedTagPickerVersionId = expandedTagPickerVersionId === id ? null : id;
-      rerenderAllVersionTagRows();
-    });
-    container.appendChild(addTagBtn);
+  if (available.length > 0 && expandedTagPickerVersionId === id) {
+    const options = document.createElement("div");
+    options.className = "pptvc-version-tag-options";
 
-    if (expandedTagPickerVersionId === id) {
-      const options = document.createElement("div");
-      options.className = "pptvc-version-tag-options";
-
-      for (const tag of available) {
-        const chip = document.createElement("button");
-        chip.type = "button";
-        chip.className = "pptvc-tag-option";
-        chip.textContent = tag;
-        chip.addEventListener("click", () => {
-          const current = versionTagsMap.get(id) ?? [];
-          if (current.length < MAX_TAGS) {
-            const newTags = [...current, tag];
-            versionTagsMap.set(id, newTags);
-            void updateVersionMeta(id, { tags: newTags });
-            if (newTags.length >= MAX_TAGS) {
-              expandedTagPickerVersionId = null;
-            }
+    for (const tag of available) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "pptvc-tag-option";
+      chip.textContent = tag;
+      chip.addEventListener("click", () => {
+        const current = versionTagsMap.get(id) ?? [];
+        if (current.length < MAX_TAGS) {
+          const newTags = [...current, tag];
+          versionTagsMap.set(id, newTags);
+          void updateVersionMeta(id, { tags: newTags });
+          if (newTags.length >= MAX_TAGS) {
+            expandedTagPickerVersionId = null;
           }
-          rerenderAllVersionTagRows();
-        });
-        options.appendChild(chip);
-      }
-
-      container.appendChild(options);
+        }
+        rerenderAllVersionTagRows();
+      });
+      options.appendChild(chip);
     }
+
+    container.appendChild(options);
+  }
+
+  // Hide row when nothing to show (no chips, picker closed)
+  if (container.children.length === 0) {
+    container.classList.add("pptvc-hidden");
+  } else {
+    container.classList.remove("pptvc-hidden");
   }
 }
 

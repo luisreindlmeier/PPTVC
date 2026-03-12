@@ -188,6 +188,16 @@ ul {
   transform: translateY(0);
 }
 
+.pptvc-slide-scope-btn:disabled {
+  cursor: default;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.pptvc-slide-scope-btn:disabled .pptvc-slide-scope-arrow {
+  display: none;
+}
+
 .pptvc-slide-scope-btn--open .pptvc-slide-scope-arrow {
   transform: rotate(180deg);
 }
@@ -913,7 +923,7 @@ ul {
   flex-shrink: 0;
 }
 
-/* Tags row directly below timestamp */
+/* Tags row (chips + options) — hidden when empty */
 .pptvc-version-tags {
   display: -ms-flexbox;
   display: flex;
@@ -922,7 +932,12 @@ ul {
   -ms-flex-align: center;
   align-items: center;
   gap: 4px;
-  padding: 0 10px 8px;
+  padding: 0 10px 6px;
+}
+
+.pptvc-version-tags:empty,
+.pptvc-version-tags.pptvc-hidden {
+  padding: 0;
 }
 
 .pptvc-version-tag-add {
@@ -930,6 +945,7 @@ ul {
   display: inline-flex;
   -ms-flex-align: center;
   align-items: center;
+  gap: 4px;
   padding: 1px 8px;
   border-radius: 3px;
   border: 1px dashed var(--color-border-focus);
@@ -943,6 +959,13 @@ ul {
     border-color 0.12s,
     color 0.12s,
     background 0.12s;
+}
+
+.pptvc-version-tag-add svg {
+  width: 11px;
+  height: 11px;
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
 }
 
 .pptvc-version-tag-add:hover,
