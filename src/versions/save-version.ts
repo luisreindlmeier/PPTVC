@@ -160,6 +160,8 @@ export async function saveVersion(options: SaveVersionOptions = {}): Promise<Ver
   const id = createVersionId(timestamp);
   const name = await createVersionName(storage);
   const displayName = options.name?.trim() || undefined;
+  const authorName = options.authorName?.trim() || undefined;
+  const authorEmail = options.authorEmail?.trim() || undefined;
   const tags = options.tags ?? [];
 
   const snapshotPath = `${VERSION_ROOT_PATH}/${id}/${SNAPSHOT_FILE_NAME}`;
@@ -169,6 +171,8 @@ export async function saveVersion(options: SaveVersionOptions = {}): Promise<Ver
     id,
     name,
     displayName,
+    authorName,
+    authorEmail,
     tags,
     timestamp,
     filename,
@@ -182,6 +186,8 @@ export async function saveVersion(options: SaveVersionOptions = {}): Promise<Ver
     id,
     name,
     displayName,
+    authorName,
+    authorEmail,
     tags,
     timestamp,
     filename,
