@@ -224,6 +224,25 @@ async function initializeGlobalSlideScopePicker(): Promise<void> {
 
   renderGlobalSlideScopeOptions();
   updateGlobalSlideScopeLabel();
+
+  // Keep label in sync whenever the user navigates to a different slide
+  Office.context.document.addHandlerAsync(Office.EventType.DocumentSelectionChanged, () => {
+    Office.context.document.getSelectedDataAsync(
+      Office.CoercionType.SlideRange,
+      (result: Office.AsyncResult<{ slides?: { index: number; title: string }[] }>) => {
+        const slides = result.value?.slides;
+        if (result.status === Office.AsyncResultStatus.Succeeded && slides?.length) {
+          const newNum = slides[0].index + 1;
+          if (availableSlides[0]?.num !== newNum) {
+            availableSlides[0] = { num: newNum, name: `Slide ${newNum}` };
+            globalSelectedSlides.clear();
+            globalSelectedSlides.add(newNum);
+            updateGlobalSlideScopeLabel();
+          }
+        }
+      }
+    );
+  });
 }
 
 function isGlobalPresentationSelected(): boolean {
