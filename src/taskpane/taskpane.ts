@@ -27,9 +27,6 @@ import {
 } from "../sync/github-sync";
 import {
   ICON_CHECK,
-  ICON_DIFF,
-  ICON_RESTORE,
-  ICON_TAG,
   ICON_VERSIONS,
   MAX_TAGS,
   SETTINGS_TAB_ORDER,
@@ -49,6 +46,7 @@ import {
 } from "./settings-model";
 import { initSettingsPanel } from "./settings-panel";
 import { initializeTaskpaneApp } from "./bootstrap";
+import { createHistoryPanel } from "./history-panel";
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -82,6 +80,28 @@ let currentCompareBtn: HTMLButtonElement | null = null;
 let autoSaveInProgress = false;
 
 let userSettings: UserSettings = { ...DEFAULT_SETTINGS };
+
+const historyPanel = createHistoryPanel({
+  getDisplayedVersionId: () => displayedVersionId,
+  setDisplayedVersionId: (id) => {
+    displayedVersionId = id;
+  },
+  getExpandedTagPickerVersionId: () => expandedTagPickerVersionId,
+  setExpandedTagPickerVersionId: (id) => {
+    expandedTagPickerVersionId = id;
+  },
+  getLoadedVersions: () => loadedVersions,
+  getUserSettings: () => userSettings,
+  getAuthorLabel,
+  getVersionNameOverrides: () => versionNameOverrides,
+  getVersionTagsMap: () => versionTagsMap,
+  getVersionTagContainers: () => versionTagContainers,
+  getVersionTagAddButtons: () => versionTagAddBtns,
+  updateVersionMeta,
+  onRestoreClick,
+  onDeleteConfirm,
+  switchScope,
+});
 
 // ── Boot ──────────────────────────────────────────────────────
 
@@ -148,36 +168,6 @@ function getAuthorLabel(version: Version): string {
   const versionAuthor = version.authorName?.trim();
   const fallbackAuthor = userSettings.authorName?.trim() ?? "";
   return versionAuthor || fallbackAuthor || "Unknown";
-}
-
-// ── Author avatar helpers ──────────────────────────────────────
-
-const AVATAR_PALETTE = [
-  "#4F6F52",
-  "#7B6B8A",
-  "#4A7FA5",
-  "#8B6B4A",
-  "#B87050",
-  "#6B4A7F",
-  "#4A7F6B",
-  "#7F4A6B",
-];
-
-function authorColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  }
-  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
-}
-
-function authorInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-  return name.slice(0, 2).toUpperCase();
 }
 
 
@@ -457,8 +447,7 @@ async function loadVersionList(): Promise<void> {
 
   show(loadingEl);
   listEl.innerHTML = "";
-  versionTagContainers.clear();
-  versionTagAddBtns.clear();
+  historyPanel.clearRowCaches();
   hide(emptyEl);
 
   try {
@@ -533,299 +522,23 @@ async function enforceMaxVersions(): Promise<void> {
 // ── Build version list item ───────────────────────────────────
 
 function createVersionItem(version: Version): HTMLLIElement {
-  const li = document.createElement("li");
-  li.className = "pptvc-version-item";
-  li.dataset["versionId"] = version.id;
-
-  // Timeline dot
-  const dot = document.createElement("button");
-  dot.type = "button";
-  dot.className = `pptvc-version-dot${displayedVersionId === version.id ? " pptvc-version-dot--latest" : ""}`;
-  dot.setAttribute("aria-label", `Select ${versionNameOverrides.get(version.id) ?? version.name}`);
-  dot.addEventListener("click", () => {
-    displayedVersionId = version.id;
-    updateDisplayedVersionDot();
-  });
-  dot.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter" && event.key !== " ") {
-      return;
-    }
-    event.preventDefault();
-    displayedVersionId = version.id;
-    updateDisplayedVersionDot();
-  });
-  li.appendChild(dot);
-
-  // Header row: editable name + delete button
-  const header = document.createElement("div");
-  header.className = "pptvc-version-header";
-
-  const nameInput = document.createElement("input");
-  nameInput.type = "text";
-  nameInput.className = "pptvc-version-name-input";
-  nameInput.value = versionNameOverrides.get(version.id) ?? version.name;
-  nameInput.setAttribute("aria-label", "Version name");
-  nameInput.addEventListener("blur", () => {
-    const newName = nameInput.value.trim();
-    if (newName) {
-      versionNameOverrides.set(version.id, newName);
-      void updateVersionMeta(version.id, { displayName: newName });
-    } else {
-      nameInput.value = versionNameOverrides.get(version.id) ?? version.name;
-    }
-  });
-
-  const headerActions = document.createElement("div");
-  headerActions.className = "pptvc-version-header-actions";
-
-  const viewDiffBtn = document.createElement("button");
-  viewDiffBtn.type = "button";
-  viewDiffBtn.className = "pptvc-btn-icon-action";
-  viewDiffBtn.innerHTML = ICON_DIFF;
-  viewDiffBtn.setAttribute("aria-label", "View diff");
-  viewDiffBtn.title = "View diff";
-  viewDiffBtn.addEventListener("click", () => {
-    switchScope("diff", version.id);
-  });
-
-  const restoreBtn = document.createElement("button");
-  restoreBtn.type = "button";
-  restoreBtn.className = "pptvc-btn-icon-action pptvc-btn-icon-action--restore";
-  restoreBtn.innerHTML = ICON_RESTORE;
-  restoreBtn.setAttribute("aria-label", "Restore this version");
-  restoreBtn.title = "Restore this version";
-  restoreBtn.addEventListener("click", () => {
-    void onRestoreClick(version.id, restoreBtn);
-  });
-
-  const deleteBtn = document.createElement("button");
-  deleteBtn.type = "button";
-  deleteBtn.className = "pptvc-btn-icon pptvc-delete-trigger";
-  deleteBtn.textContent = "✕";
-  deleteBtn.setAttribute("aria-label", "Delete version");
-  deleteBtn.addEventListener("click", () => showDeletePopup(version.id, li));
-
-  headerActions.appendChild(viewDiffBtn);
-  headerActions.appendChild(restoreBtn);
-  headerActions.appendChild(deleteBtn);
-
-  header.appendChild(nameInput);
-  header.appendChild(headerActions);
-  li.appendChild(header);
-
-  // Meta row: timestamp + tags toggle
-  const meta = document.createElement("div");
-  meta.className = "pptvc-version-meta";
-
-  const time = document.createElement("span");
-  time.className = "pptvc-version-time";
-  time.textContent = formatTimestamp(version.timestamp);
-  meta.appendChild(time);
-
-  const addTagBtn = document.createElement("button");
-  addTagBtn.type = "button";
-  addTagBtn.className = "pptvc-version-tag-add";
-  addTagBtn.setAttribute("aria-expanded", "false");
-  addTagBtn.innerHTML = `${ICON_TAG}<span>Tags</span>`;
-  addTagBtn.addEventListener("click", () => {
-    expandedTagPickerVersionId = expandedTagPickerVersionId === version.id ? null : version.id;
-    rerenderAllVersionTagRows();
-  });
-  meta.appendChild(addTagBtn);
-  versionTagAddBtns.set(version.id, addTagBtn);
-
-  li.appendChild(meta);
-
-  const authorRow = document.createElement("div");
-  authorRow.className = "pptvc-version-author-row";
-
-  const authorDisplayName = getAuthorLabel(version);
-  const avatar = document.createElement("div");
-  avatar.className = "pptvc-avatar";
-  avatar.style.background = authorColor(authorDisplayName);
-  avatar.setAttribute("aria-hidden", "true");
-  avatar.textContent = authorInitials(authorDisplayName);
-
-  const authorNameEl = document.createElement("span");
-  authorNameEl.className = "pptvc-version-author-name";
-  authorNameEl.textContent = authorDisplayName;
-
-  authorRow.appendChild(avatar);
-  authorRow.appendChild(authorNameEl);
-  li.appendChild(authorRow);
-
-  // Tags section — selected tags always visible below timestamp row.
-  const tagsRow = document.createElement("div");
-  tagsRow.className = "pptvc-version-tags";
-  versionTagContainers.set(version.id, tagsRow);
-  renderVersionTags(version.id, tagsRow);
-
-  li.appendChild(tagsRow);
-
-  return li;
+  return historyPanel.createVersionItem(version);
 }
 
 // ── Per-item tags (predefined picker, max 3) ──────────────────
 
-function renderVersionTags(id: string, container: HTMLDivElement): void {
-  container.innerHTML = "";
-  const tags = versionTagsMap.get(id) ?? [];
-
-  // Sync inline add-button state
-  const addBtn = versionTagAddBtns.get(id);
-  if (addBtn) {
-    const isOpen = expandedTagPickerVersionId === id;
-    addBtn.setAttribute("aria-expanded", String(isOpen));
-    addBtn.classList.toggle("pptvc-version-tag-add--open", isOpen);
-  }
-
-  for (const tag of tags) {
-    const chip = document.createElement("span");
-    chip.className = "pptvc-version-tag-chip";
-    chip.textContent = tag;
-
-    const removeBtn = document.createElement("button");
-    removeBtn.type = "button";
-    removeBtn.className = "pptvc-version-tag-chip__remove";
-    removeBtn.textContent = "×";
-    removeBtn.setAttribute("aria-label", `Remove tag ${tag}`);
-    removeBtn.addEventListener("click", () => {
-      const current = versionTagsMap.get(id) ?? [];
-      const newTags = current.filter((t) => t !== tag);
-      versionTagsMap.set(id, newTags);
-      void updateVersionMeta(id, { tags: newTags });
-      if (newTags.length < MAX_TAGS && expandedTagPickerVersionId === null) {
-        expandedTagPickerVersionId = id;
-      }
-      renderVersionTags(id, container);
-    });
-
-    chip.appendChild(removeBtn);
-    container.appendChild(chip);
-  }
-
-  const used = versionTagsMap.get(id) ?? [];
-  const available = getAvailableTags(userSettings).filter((t) => !used.includes(t));
-
-  if (available.length > 0 && expandedTagPickerVersionId === id) {
-    const options = document.createElement("div");
-    options.className = "pptvc-version-tag-options";
-
-    for (const tag of available) {
-      const chip = document.createElement("button");
-      chip.type = "button";
-      chip.className = "pptvc-tag-option";
-      chip.textContent = tag;
-      chip.addEventListener("click", () => {
-        const current = versionTagsMap.get(id) ?? [];
-        if (current.length < MAX_TAGS) {
-          const newTags = [...current, tag];
-          versionTagsMap.set(id, newTags);
-          void updateVersionMeta(id, { tags: newTags });
-          if (newTags.length >= MAX_TAGS) {
-            expandedTagPickerVersionId = null;
-          }
-        }
-        rerenderAllVersionTagRows();
-      });
-      options.appendChild(chip);
-    }
-
-    container.appendChild(options);
-  }
-
-  // Hide row when nothing to show (no chips, picker closed)
-  if (container.children.length === 0) {
-    container.classList.add("pptvc-hidden");
-  } else {
-    container.classList.remove("pptvc-hidden");
-  }
-}
-
 function rerenderAllVersionTagRows(): void {
-  for (const [id, container] of versionTagContainers) {
-    renderVersionTags(id, container);
-  }
+  historyPanel.rerenderAllVersionTagRows();
 }
 
 // ── Delete popup ──────────────────────────────────────────────
 
-function showDeletePopup(id: string, li: HTMLLIElement): void {
-  closeAllDeletePopups();
-
-  const existing = li.querySelector(".pptvc-delete-popup");
-  if (existing) {
-    existing.remove();
-    return;
-  }
-
-  const popup = document.createElement("div");
-  popup.className = "pptvc-delete-popup";
-
-  const msg = document.createElement("p");
-  msg.className = "pptvc-delete-popup__msg";
-  msg.textContent = "Delete this version?";
-
-  const actionsRow = document.createElement("div");
-  actionsRow.className = "pptvc-delete-popup__actions";
-
-  const cancelBtn = document.createElement("button");
-  cancelBtn.type = "button";
-  cancelBtn.className = "pptvc-btn pptvc-btn--ghost";
-  cancelBtn.textContent = "Cancel";
-  cancelBtn.addEventListener("click", () => popup.remove());
-
-  const confirmBtn = document.createElement("button");
-  confirmBtn.type = "button";
-  confirmBtn.className = "pptvc-btn pptvc-btn--danger";
-  confirmBtn.textContent = "Delete";
-  confirmBtn.addEventListener("click", () => {
-    popup.remove();
-    confirmBtn.disabled = true;
-    void onDeleteConfirm(id, li);
-  });
-
-  actionsRow.appendChild(cancelBtn);
-  actionsRow.appendChild(confirmBtn);
-  popup.appendChild(msg);
-  popup.appendChild(actionsRow);
-  li.appendChild(popup);
-}
-
 function closeAllDeletePopups(): void {
-  const popups = document.querySelectorAll<HTMLElement>(".pptvc-delete-popup");
-  for (const popup of popups) {
-    popup.remove();
-  }
-}
-
-function isVersionNewerThanDisplayed(versionId: string): boolean {
-  if (!displayedVersionId) {
-    return false;
-  }
-
-  const displayedVersion = loadedVersions.find((version) => version.id === displayedVersionId);
-  const version = loadedVersions.find((item) => item.id === versionId);
-  if (!displayedVersion || !version) {
-    return false;
-  }
-
-  return version.timestamp > displayedVersion.timestamp;
+  historyPanel.closeAllDeletePopups();
 }
 
 function updateDisplayedVersionDot(): void {
-  const items = document.querySelectorAll<HTMLLIElement>(".pptvc-version-item");
-  for (const item of items) {
-    const dot = item.querySelector<HTMLButtonElement>(".pptvc-version-dot");
-    if (!dot) {
-      continue;
-    }
-    const versionId = item.dataset["versionId"];
-    const isDisplayed = versionId === displayedVersionId;
-    const isNewer = versionId ? isVersionNewerThanDisplayed(versionId) : false;
-    dot.classList.toggle("pptvc-version-dot--latest", isDisplayed);
-    item.classList.toggle("pptvc-version-item--newer", isNewer);
-  }
+  historyPanel.updateDisplayedVersionDot();
 }
 
 // ── Delete confirm ────────────────────────────────────────────
