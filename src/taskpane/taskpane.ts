@@ -12,13 +12,12 @@ import {
 } from "../versions";
 import { buildComparisonSlide } from "../diff/build-comparison-slide";
 import {
-  readUserSettings,
-  writeUserSettings,
-  type UserSettings,
   createStorageAdapter,
+  readUserSettings,
+  type UserSettings,
+  writeUserSettings,
 } from "../storage";
 import {
-  DEFAULT_TAGS,
   ICON_CHECK,
   ICON_DIFF,
   ICON_RESTORE,
@@ -27,7 +26,6 @@ import {
   MAX_TAGS,
   SETTINGS_TAB_ORDER,
   TAB_ORDER,
-  formatBytes,
   formatTimestamp,
   getEl,
   hide,
@@ -35,6 +33,14 @@ import {
   showStatus,
   type SettingsTab,
 } from "../ui";
+import {
+  DEFAULT_SETTINGS,
+  getAvailableTags,
+  getDefaultVersionName,
+  mergeSettings,
+} from "./settings-model";
+import { initSettingsPanel } from "./settings-panel";
+import { initializeTaskpaneApp } from "./bootstrap";
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -66,108 +72,25 @@ const activeComparisons = new Map<number, SlideComparison>();
 let currentDiffBanner: HTMLDivElement | null = null;
 let currentCompareBtn: HTMLButtonElement | null = null;
 let autoSaveInProgress = false;
-const DEFAULT_SETTINGS: UserSettings = {
-  authorName: "",
-  email: "",
-  autoSaveOnDocumentSave: false,
-  namingTemplate: "Version {version_number}",
-  customTags: [],
-};
 
 let userSettings: UserSettings = { ...DEFAULT_SETTINGS };
 
 // ── Boot ──────────────────────────────────────────────────────
 
-Office.onReady((info) => {
-  if (info.host === Office.HostType.PowerPoint) {
-    document.getElementById("sideload-msg")!.style.display = "none";
-    document.getElementById("app-body")!.classList.remove("pptvc-hidden");
-
-    document.getElementById("btn-save")!.addEventListener("click", () => {
-      void onSaveClick();
-    });
-    document.getElementById("tab-history")!.addEventListener("click", () => {
-      switchScope("history");
-    });
-    document.getElementById("tab-diff")!.addEventListener("click", () => {
-      switchScope("diff", undefined, true);
-    });
-    document.getElementById("tab-workflow")!.addEventListener("click", () => {
-      switchScope("workflow");
-    });
-
-    const slideScopeBtn = getEl<HTMLButtonElement>("btn-slide-scope");
-    const slideScopePanel = getEl<HTMLDivElement>("slide-scope-panel");
-    const closeSlideScopeDropdown = (): void => {
-      slideScopePanel.classList.remove("pptvc-slide-scope-panel--open");
-      slideScopeBtn.classList.remove("pptvc-slide-scope-btn--open");
-      slideScopeBtn.setAttribute("aria-expanded", "false");
-    };
-
-    slideScopeBtn.addEventListener("click", () => {
-      const isOpen = slideScopePanel.classList.contains("pptvc-slide-scope-panel--open");
-      slideScopeBtn.setAttribute("aria-expanded", String(!isOpen));
-      slideScopePanel.classList.toggle("pptvc-slide-scope-panel--open", !isOpen);
-      slideScopeBtn.classList.toggle("pptvc-slide-scope-btn--open", !isOpen);
-    });
-
-    document.addEventListener("click", (event) => {
-      const target = event.target as HTMLElement | null;
-      if (!target) {
-        return;
-      }
-      const scopeWrapper = target.closest(".pptvc-slide-scope");
-      if (!scopeWrapper) {
-        closeSlideScopeDropdown();
-      }
-
-      const insideDeletePopup = target.closest(".pptvc-delete-popup");
-      const onDeleteTrigger = target.closest(".pptvc-delete-trigger");
-      if (!insideDeletePopup && !onDeleteTrigger) {
-        closeAllDeletePopups();
-      }
-
-      const insideVersionTags = target.closest(".pptvc-version-tags");
-      if (!insideVersionTags && expandedTagPickerVersionId !== null) {
-        expandedTagPickerVersionId = null;
-        rerenderAllVersionTagRows();
-      }
-    });
-
-    document.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape") {
-        return;
-      }
-
-      closeSlideScopeDropdown();
-      closeAllDeletePopups();
-    });
-
-    const tagDropdownBtn = getEl<HTMLButtonElement>("btn-tag-dropdown");
-    const tagPanel = getEl<HTMLDivElement>("save-tags-panel");
-    tagDropdownBtn.addEventListener("click", () => {
-      const isOpen = !tagPanel.classList.contains("pptvc-hidden");
-      tagDropdownBtn.setAttribute("aria-expanded", String(!isOpen));
-      tagDropdownBtn.classList.toggle("pptvc-save-tag-dropdown--open", !isOpen);
-      if (isOpen) {
-        hide(tagPanel);
-      } else {
-        show(tagPanel);
-      }
-    });
-
-    // Mark input as user-edited so auto-fill doesn't overwrite it
-    const saveNameInput = getEl<HTMLInputElement>("version-name-input");
-    saveNameInput.addEventListener("input", () => {
-      saveNameInput.dataset["dirty"] = "1";
-    });
-
-    void initializeGlobalSlideScopePicker();
-    renderSaveTagPicker();
-    void loadVersionList();
-    initSettings();
-    registerAutoSaveHandler();
-  }
+initializeTaskpaneApp({
+  onSaveClick,
+  switchScope,
+  initializeGlobalSlideScopePicker,
+  renderSaveTagPicker,
+  loadVersionList,
+  initSettings,
+  registerAutoSaveHandler,
+  closeAllDeletePopups,
+  rerenderAllVersionTagRows,
+  getExpandedTagPickerVersionId: () => expandedTagPickerVersionId,
+  setExpandedTagPickerVersionId: (value) => {
+    expandedTagPickerVersionId = value;
+  },
 });
 
 // ── Utility ───────────────────────────────────────────────────
@@ -180,36 +103,6 @@ async function blobToBase64(blob: Blob): Promise<string> {
     binary += String.fromCharCode(bytes[i]);
   }
   return btoa(binary);
-}
-
-function getDefaultVersionName(nextIndex: number): string {
-  const template = userSettings.namingTemplate?.trim() || DEFAULT_SETTINGS.namingTemplate!;
-  const now = new Date();
-  const date = now.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-  const time = now.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const datetime = `${date} ${time}`;
-
-  return template.replace(/\{(version_number|date|time|datetime)\}/g, (match, key) => {
-    switch (key) {
-      case "version_number":
-        return String(nextIndex);
-      case "date":
-        return date;
-      case "time":
-        return time;
-      case "datetime":
-        return datetime;
-      default:
-        return match;
-    }
-  });
 }
 
 async function calculateStorageUsage(): Promise<number> {
@@ -249,13 +142,6 @@ function getAuthorLabel(version: Version): string {
   return versionAuthor || fallbackAuthor || "Unknown";
 }
 
-function getAvailableTags(): string[] {
-  const customTags = (userSettings.customTags ?? [])
-    .map((tag) => tag.trim())
-    .filter((tag) => tag.length > 0);
-  return customTags.length > 0 ? customTags : [...DEFAULT_TAGS];
-}
-
 function registerAutoSaveHandler(): void {
   Office.context.document.addHandlerAsync(
     Office.EventType.DocumentBeforeSave,
@@ -269,7 +155,7 @@ function registerAutoSaveHandler(): void {
       void (async () => {
         try {
           const nextIndex = loadedVersions.length + 1;
-          const defaultName = getDefaultVersionName(nextIndex);
+          const defaultName = getDefaultVersionName(nextIndex, userSettings);
           await saveVersion({
             name: defaultName,
             tags: [],
@@ -288,16 +174,6 @@ function registerAutoSaveHandler(): void {
       })();
     }
   );
-}
-
-function mergeSettings(stored: UserSettings): UserSettings {
-  const storedTemplate = stored.namingTemplate?.trim();
-  return {
-    ...DEFAULT_SETTINGS,
-    ...stored,
-    namingTemplate: storedTemplate || DEFAULT_SETTINGS.namingTemplate,
-    customTags: stored.customTags ?? DEFAULT_SETTINGS.customTags ?? [],
-  };
 }
 
 function switchSettingsTab(tab: SettingsTab): void {
@@ -506,7 +382,7 @@ function renderSaveTagPicker(): void {
   const container = getEl<HTMLDivElement>("save-tag-picker");
   container.innerHTML = "";
 
-  for (const tag of getAvailableTags()) {
+  for (const tag of getAvailableTags(userSettings)) {
     const selected = pendingTags.includes(tag);
     const chip = document.createElement("button");
     chip.type = "button";
@@ -594,7 +470,7 @@ function updateVersionCount(count: number): void {
   // Pre-fill next version name in save input (only if user hasn't typed)
   const nameInput = getEl<HTMLInputElement>("version-name-input");
   if (!nameInput.dataset["dirty"]) {
-    nameInput.value = getDefaultVersionName(count + 1);
+    nameInput.value = getDefaultVersionName(count + 1, userSettings);
   }
 }
 
@@ -777,7 +653,7 @@ function renderVersionTags(id: string, container: HTMLDivElement): void {
   }
 
   const used = versionTagsMap.get(id) ?? [];
-  const available = getAvailableTags().filter((t) => !used.includes(t));
+  const available = getAvailableTags(userSettings).filter((t) => !used.includes(t));
 
   if (available.length > 0 && expandedTagPickerVersionId === id) {
     const options = document.createElement("div");
@@ -1160,7 +1036,7 @@ async function onSaveClick(): Promise<void> {
 
   try {
     const nextIndex = loadedVersions.length + 1;
-    const defaultName = getDefaultVersionName(nextIndex);
+    const defaultName = getDefaultVersionName(nextIndex, userSettings);
     const version = await saveVersion({
       name: customName || defaultName,
       tags: pendingTags.length > 0 ? [...pendingTags] : [],
@@ -1205,160 +1081,25 @@ async function onSaveClick(): Promise<void> {
 // ── Settings ───────────────────────────────────────────────────
 
 function initSettings(): void {
-  const settingsPage = getEl<HTMLDivElement>("settings-page");
-  const btnOpen = getEl<HTMLButtonElement>("btn-settings");
-  const btnBack = getEl<HTMLButtonElement>("btn-settings-back");
-  const nameInput = getEl<HTMLInputElement>("settings-name");
-  const emailInput = getEl<HTMLInputElement>("settings-email");
-  const autoSaveToggle = getEl<HTMLInputElement>("settings-autosave");
-  const limitEnabledToggle = getEl<HTMLInputElement>("settings-limit-enabled");
-  const maxVersionsInput = getEl<HTMLInputElement>("settings-max-versions");
-  const nameTemplateInput = getEl<HTMLInputElement>("settings-name-template");
-  const tagInput = getEl<HTMLInputElement>("settings-tag-input");
-  const tagAddBtn = getEl<HTMLButtonElement>("btn-settings-tag-add");
-  const tagList = getEl<HTMLDivElement>("settings-tag-list");
-  const storageUsedEl = getEl<HTMLSpanElement>("settings-storage-used");
-  const exportBtn = getEl<HTMLButtonElement>("btn-settings-export");
-  const settingsTabs = document.querySelectorAll<HTMLButtonElement>(".pptvc-settings-tab");
-
-  const refreshStorageUsage = async (): Promise<void> => {
-    storageUsedEl.textContent = "Calculating...";
-    try {
-      const bytes = await calculateStorageUsage();
-      storageUsedEl.textContent = `${formatBytes(bytes)} used`;
-    } catch {
-      storageUsedEl.textContent = "Unable to calculate";
-    }
-  };
-
-  const renderTagList = (): void => {
-    tagList.innerHTML = "";
-    const tags = userSettings.customTags ?? [];
-    for (const tag of tags) {
-      const chip = document.createElement("span");
-      chip.className = "pptvc-settings-tag-chip";
-      chip.textContent = tag;
-
-      const removeBtn = document.createElement("button");
-      removeBtn.type = "button";
-      removeBtn.setAttribute("aria-label", `Remove tag ${tag}`);
-      removeBtn.textContent = "×";
-      removeBtn.addEventListener("click", () => {
-        userSettings.customTags = (userSettings.customTags ?? []).filter((t) => t !== tag);
-        void writeUserSettings(userSettings);
-        renderTagList();
-        renderSaveTagPicker();
-        rerenderAllVersionTagRows();
-      });
-
-      chip.appendChild(removeBtn);
-      tagList.appendChild(chip);
-    }
-  };
-
-  const persistSettings = (): void => {
-    userSettings.authorName = nameInput.value.trim();
-    userSettings.email = emailInput.value.trim();
-    userSettings.autoSaveOnDocumentSave = autoSaveToggle.checked;
-
-    const isLimitEnabled = limitEnabledToggle.checked;
-    const maxValue = Number.parseInt(maxVersionsInput.value, 10);
-    userSettings.maxVersions =
-      isLimitEnabled && Number.isFinite(maxValue) && maxValue > 0 ? maxValue : undefined;
-    maxVersionsInput.disabled = !isLimitEnabled;
-
-    userSettings.namingTemplate = nameTemplateInput.value.trim() || DEFAULT_SETTINGS.namingTemplate;
-
-    void writeUserSettings(userSettings);
-    renderSaveTagPicker();
-    rerenderAllVersionTagRows();
-    void loadVersionList();
-    if (userSettings.maxVersions) {
-      void enforceMaxVersions().then(loadVersionList);
-    }
-  };
-
-  void (async () => {
-    try {
-      const stored = await readUserSettings();
-      userSettings = mergeSettings(stored);
-      nameInput.value = userSettings.authorName ?? "";
-      emailInput.value = userSettings.email ?? "";
-      autoSaveToggle.checked = userSettings.autoSaveOnDocumentSave ?? false;
-      limitEnabledToggle.checked = userSettings.maxVersions !== undefined;
-      maxVersionsInput.value = userSettings.maxVersions?.toString() ?? "";
-      maxVersionsInput.disabled = !limitEnabledToggle.checked;
-      nameTemplateInput.value =
-        userSettings.namingTemplate ?? DEFAULT_SETTINGS.namingTemplate ?? "";
-      renderTagList();
-    } catch {
-      // Non-blocking: settings fall back to empty values.
-    }
-  })();
-
-  nameInput.addEventListener("change", persistSettings);
-  nameInput.addEventListener("blur", persistSettings);
-  emailInput.addEventListener("change", persistSettings);
-  emailInput.addEventListener("blur", persistSettings);
-  autoSaveToggle.addEventListener("change", persistSettings);
-  limitEnabledToggle.addEventListener("change", persistSettings);
-  maxVersionsInput.addEventListener("change", persistSettings);
-  nameTemplateInput.addEventListener("change", persistSettings);
-
-  tagAddBtn.addEventListener("click", () => {
-    const next = tagInput.value.trim();
-    if (!next) {
-      return;
-    }
-    const current = new Set(userSettings.customTags ?? []);
-    current.add(next);
-    userSettings.customTags = Array.from(current);
-    tagInput.value = "";
-    void writeUserSettings(userSettings);
-    renderTagList();
-    renderSaveTagPicker();
-    rerenderAllVersionTagRows();
+  initSettingsPanel({
+    calculateStorageUsage,
+    exportVersionsZip,
+    triggerDownload,
+    showStatus,
+    renderSaveTagPicker,
+    rerenderAllVersionTagRows,
+    loadVersionList,
+    enforceMaxVersions,
+    switchSettingsTab,
+    readUserSettings,
+    writeUserSettings,
+    mergeSettings,
+    getUserSettings: () => userSettings,
+    setUserSettings: (next) => {
+      userSettings = next;
+    },
+    defaultNamingTemplate: DEFAULT_SETTINGS.namingTemplate ?? "Version {version_number}",
   });
-  tagInput.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter") {
-      return;
-    }
-    event.preventDefault();
-    tagAddBtn.click();
-  });
-
-  exportBtn.addEventListener("click", async () => {
-    exportBtn.disabled = true;
-    exportBtn.textContent = "Preparing...";
-    try {
-      const zipBlob = await exportVersionsZip();
-      const stamp = new Date().toISOString().slice(0, 10);
-      triggerDownload(zipBlob, `pptvc-backup-${stamp}.zip`);
-    } catch (err) {
-      showStatus(err instanceof Error ? err.message : "Failed to export backup.", true);
-    } finally {
-      exportBtn.textContent = "Download ZIP";
-      exportBtn.disabled = false;
-    }
-  });
-
-  settingsTabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      const target = tab.dataset.settingsTab as SettingsTab | undefined;
-      if (target) {
-        switchSettingsTab(target);
-        if (target === "storage") {
-          void refreshStorageUsage();
-        }
-      }
-    });
-  });
-
-  switchSettingsTab("general");
-  void refreshStorageUsage();
-
-  btnOpen.addEventListener("click", () => show(settingsPage));
-  btnBack.addEventListener("click", () => hide(settingsPage));
 }
 
 // ── Restore ───────────────────────────────────────────────────
