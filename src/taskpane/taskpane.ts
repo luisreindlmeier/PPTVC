@@ -298,6 +298,36 @@ function getAuthorLabel(version: Version): string {
   return versionAuthor || fallbackAuthor || "Unknown";
 }
 
+// ── Author avatar helpers ──────────────────────────────────────
+
+const AVATAR_PALETTE = [
+  "#4F6F52",
+  "#7B6B8A",
+  "#4A7FA5",
+  "#8B6B4A",
+  "#B87050",
+  "#6B4A7F",
+  "#4A7F6B",
+  "#7F4A6B",
+];
+
+function authorColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+}
+
+function authorInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
 function getAvailableTags(): string[] {
   const customTags = (userSettings.customTags ?? [])
     .map((tag) => tag.trim())
@@ -772,10 +802,23 @@ function createVersionItem(version: Version): HTMLLIElement {
 
   li.appendChild(meta);
 
-  const author = document.createElement("span");
-  author.className = "pptvc-version-author";
-  author.textContent = `Author: ${getAuthorLabel(version)}`;
-  li.appendChild(author);
+  const authorRow = document.createElement("div");
+  authorRow.className = "pptvc-version-author-row";
+
+  const authorDisplayName = getAuthorLabel(version);
+  const avatar = document.createElement("div");
+  avatar.className = "pptvc-avatar";
+  avatar.style.background = authorColor(authorDisplayName);
+  avatar.setAttribute("aria-hidden", "true");
+  avatar.textContent = authorInitials(authorDisplayName);
+
+  const authorNameEl = document.createElement("span");
+  authorNameEl.className = "pptvc-version-author-name";
+  authorNameEl.textContent = authorDisplayName;
+
+  authorRow.appendChild(avatar);
+  authorRow.appendChild(authorNameEl);
+  li.appendChild(authorRow);
 
   // Tags section — selected tags always visible below timestamp row.
   const tagsRow = document.createElement("div");

@@ -857,14 +857,14 @@ ul {
 
 .pptvc-version-header,
 .pptvc-version-meta,
-.pptvc-version-author,
+.pptvc-version-author-row,
 .pptvc-version-tags {
   transition: transform 0.12s var(--ease);
 }
 
 .pptvc-version-item:hover .pptvc-version-header,
 .pptvc-version-item:hover .pptvc-version-meta,
-.pptvc-version-item:hover .pptvc-version-author,
+.pptvc-version-item:hover .pptvc-version-author-row,
 .pptvc-version-item:hover .pptvc-version-tags {
   transform: translateX(2px);
 }
@@ -951,14 +951,38 @@ ul {
   flex-shrink: 0;
 }
 
-.pptvc-version-author {
-  display: block;
-  font-size: 10px;
+.pptvc-version-author-row {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px 4px 12px;
+}
+
+.pptvc-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 8px;
+  font-weight: 700;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  color: #fff;
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.pptvc-version-author-name {
+  font-size: 11px;
   color: var(--color-text-muted);
   font-family: var(--font-sans);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0 6px 2px 12px;
 }
 
 /* Tags row (chips + options) — hidden when empty */
