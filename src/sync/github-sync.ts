@@ -19,6 +19,35 @@ export interface SyncResult {
   errors: string[];
 }
 
+// ── Folder naming ──────────────────────────────────────────────
+// Produces a human-readable, date-sortable, deterministic folder name:
+// e.g. "2026-03-23T14-30--final-draft--ab3def"
+
+function versionFolderName(version: Version): string {
+  const d = new Date(version.timestamp);
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const min = String(d.getUTCMinutes()).padStart(2, "0");
+  const datePart = `${yyyy}-${mm}-${dd}T${hh}-${min}`;
+
+  const rawName = (version.displayName ?? version.name).trim();
+  const slug =
+    rawName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 30) || "version";
+
+  // ID format is "{timestamp}-{6charSuffix}" — use the random suffix for uniqueness
+  const idSuffix = version.id.split("-").pop()?.slice(0, 6) ?? version.id.slice(-6);
+
+  return `${datePart}--${slug}--${idSuffix}`;
+}
+
+// ── GitHub API helpers ─────────────────────────────────────────
+
 function apiHeaders(token: string): Record<string, string> {
   return {
     Authorization: `Bearer ${token}`,
@@ -63,6 +92,8 @@ async function putFile(
   }
 }
 
+// ── Encoding helpers ───────────────────────────────────────────
+
 async function blobToBase64(blob: Blob): Promise<string> {
   const buffer = await blob.arrayBuffer();
   const bytes = new Uint8Array(buffer);
@@ -83,6 +114,8 @@ function jsonToBase64(value: unknown): string {
   }
   return btoa(binary);
 }
+
+// ── Public API ─────────────────────────────────────────────────
 
 export async function testGitHubConnection(config: GitHubSyncConfig): Promise<void> {
   const parts = config.repo.split("/");
@@ -111,8 +144,9 @@ export async function pushVersionsToGitHub(
 
   for (const version of versions) {
     const label = version.displayName ?? version.name;
-    const metaPath = `${SYNC_ROOT}/${version.id}/metadata.json`;
-    const snapshotPath = `${SYNC_ROOT}/${version.id}/snapshot.pptx`;
+    const folder = `${SYNC_ROOT}/${versionFolderName(version)}`;
+    const metaPath = `${folder}/meta.json`;
+    const snapshotPath = `${folder}/snapshot.pptx`;
 
     onProgress({ current: ++current, total, label: `Uploading metadata: ${label}` });
     try {
@@ -127,7 +161,7 @@ export async function pushVersionsToGitHub(
         timestamp: version.timestamp,
         filename: version.filename,
       });
-      await putFile(config, metaPath, content, sha, `pptvc: sync "${label}"`);
+      await putFile(config, metaPath, content, sha, `sync: "${label}" — metadata`);
       pushed++;
     } catch (err) {
       errors.push(`${label} (metadata): ${err instanceof Error ? err.message : String(err)}`);
@@ -138,7 +172,7 @@ export async function pushVersionsToGitHub(
       const sha = await getFileSha(config, snapshotPath);
       const blob = await getBlob(version.snapshotPath);
       const content = await blobToBase64(blob);
-      await putFile(config, snapshotPath, content, sha, `pptvc: sync snapshot "${label}"`);
+      await putFile(config, snapshotPath, content, sha, `sync: "${label}" — snapshot`);
       pushed++;
     } catch (err) {
       errors.push(`${label} (snapshot): ${err instanceof Error ? err.message : String(err)}`);
