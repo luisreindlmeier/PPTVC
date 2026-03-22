@@ -31,7 +31,6 @@ import {
   MAX_TAGS,
   SETTINGS_TAB_ORDER,
   TAB_ORDER,
-  formatTimestamp,
   getEl,
   hide,
   show,
@@ -47,6 +46,7 @@ import {
 import { initSettingsPanel } from "./settings-panel";
 import { initializeTaskpaneApp } from "./bootstrap";
 import { createHistoryPanel } from "./history-panel";
+import { createDiffPanel } from "./diff-panel";
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -58,11 +58,6 @@ const availableSlides: SlideInfo[] = [];
 // ── In-memory state ───────────────────────────────────────────
 // Names and tags are UI-only for now — backend persistence coming soon.
 
-interface SlideComparison {
-  fromVersion: Version;
-  toVersion: Version;
-}
-
 const pendingTags: string[] = [];
 const versionNameOverrides = new Map<string, string>();
 const versionTagsMap = new Map<string, string[]>();
@@ -72,11 +67,6 @@ let loadedVersions: Version[] = [];
 const globalSelectedSlides = new Set<number>();
 let displayedVersionId: string | null = null;
 let expandedTagPickerVersionId: string | null = null;
-// Per-slide comparison state: key = 1-based slide number
-const activeComparisons = new Map<number, SlideComparison>();
-// References to the current diff-tab banner and compare button (set by loadDiffScope)
-let currentDiffBanner: HTMLDivElement | null = null;
-let currentCompareBtn: HTMLButtonElement | null = null;
 let autoSaveInProgress = false;
 
 let userSettings: UserSettings = { ...DEFAULT_SETTINGS };
@@ -101,6 +91,48 @@ const historyPanel = createHistoryPanel({
   onRestoreClick,
   onDeleteConfirm,
   switchScope,
+});
+
+const diffPanel = createDiffPanel({
+  getLoadedVersions: () => loadedVersions,
+  getVersionName: (version) => versionNameOverrides.get(version.id) ?? version.name,
+  getCurrentSlideNum: () => availableSlides[0]?.num ?? 1,
+  getVersionBlob,
+  buildComparisonSlide,
+  blobToBase64,
+  replacePresentationFromBase64: async (base64: string) => {
+    await PowerPoint.run(async (context) => {
+      const slides = context.presentation.slides;
+      slides.load("items/id");
+      await context.sync();
+
+      const existingIds = slides.items.map((slide) => slide.id);
+
+      context.presentation.insertSlidesFromBase64(base64, {
+        formatting: PowerPoint.InsertSlideFormatting.keepSourceFormatting,
+      });
+      await context.sync();
+
+      for (const id of existingIds) {
+        context.presentation.slides.getItem(id).delete();
+      }
+      await context.sync();
+    });
+  },
+  restoreVersionById: async (id: string) => {
+    await restoreVersion(id);
+  },
+  formatTimestamp: (timestamp: number) => {
+    return new Date(timestamp).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  },
+  getAuthorLabel,
+  showStatus,
 });
 
 // ── Boot ──────────────────────────────────────────────────────
@@ -284,17 +316,7 @@ async function initializeGlobalSlideScopePicker(): Promise<void> {
 }
 
 function syncDiffBannerToSlide(slideNum: number): void {
-  if (!currentDiffBanner || !currentCompareBtn) return;
-  const comp = activeComparisons.get(slideNum);
-  if (comp) {
-    const fromName = versionNameOverrides.get(comp.fromVersion.id) ?? comp.fromVersion.name;
-    const toName = versionNameOverrides.get(comp.toVersion.id) ?? comp.toVersion.name;
-    currentDiffBanner.querySelector<HTMLSpanElement>(".pptvc-diff-banner-text")!.textContent =
-      `Scroll down on the slide to see "${fromName}" below "${toName}"`;
-    show(currentDiffBanner);
-  } else {
-    hide(currentDiffBanner);
-  }
+  diffPanel.syncBannerToSlide(slideNum);
 }
 
 function isGlobalPresentationSelected(): boolean {
@@ -568,222 +590,7 @@ async function onDeleteConfirm(id: string, li: HTMLLIElement): Promise<void> {
 // ── Diff scope ────────────────────────────────────────────────
 
 function loadDiffScope(preselectedId?: string): void {
-  const container = getEl<HTMLDivElement>("diff-content");
-  container.innerHTML = "";
-
-  if (loadedVersions.length < 2) {
-    const empty = document.createElement("p");
-    empty.className = "pptvc-diff-empty";
-    empty.textContent = "Save at least two versions to compare.";
-    container.appendChild(empty);
-    return;
-  }
-
-  // Comparing section
-  const comparingTitle = document.createElement("h3");
-  comparingTitle.className = "pptvc-section-title pptvc-diff-title";
-  comparingTitle.textContent = "Comparing";
-  container.appendChild(comparingTitle);
-
-  const comparing = document.createElement("div");
-  comparing.className = "pptvc-diff-comparing";
-
-  const selectors = document.createElement("div");
-  selectors.className = "pptvc-diff-selectors";
-
-  const selectFrom = document.createElement("select");
-  selectFrom.className = "pptvc-diff-select";
-  selectFrom.setAttribute("aria-label", "From version");
-
-  const selectTo = document.createElement("select");
-  selectTo.className = "pptvc-diff-select";
-  selectTo.setAttribute("aria-label", "To version");
-
-  const makeSelectWrap = (select: HTMLElement): HTMLDivElement => {
-    const wrap = document.createElement("div");
-    wrap.className = "pptvc-diff-select-wrap";
-
-    const caret = document.createElement("span");
-    caret.className = "pptvc-diff-select-caret";
-    caret.innerHTML =
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true"><path d="M0 0l5 6 5-6H0z"/></svg>';
-
-    wrap.appendChild(select);
-    wrap.appendChild(caret);
-    return wrap;
-  };
-
-  for (const v of loadedVersions) {
-    const label = `${versionNameOverrides.get(v.id) ?? v.name}`;
-
-    const optFrom = document.createElement("option");
-    optFrom.value = v.id;
-    optFrom.textContent = label;
-    selectFrom.appendChild(optFrom);
-
-    const optTo = document.createElement("option");
-    optTo.value = v.id;
-    optTo.textContent = label;
-    selectTo.appendChild(optTo);
-  }
-
-  // Pre-select: if a version was clicked, show it as "to"; compare with next version
-  if (preselectedId) {
-    const idx = loadedVersions.findIndex((v) => v.id === preselectedId);
-    selectTo.value = preselectedId;
-    // Select the version before it (older) as "from", or next if first
-    const fromIdx = idx + 1 < loadedVersions.length ? idx + 1 : 0;
-    selectFrom.value = loadedVersions[fromIdx].id;
-  } else {
-    selectFrom.value = loadedVersions[1].id;
-    selectTo.value = loadedVersions[0].id;
-  }
-
-  const arrow = document.createElement("span");
-  arrow.className = "pptvc-diff-arrow";
-  arrow.textContent = "→";
-
-  selectors.appendChild(makeSelectWrap(selectFrom));
-  selectors.appendChild(arrow);
-  selectors.appendChild(makeSelectWrap(selectTo));
-  comparing.appendChild(selectors);
-
-  const compareBtn = document.createElement("button");
-  compareBtn.type = "button";
-  compareBtn.className = "pptvc-btn pptvc-btn--primary";
-  compareBtn.innerHTML =
-    '<span class="btn-label">Compare Versions</span><span class="btn-spinner pptvc-hidden" aria-hidden="true"></span>';
-  comparing.appendChild(compareBtn);
-
-  container.appendChild(comparing);
-
-  // ── Visual comparison status banner ──
-  const comparisonBanner = document.createElement("div");
-  comparisonBanner.className = "pptvc-diff-banner pptvc-hidden";
-
-  const bannerText = document.createElement("span");
-  bannerText.className = "pptvc-diff-banner-text";
-  bannerText.textContent = "Comparison active on this slide";
-
-  const clearBtn = document.createElement("button");
-  clearBtn.type = "button";
-  clearBtn.className = "pptvc-diff-banner-clear";
-  clearBtn.textContent = "Clear";
-  clearBtn.addEventListener("click", () => {
-    void clearVisualComparison(comparisonBanner, compareBtn);
-  });
-
-  comparisonBanner.appendChild(bannerText);
-  comparisonBanner.appendChild(clearBtn);
-  container.appendChild(comparisonBanner);
-
-  // Store module-level refs so slide navigation can update banner visibility
-  currentDiffBanner = comparisonBanner;
-  currentCompareBtn = compareBtn;
-
-  // Restore banner if this slide already has an active comparison
-  syncDiffBannerToSlide(availableSlides[0]?.num ?? 1);
-
-  // ── Wire compare button ──
-  compareBtn.addEventListener("click", () => {
-    const fromVersion = loadedVersions.find((v) => v.id === selectFrom.value);
-    const toVersion = loadedVersions.find((v) => v.id === selectTo.value);
-    if (!fromVersion || !toVersion || fromVersion.id === toVersion.id) return;
-    void runVisualComparison(fromVersion, toVersion, comparisonBanner, compareBtn);
-  });
-}
-
-// ── Visual comparison (old shapes below current slide) ────────
-
-async function runVisualComparison(
-  fromVersion: Version,
-  toVersion: Version,
-  banner: HTMLDivElement,
-  btn: HTMLButtonElement
-): Promise<void> {
-  const label = btn.querySelector<HTMLSpanElement>(".btn-label")!;
-  const spinner = btn.querySelector<HTMLSpanElement>(".btn-spinner")!;
-
-  btn.disabled = true;
-  hide(label);
-  show(spinner);
-  hide(banner);
-
-  try {
-    const [toBlob, fromBlob] = await Promise.all([
-      getVersionBlob(toVersion.snapshotPath),
-      getVersionBlob(fromVersion.snapshotPath),
-    ]);
-
-    const slideIdx = (availableSlides[0]?.num ?? 1) - 1;
-    const toName = versionNameOverrides.get(toVersion.id) ?? toVersion.name;
-    const fromName = versionNameOverrides.get(fromVersion.id) ?? fromVersion.name;
-    const toTimestamp = formatTimestamp(toVersion.timestamp);
-    const toAuthor = getAuthorLabel(toVersion);
-    const modifiedBlob = await buildComparisonSlide(
-      toBlob,
-      fromBlob,
-      slideIdx,
-      toName,
-      fromName,
-      toTimestamp,
-      toAuthor
-    );
-    const base64 = await blobToBase64(modifiedBlob);
-
-    // Replace the entire document (same pattern as restoreVersion)
-    await PowerPoint.run(async (context) => {
-      const slides = context.presentation.slides;
-      slides.load("items/id");
-      await context.sync();
-
-      const existingIds = slides.items.map((s) => s.id);
-
-      context.presentation.insertSlidesFromBase64(base64, {
-        formatting: PowerPoint.InsertSlideFormatting.keepSourceFormatting,
-      });
-      await context.sync();
-
-      for (const id of existingIds) {
-        context.presentation.slides.getItem(id).delete();
-      }
-      await context.sync();
-    });
-
-    // Persist comparison state for this slide so it survives navigation
-    const currentSlideNum = availableSlides[0]?.num ?? 1;
-    activeComparisons.set(currentSlideNum, { fromVersion, toVersion });
-
-    banner.querySelector<HTMLSpanElement>(".pptvc-diff-banner-text")!.textContent =
-      `Scroll down on the slide to see "${fromName}" below "${toName}"`;
-    show(banner);
-  } catch (err) {
-    showStatus(err instanceof Error ? err.message : "Failed to build comparison.", true);
-  } finally {
-    btn.disabled = false;
-    show(label);
-    hide(spinner);
-  }
-}
-
-async function clearVisualComparison(
-  banner: HTMLDivElement,
-  btn: HTMLButtonElement
-): Promise<void> {
-  const currentSlideNum = availableSlides[0]?.num ?? 1;
-  const comp = activeComparisons.get(currentSlideNum);
-  if (!comp) return;
-  btn.disabled = true;
-
-  try {
-    await restoreVersion(comp.toVersion.id);
-    activeComparisons.delete(currentSlideNum);
-    hide(banner);
-  } catch (err) {
-    showStatus(err instanceof Error ? err.message : "Failed to clear comparison.", true);
-  } finally {
-    btn.disabled = false;
-  }
+  diffPanel.loadDiffScope(preselectedId);
 }
 
 // ── Save ──────────────────────────────────────────────────────
