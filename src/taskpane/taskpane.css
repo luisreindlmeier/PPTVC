@@ -1944,7 +1944,9 @@ ul {
   opacity: 0;
   transform: translateY(-4px);
   pointer-events: none;
-  transition: opacity 0.15s var(--ease), transform 0.15s var(--ease);
+  transition:
+    opacity 0.15s var(--ease),
+    transform 0.15s var(--ease);
   z-index: 2;
 }
 
@@ -2179,4 +2181,53 @@ ul {
   padding: 2px 6px;
   border-radius: var(--radius-full);
   align-self: flex-start;
+}
+
+/* ════════════════════════════════════════════
+   GitHub Sync
+   ════════════════════════════════════════════ */
+
+.pptvc-settings-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.pptvc-settings-hint code {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  background: var(--color-tag-bg);
+  padding: 1px 4px;
+  border-radius: var(--radius-xs);
+}
+
+.pptvc-sync-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pptvc-sync-actions .pptvc-btn {
+  flex: 1;
+}
+
+.pptvc-sync-status {
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.pptvc-sync-status--ok {
+  color: var(--color-green);
+  background: var(--color-green-light);
+}
+
+.pptvc-sync-status--error {
+  color: var(--color-danger);
+  background: var(--color-danger-light);
 }

@@ -16,8 +16,10 @@ import {
   readUserSettings,
   writeUserSettings,
   type UserSettings,
+  type GitHubSyncConfig,
   createStorageAdapter,
 } from "../storage";
+import { testGitHubConnection, pushVersionsToGitHub } from "../sync/github-sync";
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -1444,6 +1446,125 @@ function initSettings(): void {
 
   btnOpen.addEventListener("click", () => show(settingsPage));
   btnBack.addEventListener("click", () => hide(settingsPage));
+
+  initGitHubSync();
+}
+
+// ── GitHub Sync ────────────────────────────────────────────────
+
+function initGitHubSync(): void {
+  const tokenInput = getEl<HTMLInputElement>("settings-github-token");
+  const repoInput = getEl<HTMLInputElement>("settings-github-repo");
+  const branchInput = getEl<HTMLInputElement>("settings-github-branch");
+  const testBtn = getEl<HTMLButtonElement>("btn-github-test");
+  const syncBtn = getEl<HTMLButtonElement>("btn-github-sync");
+  const statusEl = getEl<HTMLDivElement>("github-sync-status");
+
+  const getSyncConfig = (): GitHubSyncConfig => ({
+    token: tokenInput.value.trim(),
+    repo: repoInput.value.trim(),
+    branch: branchInput.value.trim() || "main",
+  });
+
+  const showSyncStatus = (message: string, isError: boolean): void => {
+    statusEl.textContent = message;
+    statusEl.className = `pptvc-sync-status pptvc-sync-status--${isError ? "error" : "ok"}`;
+    show(statusEl);
+  };
+
+  const persistSyncConfig = (): void => {
+    const config = getSyncConfig();
+    if (config.token || config.repo) {
+      userSettings.githubSync = config;
+    } else {
+      delete userSettings.githubSync;
+    }
+    void writeUserSettings(userSettings);
+  };
+
+  // Load saved sync config into inputs
+  void (async () => {
+    try {
+      const stored = await readUserSettings();
+      const cfg = stored.githubSync;
+      if (cfg) {
+        tokenInput.value = cfg.token;
+        repoInput.value = cfg.repo;
+        branchInput.value = cfg.branch !== "main" ? cfg.branch : "";
+      }
+    } catch {
+      // Non-blocking
+    }
+  })();
+
+  tokenInput.addEventListener("blur", persistSyncConfig);
+  repoInput.addEventListener("blur", persistSyncConfig);
+  branchInput.addEventListener("blur", persistSyncConfig);
+
+  testBtn.addEventListener("click", () => {
+    const config = getSyncConfig();
+    if (!config.token || !config.repo) {
+      showSyncStatus("Enter a token and repository first.", true);
+      return;
+    }
+    testBtn.disabled = true;
+    testBtn.textContent = "Testing...";
+    void (async () => {
+      try {
+        await testGitHubConnection(config);
+        showSyncStatus(`Connected to ${config.repo}.`, false);
+        persistSyncConfig();
+      } catch (err) {
+        showSyncStatus(err instanceof Error ? err.message : "Connection failed.", true);
+      } finally {
+        testBtn.disabled = false;
+        testBtn.textContent = "Test Connection";
+      }
+    })();
+  });
+
+  syncBtn.addEventListener("click", () => {
+    const config = getSyncConfig();
+    if (!config.token || !config.repo) {
+      showSyncStatus("Enter a token and repository first.", true);
+      return;
+    }
+    const label = syncBtn.querySelector<HTMLSpanElement>(".btn-label")!;
+    const spinner = syncBtn.querySelector<HTMLSpanElement>(".btn-spinner")!;
+    syncBtn.disabled = true;
+    testBtn.disabled = true;
+    hide(label);
+    show(spinner);
+    showSyncStatus("Starting sync...", false);
+    void (async () => {
+      try {
+        const versions = await listVersions();
+        if (versions.length === 0) {
+          showSyncStatus("No versions to sync.", false);
+          return;
+        }
+        const result = await pushVersionsToGitHub(config, versions, getVersionBlob, (progress) => {
+          showSyncStatus(`${progress.label} (${progress.current}/${progress.total})`, false);
+        });
+        persistSyncConfig();
+        if (result.errors.length === 0) {
+          showSyncStatus(`Synced ${result.pushed} files to ${config.repo}.`, false);
+        } else {
+          showSyncStatus(
+            `Synced ${result.pushed} files. ${result.errors.length} error(s): ${result.errors[0]}`,
+            true
+          );
+        }
+      } catch (err) {
+        showSyncStatus(err instanceof Error ? err.message : "Sync failed.", true);
+      } finally {
+        syncBtn.disabled = false;
+        testBtn.disabled = false;
+        show(label);
+        hide(spinner);
+      }
+    })();
+  });
 }
 
 // ── Restore ───────────────────────────────────────────────────

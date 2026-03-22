@@ -4,6 +4,12 @@ import { OpfsStorageAdapter } from "./opfs-storage";
 
 const USER_SETTINGS_PATH = "settings/user-settings.json";
 
+export interface GitHubSyncConfig {
+  token: string;
+  repo: string;
+  branch: string;
+}
+
 export interface UserSettings {
   authorName?: string;
   email?: string;
@@ -11,6 +17,7 @@ export interface UserSettings {
   autoSaveOnDocumentSave?: boolean;
   namingScheme?: NamingScheme;
   customTags?: string[];
+  githubSync?: GitHubSyncConfig;
 }
 
 export type NamingSchemeMode = "version" | "date" | "prefix";
