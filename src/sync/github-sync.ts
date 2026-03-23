@@ -66,21 +66,29 @@ async function getFileSha(config: GitHubSyncConfig, path: string): Promise<strin
   return data.sha;
 }
 
+interface CommitAuthor {
+  name: string;
+  email: string;
+  date: string; // ISO 8601
+}
+
 async function putFile(
   config: GitHubSyncConfig,
   path: string,
   contentBase64: string,
   sha: string | null,
-  message: string
+  message: string,
+  author?: CommitAuthor
 ): Promise<void> {
   const [owner, repo] = config.repo.split("/");
   const url = `${API_BASE}/repos/${owner}/${repo}/contents/${path}`;
-  const body: Record<string, string> = {
+  const body: Record<string, unknown> = {
     message,
     content: contentBase64,
     branch: config.branch,
   };
   if (sha !== null) body["sha"] = sha;
+  if (author) body["author"] = author;
   const res = await fetch(url, {
     method: "PUT",
     headers: { ...apiHeaders(config.token), "Content-Type": "application/json" },
@@ -90,6 +98,17 @@ async function putFile(
     const err = (await res.json().catch(() => ({}))) as { message?: string };
     throw new Error(err.message ?? `GitHub API ${res.status}`);
   }
+}
+
+function versionAuthor(version: Version): CommitAuthor | undefined {
+  const name = version.authorName?.trim();
+  const email = version.authorEmail?.trim();
+  if (!name || !email) return undefined;
+  return {
+    name,
+    email,
+    date: new Date(version.timestamp).toISOString(),
+  };
 }
 
 // ── Encoding helpers ───────────────────────────────────────────
@@ -147,6 +166,7 @@ export async function pushVersionsToGitHub(
     const folder = `${SYNC_ROOT}/${versionFolderName(version)}`;
     const metaPath = `${folder}/meta.json`;
     const snapshotPath = `${folder}/snapshot.pptx`;
+    const author = versionAuthor(version);
 
     onProgress({ current: ++current, total, label: `Uploading metadata: ${label}` });
     try {
@@ -161,7 +181,7 @@ export async function pushVersionsToGitHub(
         timestamp: version.timestamp,
         filename: version.filename,
       });
-      await putFile(config, metaPath, content, sha, `sync: "${label}" — metadata`);
+      await putFile(config, metaPath, content, sha, `sync: "${label}" — metadata`, author);
       pushed++;
     } catch (err) {
       errors.push(`${label} (metadata): ${err instanceof Error ? err.message : String(err)}`);
@@ -172,7 +192,7 @@ export async function pushVersionsToGitHub(
       const sha = await getFileSha(config, snapshotPath);
       const blob = await getBlob(version.snapshotPath);
       const content = await blobToBase64(blob);
-      await putFile(config, snapshotPath, content, sha, `sync: "${label}" — snapshot`);
+      await putFile(config, snapshotPath, content, sha, `sync: "${label}" — snapshot`, author);
       pushed++;
     } catch (err) {
       errors.push(`${label} (snapshot): ${err instanceof Error ? err.message : String(err)}`);
