@@ -1503,11 +1503,18 @@ function initGitHubSync(): void {
   const syncBtn = getEl<HTMLButtonElement>("btn-github-sync");
   const statusEl = getEl<HTMLDivElement>("github-sync-status");
 
-  const getSyncConfig = (): GitHubSyncConfig => ({
-    token: tokenInput.value.trim(),
-    repo: repoInput.value.trim(),
-    branch: branchInput.value.trim() || "main",
-  });
+  // Holds any gedonusToken loaded from storage so it survives persist cycles without a UI field
+  let storedGedonusToken: string | undefined;
+
+  const getSyncConfig = (): GitHubSyncConfig => {
+    const cfg: GitHubSyncConfig = {
+      token: tokenInput.value.trim(),
+      repo: repoInput.value.trim(),
+      branch: branchInput.value.trim() || "main",
+    };
+    if (storedGedonusToken) cfg.gedonusToken = storedGedonusToken;
+    return cfg;
+  };
 
   const showSyncStatus = (message: string, isError: boolean): void => {
     statusEl.textContent = message;
@@ -1534,6 +1541,7 @@ function initGitHubSync(): void {
         tokenInput.value = cfg.token;
         repoInput.value = cfg.repo;
         branchInput.value = cfg.branch !== "main" ? cfg.branch : "";
+        storedGedonusToken = cfg.gedonusToken;
       }
     } catch {
       // Non-blocking
