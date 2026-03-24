@@ -1,10 +1,11 @@
-/* global fetch, TextEncoder, Blob, btoa */
+/* global fetch, TextEncoder, Blob, btoa, AbortController, clearTimeout, setTimeout */
 
 import type { GitHubSyncConfig } from "../storage";
 import type { Version } from "../versions";
 
 const SYNC_ROOT = "pptvc-versions";
 const API_BASE = "https://api.github.com";
+const GEDONUS_TOKEN_URL = "https://gedonus-token-relay.gedonus.workers.dev";
 
 export interface SyncProgress {
   current: number;
@@ -58,6 +59,20 @@ function apiHeaders(token: string): Record<string, string> {
 
 function writeToken(config: GitHubSyncConfig): string {
   return config.gedonusToken?.trim() || config.token;
+}
+
+async function fetchGedonusToken(): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(GEDONUS_TOKEN_URL, { signal: controller.signal });
+    clearTimeout(tid);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { token?: unknown };
+    return typeof data.token === "string" ? data.token : null;
+  } catch {
+    return null;
+  }
 }
 
 async function getFileSha(config: GitHubSyncConfig, path: string): Promise<string | null> {
@@ -160,6 +175,13 @@ export async function pushVersionsToGitHub(
   getBlob: (snapshotPath: string) => Promise<Blob>,
   onProgress: SyncProgressCallback
 ): Promise<SyncResult> {
+  // Auto-resolve Gedonus token so commits appear under the gedonus account.
+  // Falls back to the user's own token if the relay is unreachable.
+  const resolvedGedonusToken = config.gedonusToken?.trim() || (await fetchGedonusToken());
+  const resolvedConfig: GitHubSyncConfig = resolvedGedonusToken
+    ? { ...config, gedonusToken: resolvedGedonusToken }
+    : config;
+
   const total = versions.length * 2;
   let current = 0;
   let pushed = 0;
@@ -185,7 +207,7 @@ export async function pushVersionsToGitHub(
         timestamp: version.timestamp,
         filename: version.filename,
       });
-      await putFile(config, metaPath, content, sha, `sync: "${label}" — metadata`, author);
+      await putFile(resolvedConfig, metaPath, content, sha, `sync: "${label}" — metadata`, author);
       pushed++;
     } catch (err) {
       errors.push(`${label} (metadata): ${err instanceof Error ? err.message : String(err)}`);
@@ -196,7 +218,14 @@ export async function pushVersionsToGitHub(
       const sha = await getFileSha(config, snapshotPath);
       const blob = await getBlob(version.snapshotPath);
       const content = await blobToBase64(blob);
-      await putFile(config, snapshotPath, content, sha, `sync: "${label}" — snapshot`, author);
+      await putFile(
+        resolvedConfig,
+        snapshotPath,
+        content,
+        sha,
+        `sync: "${label}" — snapshot`,
+        author
+      );
       pushed++;
     } catch (err) {
       errors.push(`${label} (snapshot): ${err instanceof Error ? err.message : String(err)}`);

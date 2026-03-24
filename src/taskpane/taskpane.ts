@@ -1499,21 +1499,15 @@ function initGitHubSync(): void {
   const tokenInput = getEl<HTMLInputElement>("settings-github-token");
   const repoInput = getEl<HTMLInputElement>("settings-github-repo");
   const branchInput = getEl<HTMLInputElement>("settings-github-branch");
-  const gedonusTokenInput = getEl<HTMLInputElement>("settings-gedonus-token");
   const testBtn = getEl<HTMLButtonElement>("btn-github-test");
   const syncBtn = getEl<HTMLButtonElement>("btn-github-sync");
   const statusEl = getEl<HTMLDivElement>("github-sync-status");
 
-  const getSyncConfig = (): GitHubSyncConfig => {
-    const cfg: GitHubSyncConfig = {
-      token: tokenInput.value.trim(),
-      repo: repoInput.value.trim(),
-      branch: branchInput.value.trim() || "main",
-    };
-    const gt = gedonusTokenInput.value.trim();
-    if (gt) cfg.gedonusToken = gt;
-    return cfg;
-  };
+  const getSyncConfig = (): GitHubSyncConfig => ({
+    token: tokenInput.value.trim(),
+    repo: repoInput.value.trim(),
+    branch: branchInput.value.trim() || "main",
+  });
 
   const showSyncStatus = (message: string, isError: boolean): void => {
     statusEl.textContent = message;
@@ -1540,7 +1534,6 @@ function initGitHubSync(): void {
         tokenInput.value = cfg.token;
         repoInput.value = cfg.repo;
         branchInput.value = cfg.branch !== "main" ? cfg.branch : "";
-        gedonusTokenInput.value = cfg.gedonusToken ?? "";
       }
     } catch {
       // Non-blocking
@@ -1550,7 +1543,6 @@ function initGitHubSync(): void {
   tokenInput.addEventListener("blur", persistSyncConfig);
   repoInput.addEventListener("blur", persistSyncConfig);
   branchInput.addEventListener("blur", persistSyncConfig);
-  gedonusTokenInput.addEventListener("blur", persistSyncConfig);
 
   testBtn.addEventListener("click", () => {
     const config = getSyncConfig();
