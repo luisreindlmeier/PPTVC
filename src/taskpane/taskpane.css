@@ -2229,6 +2229,42 @@ ul {
   border-radius: var(--radius-xs);
 }
 
+.pptvc-gedonus-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-tag-bg);
+}
+
+.pptvc-gedonus-status {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-green);
+}
+
+.pptvc-gedonus-status::before {
+  content: "✓ ";
+}
+
+.pptvc-btn--link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pptvc-btn--link:hover {
+  color: var(--color-danger);
+}
+
 .pptvc-sync-actions {
   display: flex;
   gap: 8px;

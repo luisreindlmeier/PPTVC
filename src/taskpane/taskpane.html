@@ -373,6 +373,25 @@
                     spellcheck="false"
                   />
                 </div>
+                <!-- Gedonus App connection -->
+                <div id="gedonus-disconnected" class="pptvc-gedonus-row pptvc-hidden">
+                  <button id="btn-gedonus-connect" type="button" class="pptvc-btn pptvc-btn--ghost">
+                    Connect Gedonus
+                  </button>
+                  <button
+                    id="btn-gedonus-confirm"
+                    type="button"
+                    class="pptvc-btn pptvc-btn--ghost pptvc-hidden"
+                  >
+                    I've installed it
+                  </button>
+                </div>
+                <div id="gedonus-connected" class="pptvc-gedonus-row pptvc-hidden">
+                  <span class="pptvc-gedonus-status">Gedonus connected</span>
+                  <button id="btn-gedonus-disconnect" type="button" class="pptvc-btn--link">
+                    Disconnect
+                  </button>
+                </div>
                 <div class="pptvc-sync-actions">
                   <button id="btn-github-test" type="button" class="pptvc-btn pptvc-btn--ghost">
                     Test Connection

@@ -5,7 +5,7 @@ import type { Version } from "../versions";
 
 const SYNC_ROOT = "pptvc-versions";
 const API_BASE = "https://api.github.com";
-const GEDONUS_TOKEN_URL = "https://gedonus-token-relay.gedonus.workers.dev";
+const WORKER_BASE = "https://gedonus-token-relay.gedonus.workers.dev";
 
 export interface SyncProgress {
   current: number;
@@ -57,19 +57,19 @@ function apiHeaders(token: string): Record<string, string> {
   };
 }
 
-function writeToken(config: GitHubSyncConfig): string {
-  return config.gedonusToken?.trim() || config.token;
-}
-
-async function fetchGedonusToken(): Promise<string | null> {
+async function workerPost<T>(path: string, body: unknown): Promise<T | null> {
   try {
     const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(GEDONUS_TOKEN_URL, { signal: controller.signal });
+    const tid = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(`${WORKER_BASE}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
     clearTimeout(tid);
     if (!res.ok) return null;
-    const data = (await res.json()) as { token?: unknown };
-    return typeof data.token === "string" ? data.token : null;
+    return (await res.json()) as T;
   } catch {
     return null;
   }
@@ -93,6 +93,7 @@ interface CommitAuthor {
 
 async function putFile(
   config: GitHubSyncConfig,
+  writeToken: string,
   path: string,
   contentBase64: string,
   sha: string | null,
@@ -110,7 +111,7 @@ async function putFile(
   if (author) body["author"] = author;
   const res = await fetch(url, {
     method: "PUT",
-    headers: { ...apiHeaders(writeToken(config)), "Content-Type": "application/json" },
+    headers: { ...apiHeaders(writeToken), "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
@@ -169,18 +170,49 @@ export async function testGitHubConnection(config: GitHubSyncConfig): Promise<vo
   if (!res.ok) throw new Error(`GitHub API ${res.status}.`);
 }
 
+/** Returns the Gedonus App install URL from the Worker. */
+export async function getAppInstallUrl(): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(`${WORKER_BASE}/install-url`, { signal: controller.signal });
+    clearTimeout(tid);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { url?: unknown };
+    return typeof data.url === "string" ? data.url : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Finds the Gedonus App installation ID for a repo.
+ * Call this after the user has installed the app on their repo.
+ * Returns null if the Worker is unreachable or the app is not installed.
+ */
+export async function findInstallation(repo: string): Promise<number | null> {
+  const data = await workerPost<{ installationId?: unknown }>("/connect", { repo });
+  return typeof data?.installationId === "number" ? data.installationId : null;
+}
+
+/** Fetches a fresh installation access token from the Worker. */
+async function fetchInstallationToken(installationId: number): Promise<string | null> {
+  const data = await workerPost<{ token?: unknown }>("/token", { installationId });
+  return typeof data?.token === "string" ? data.token : null;
+}
+
 export async function pushVersionsToGitHub(
   config: GitHubSyncConfig,
   versions: Version[],
   getBlob: (snapshotPath: string) => Promise<Blob>,
   onProgress: SyncProgressCallback
 ): Promise<SyncResult> {
-  // Auto-resolve Gedonus token so commits appear under the gedonus account.
-  // Falls back to the user's own token if the relay is unreachable.
-  const resolvedGedonusToken = config.gedonusToken?.trim() || (await fetchGedonusToken());
-  const resolvedConfig: GitHubSyncConfig = resolvedGedonusToken
-    ? { ...config, gedonusToken: resolvedGedonusToken }
-    : config;
+  // Try to get an installation access token so commits appear under the Gedonus account.
+  // Falls back to user's own token when Worker is unreachable or app is not installed.
+  const appToken = config.installationId
+    ? await fetchInstallationToken(config.installationId)
+    : null;
+  const writeToken = appToken ?? config.token;
 
   const total = versions.length * 2;
   let current = 0;
@@ -207,7 +239,15 @@ export async function pushVersionsToGitHub(
         timestamp: version.timestamp,
         filename: version.filename,
       });
-      await putFile(resolvedConfig, metaPath, content, sha, `sync: "${label}" — metadata`, author);
+      await putFile(
+        config,
+        writeToken,
+        metaPath,
+        content,
+        sha,
+        `sync: "${label}" — metadata`,
+        author
+      );
       pushed++;
     } catch (err) {
       errors.push(`${label} (metadata): ${err instanceof Error ? err.message : String(err)}`);
@@ -219,7 +259,8 @@ export async function pushVersionsToGitHub(
       const blob = await getBlob(version.snapshotPath);
       const content = await blobToBase64(blob);
       await putFile(
-        resolvedConfig,
+        config,
+        writeToken,
         snapshotPath,
         content,
         sha,

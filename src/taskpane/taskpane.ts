@@ -19,7 +19,12 @@ import {
   type GitHubSyncConfig,
   createStorageAdapter,
 } from "../storage";
-import { testGitHubConnection, pushVersionsToGitHub } from "../sync/github-sync";
+import {
+  testGitHubConnection,
+  pushVersionsToGitHub,
+  getAppInstallUrl,
+  findInstallation,
+} from "../sync/github-sync";
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -1502,9 +1507,14 @@ function initGitHubSync(): void {
   const testBtn = getEl<HTMLButtonElement>("btn-github-test");
   const syncBtn = getEl<HTMLButtonElement>("btn-github-sync");
   const statusEl = getEl<HTMLDivElement>("github-sync-status");
+  const disconnectedRow = getEl<HTMLDivElement>("gedonus-disconnected");
+  const connectedRow = getEl<HTMLDivElement>("gedonus-connected");
+  const connectBtn = getEl<HTMLButtonElement>("btn-gedonus-connect");
+  const confirmBtn = getEl<HTMLButtonElement>("btn-gedonus-confirm");
+  const disconnectBtn = getEl<HTMLButtonElement>("btn-gedonus-disconnect");
 
-  // Holds any gedonusToken loaded from storage so it survives persist cycles without a UI field
-  let storedGedonusToken: string | undefined;
+  // installationId is stored in userSettings.githubSync — kept in sync via persistSyncConfig
+  let storedInstallationId: number | undefined;
 
   const getSyncConfig = (): GitHubSyncConfig => {
     const cfg: GitHubSyncConfig = {
@@ -1512,7 +1522,7 @@ function initGitHubSync(): void {
       repo: repoInput.value.trim(),
       branch: branchInput.value.trim() || "main",
     };
-    if (storedGedonusToken) cfg.gedonusToken = storedGedonusToken;
+    if (storedInstallationId !== undefined) cfg.installationId = storedInstallationId;
     return cfg;
   };
 
@@ -1532,7 +1542,83 @@ function initGitHubSync(): void {
     void writeUserSettings(userSettings);
   };
 
-  // Load saved sync config into inputs
+  // ── Gedonus connection state ────────────────────────────────
+
+  const setGedonusState = (state: "disconnected" | "connected"): void => {
+    if (state === "connected") {
+      hide(disconnectedRow);
+      show(connectedRow);
+    } else {
+      show(disconnectedRow);
+      hide(connectedRow);
+      hide(confirmBtn);
+      show(connectBtn);
+    }
+  };
+
+  // Connect button: open GitHub App install page, then show confirm button
+  connectBtn.addEventListener("click", () => {
+    const repo = repoInput.value.trim();
+    if (!repo) {
+      showSyncStatus("Enter a repository first.", true);
+      return;
+    }
+    connectBtn.disabled = true;
+    void (async () => {
+      try {
+        const url = await getAppInstallUrl();
+        if (!url) {
+          showSyncStatus("Could not reach Gedonus service. Try again later.", true);
+          return;
+        }
+        window.open(url, "_blank", "noopener,noreferrer");
+        hide(connectBtn);
+        show(confirmBtn);
+      } finally {
+        connectBtn.disabled = false;
+      }
+    })();
+  });
+
+  // Confirm button: verify install happened, save installationId
+  confirmBtn.addEventListener("click", () => {
+    const repo = repoInput.value.trim();
+    if (!repo) {
+      showSyncStatus("Enter a repository first.", true);
+      return;
+    }
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = "Checking…";
+    void (async () => {
+      try {
+        const id = await findInstallation(repo);
+        if (id === null) {
+          showSyncStatus("App not found on this repo. Install it first, then try again.", true);
+          return;
+        }
+        storedInstallationId = id;
+        persistSyncConfig();
+        setGedonusState("connected");
+        showSyncStatus("Gedonus connected. Commits will appear under the Gedonus account.", false);
+      } catch (err) {
+        showSyncStatus(err instanceof Error ? err.message : "Verification failed.", true);
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = "I've installed it";
+      }
+    })();
+  });
+
+  // Disconnect: clear installationId
+  disconnectBtn.addEventListener("click", () => {
+    storedInstallationId = undefined;
+    persistSyncConfig();
+    setGedonusState("disconnected");
+    hide(statusEl);
+  });
+
+  // ── Load saved config ───────────────────────────────────────
+
   void (async () => {
     try {
       const stored = await readUserSettings();
@@ -1541,16 +1627,20 @@ function initGitHubSync(): void {
         tokenInput.value = cfg.token;
         repoInput.value = cfg.repo;
         branchInput.value = cfg.branch !== "main" ? cfg.branch : "";
-        storedGedonusToken = cfg.gedonusToken;
+        storedInstallationId = cfg.installationId;
       }
     } catch {
       // Non-blocking
     }
+    // Show Gedonus section once settings are loaded
+    setGedonusState(storedInstallationId !== undefined ? "connected" : "disconnected");
   })();
 
   tokenInput.addEventListener("blur", persistSyncConfig);
   repoInput.addEventListener("blur", persistSyncConfig);
   branchInput.addEventListener("blur", persistSyncConfig);
+
+  // ── Test Connection ─────────────────────────────────────────
 
   testBtn.addEventListener("click", () => {
     const config = getSyncConfig();
@@ -1573,6 +1663,8 @@ function initGitHubSync(): void {
       }
     })();
   });
+
+  // ── Sync ────────────────────────────────────────────────────
 
   syncBtn.addEventListener("click", () => {
     const config = getSyncConfig();

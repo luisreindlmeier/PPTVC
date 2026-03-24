@@ -8,7 +8,7 @@ export interface GitHubSyncConfig {
   token: string;
   repo: string;
   branch: string;
-  gedonusToken?: string;
+  installationId?: number; // Gedonus GitHub App installation ID for this repo
 }
 
 export interface UserSettings {
