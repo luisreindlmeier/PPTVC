@@ -8,6 +8,7 @@ export interface GitHubSyncConfig {
   token: string;
   repo: string;
   branch: string;
+  gedonusToken?: string;
 }
 
 export interface UserSettings {

@@ -56,6 +56,10 @@ function apiHeaders(token: string): Record<string, string> {
   };
 }
 
+function writeToken(config: GitHubSyncConfig): string {
+  return config.gedonusToken?.trim() || config.token;
+}
+
 async function getFileSha(config: GitHubSyncConfig, path: string): Promise<string | null> {
   const [owner, repo] = config.repo.split("/");
   const url = `${API_BASE}/repos/${owner}/${repo}/contents/${path}?ref=${config.branch}`;
@@ -91,7 +95,7 @@ async function putFile(
   if (author) body["author"] = author;
   const res = await fetch(url, {
     method: "PUT",
-    headers: { ...apiHeaders(config.token), "Content-Type": "application/json" },
+    headers: { ...apiHeaders(writeToken(config)), "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
