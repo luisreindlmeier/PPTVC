@@ -75,10 +75,14 @@ async function workerPost<T>(path: string, body: unknown): Promise<T | null> {
   }
 }
 
-async function getFileSha(config: GitHubSyncConfig, path: string): Promise<string | null> {
+async function getFileSha(
+  config: GitHubSyncConfig,
+  path: string,
+  token: string
+): Promise<string | null> {
   const [owner, repo] = config.repo.split("/");
   const url = `${API_BASE}/repos/${owner}/${repo}/contents/${path}?ref=${config.branch}`;
-  const res = await fetch(url, { headers: apiHeaders(config.token) });
+  const res = await fetch(url, { headers: apiHeaders(token) });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`GitHub API ${res.status}`);
   const data = (await res.json()) as { sha: string };
@@ -161,9 +165,15 @@ export async function testGitHubConnection(config: GitHubSyncConfig): Promise<vo
   if (parts.length !== 2 || !parts[0] || !parts[1]) {
     throw new Error('Invalid repo format. Use "owner/repo".');
   }
+  // When Gedonus is connected we can verify via an app token — no user PAT needed.
+  const appToken = config.installationId
+    ? await fetchInstallationToken(config.installationId)
+    : null;
+  const authToken = appToken ?? config.token;
+  if (!authToken) throw new Error("No token available. Connect Gedonus or enter a PAT.");
   const [owner, repo] = parts;
   const res = await fetch(`${API_BASE}/repos/${owner}/${repo}`, {
-    headers: apiHeaders(config.token),
+    headers: apiHeaders(authToken),
   });
   if (res.status === 401) throw new Error("Invalid token.");
   if (res.status === 404) throw new Error("Repository not found or no access.");
@@ -213,6 +223,7 @@ export async function pushVersionsToGitHub(
     ? await fetchInstallationToken(config.installationId)
     : null;
   const writeToken = appToken ?? config.token;
+  if (!writeToken) throw new Error("No token available. Connect Gedonus or enter a PAT.");
 
   const total = versions.length * 2;
   let current = 0;
@@ -228,7 +239,7 @@ export async function pushVersionsToGitHub(
 
     onProgress({ current: ++current, total, label: `Uploading metadata: ${label}` });
     try {
-      const sha = await getFileSha(config, metaPath);
+      const sha = await getFileSha(config, metaPath, writeToken);
       const content = jsonToBase64({
         id: version.id,
         name: version.name,
@@ -255,7 +266,7 @@ export async function pushVersionsToGitHub(
 
     onProgress({ current: ++current, total, label: `Uploading snapshot: ${label}` });
     try {
-      const sha = await getFileSha(config, snapshotPath);
+      const sha = await getFileSha(config, snapshotPath, writeToken);
       const blob = await getBlob(version.snapshotPath);
       const content = await blobToBase64(blob);
       await putFile(

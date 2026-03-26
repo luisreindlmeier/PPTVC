@@ -1644,8 +1644,12 @@ function initGitHubSync(): void {
 
   testBtn.addEventListener("click", () => {
     const config = getSyncConfig();
-    if (!config.token || !config.repo) {
-      showSyncStatus("Enter a token and repository first.", true);
+    if (!config.repo) {
+      showSyncStatus("Enter a repository first.", true);
+      return;
+    }
+    if (!config.token && !config.installationId) {
+      showSyncStatus("Connect Gedonus or enter a Personal Access Token.", true);
       return;
     }
     testBtn.disabled = true;
@@ -1668,8 +1672,12 @@ function initGitHubSync(): void {
 
   syncBtn.addEventListener("click", () => {
     const config = getSyncConfig();
-    if (!config.token || !config.repo) {
-      showSyncStatus("Enter a token and repository first.", true);
+    if (!config.repo) {
+      showSyncStatus("Enter a repository first.", true);
+      return;
+    }
+    if (!config.token && !config.installationId) {
+      showSyncStatus("Connect Gedonus or enter a Personal Access Token.", true);
       return;
     }
     const label = syncBtn.querySelector<HTMLSpanElement>(".btn-label")!;
