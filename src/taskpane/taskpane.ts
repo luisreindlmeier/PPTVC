@@ -16,8 +16,16 @@ import {
   readUserSettings,
   writeUserSettings,
   type UserSettings,
+  type GitHubSyncConfig,
   createStorageAdapter,
 } from "../storage";
+import {
+  testGitHubConnection,
+  pushVersionsToGitHub,
+  getAppInstallUrl,
+  findInstallation,
+  testGedonusCommit,
+} from "../sync/github-sync";
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -296,6 +304,36 @@ function getAuthorLabel(version: Version): string {
   const versionAuthor = version.authorName?.trim();
   const fallbackAuthor = userSettings.authorName?.trim() ?? "";
   return versionAuthor || fallbackAuthor || "Unknown";
+}
+
+// ── Author avatar helpers ──────────────────────────────────────
+
+const AVATAR_PALETTE = [
+  "#4F6F52",
+  "#7B6B8A",
+  "#4A7FA5",
+  "#8B6B4A",
+  "#B87050",
+  "#6B4A7F",
+  "#4A7F6B",
+  "#7F4A6B",
+];
+
+function authorColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+}
+
+function authorInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
 }
 
 function getAvailableTags(): string[] {
@@ -772,10 +810,23 @@ function createVersionItem(version: Version): HTMLLIElement {
 
   li.appendChild(meta);
 
-  const author = document.createElement("span");
-  author.className = "pptvc-version-author";
-  author.textContent = `Author: ${getAuthorLabel(version)}`;
-  li.appendChild(author);
+  const authorRow = document.createElement("div");
+  authorRow.className = "pptvc-version-author-row";
+
+  const authorDisplayName = getAuthorLabel(version);
+  const avatar = document.createElement("div");
+  avatar.className = "pptvc-avatar";
+  avatar.style.background = authorColor(authorDisplayName);
+  avatar.setAttribute("aria-hidden", "true");
+  avatar.textContent = authorInitials(authorDisplayName);
+
+  const authorNameEl = document.createElement("span");
+  authorNameEl.className = "pptvc-version-author-name";
+  authorNameEl.textContent = authorDisplayName;
+
+  authorRow.appendChild(avatar);
+  authorRow.appendChild(authorNameEl);
+  li.appendChild(authorRow);
 
   // Tags section — selected tags always visible below timestamp row.
   const tagsRow = document.createElement("div");
@@ -1251,8 +1302,6 @@ async function onSaveClick(): Promise<void> {
   }
 }
 
-// ── Restore ───────────────────────────────────────────────────
-
 // ── Settings ───────────────────────────────────────────────────
 
 function initSettings(): void {
@@ -1440,10 +1489,248 @@ function initSettings(): void {
   });
 
   switchSettingsTab("general");
-  void refreshStorageUsage();
 
-  btnOpen.addEventListener("click", () => show(settingsPage));
+  btnOpen.addEventListener("click", () => {
+    switchSettingsTab("general");
+    show(settingsPage);
+    void refreshStorageUsage();
+  });
   btnBack.addEventListener("click", () => hide(settingsPage));
+
+  initGitHubSync();
+}
+
+// ── GitHub Sync ────────────────────────────────────────────────
+
+function initGitHubSync(): void {
+  const repoInput = getEl<HTMLInputElement>("settings-github-repo");
+  const branchInput = getEl<HTMLInputElement>("settings-github-branch");
+  const testBtn = getEl<HTMLButtonElement>("btn-github-test");
+  const syncBtn = getEl<HTMLButtonElement>("btn-github-sync");
+  const statusEl = getEl<HTMLDivElement>("github-sync-status");
+  const disconnectedRow = getEl<HTMLDivElement>("gedonus-disconnected");
+  const connectedRow = getEl<HTMLDivElement>("gedonus-connected");
+  const connectBtn = getEl<HTMLButtonElement>("btn-gedonus-connect");
+  const confirmBtn = getEl<HTMLButtonElement>("btn-gedonus-confirm");
+  const disconnectBtn = getEl<HTMLButtonElement>("btn-gedonus-disconnect");
+  const testCommitBtn = getEl<HTMLButtonElement>("btn-gedonus-test-commit");
+
+  // installationId is stored in userSettings.githubSync — kept in sync via persistSyncConfig
+  let storedInstallationId: number | undefined;
+
+  const getSyncConfig = (): GitHubSyncConfig => {
+    const cfg: GitHubSyncConfig = {
+      repo: repoInput.value.trim(),
+      branch: branchInput.value.trim() || "main",
+    };
+    if (storedInstallationId !== undefined) cfg.installationId = storedInstallationId;
+    return cfg;
+  };
+
+  const showSyncStatus = (message: string, isError: boolean): void => {
+    statusEl.textContent = message;
+    statusEl.className = `pptvc-sync-status pptvc-sync-status--${isError ? "error" : "ok"}`;
+    show(statusEl);
+  };
+
+  const persistSyncConfig = (): void => {
+    const config = getSyncConfig();
+    if (config.repo) {
+      userSettings.githubSync = config;
+    } else {
+      delete userSettings.githubSync;
+    }
+    void writeUserSettings(userSettings);
+  };
+
+  // ── Gedonus connection state ────────────────────────────────
+
+  const setGedonusState = (state: "disconnected" | "connected"): void => {
+    if (state === "connected") {
+      hide(disconnectedRow);
+      show(connectedRow);
+    } else {
+      show(disconnectedRow);
+      hide(connectedRow);
+    }
+  };
+
+  // Shared: look up installation for current repo and connect
+  const verifyAndConnect = async (): Promise<void> => {
+    const repo = repoInput.value.trim();
+    if (!repo) {
+      showSyncStatus("Enter a repository first.", true);
+      return;
+    }
+    const id = await findInstallation(repo);
+    if (id === null) {
+      showSyncStatus("App not found on this repo. Install it via 'Connect Gedonus' first.", true);
+      return;
+    }
+    storedInstallationId = id;
+    persistSyncConfig();
+    setGedonusState("connected");
+    showSyncStatus("Gedonus connected. Commits will appear under the Gedonus account.", false);
+  };
+
+  // Connect button: open GitHub App install page
+  connectBtn.addEventListener("click", () => {
+    if (!repoInput.value.trim()) {
+      showSyncStatus("Enter a repository first.", true);
+      return;
+    }
+    connectBtn.disabled = true;
+    void (async () => {
+      try {
+        const url = await getAppInstallUrl();
+        if (!url) {
+          showSyncStatus("Could not reach Gedonus service. Try again later.", true);
+          return;
+        }
+        window.open(url, "_blank", "noopener,noreferrer");
+      } finally {
+        connectBtn.disabled = false;
+      }
+    })();
+  });
+
+  // Confirm button: verify install happened (also works if already installed)
+  confirmBtn.addEventListener("click", () => {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = "Checking…";
+    void verifyAndConnect().finally(() => {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "I've installed it";
+    });
+  });
+
+  // Disconnect: clear installationId
+  disconnectBtn.addEventListener("click", () => {
+    storedInstallationId = undefined;
+    persistSyncConfig();
+    setGedonusState("disconnected");
+    hide(statusEl);
+  });
+
+  // ── Load saved config ───────────────────────────────────────
+
+  void (async () => {
+    try {
+      const stored = await readUserSettings();
+      const cfg = stored.githubSync;
+      if (cfg) {
+        repoInput.value = cfg.repo;
+        branchInput.value = cfg.branch !== "main" ? cfg.branch : "";
+        storedInstallationId = cfg.installationId;
+      }
+    } catch {
+      // Non-blocking
+    }
+    // Show Gedonus section once settings are loaded
+    setGedonusState(storedInstallationId !== undefined ? "connected" : "disconnected");
+  })();
+
+  repoInput.addEventListener("blur", persistSyncConfig);
+  branchInput.addEventListener("blur", persistSyncConfig);
+
+  // ── Test Gedonus Commit ─────────────────────────────────────
+
+  testCommitBtn.addEventListener("click", () => {
+    const config = getSyncConfig();
+    testCommitBtn.textContent = "Committing…";
+    testCommitBtn.setAttribute("disabled", "");
+    void (async () => {
+      try {
+        await testGedonusCommit(config);
+        showSyncStatus(
+          "Test commit created. Check your repo — Gedonus should appear as committer.",
+          false
+        );
+      } catch (err) {
+        showSyncStatus(err instanceof Error ? err.message : "Test commit failed.", true);
+      } finally {
+        testCommitBtn.textContent = "Test commit";
+        testCommitBtn.removeAttribute("disabled");
+      }
+    })();
+  });
+
+  // ── Test Connection ─────────────────────────────────────────
+
+  testBtn.addEventListener("click", () => {
+    const config = getSyncConfig();
+    if (!config.repo) {
+      showSyncStatus("Enter a repository first.", true);
+      return;
+    }
+    if (!config.installationId) {
+      showSyncStatus("Connect Gedonus first.", true);
+      return;
+    }
+    testBtn.disabled = true;
+    testBtn.textContent = "Testing...";
+    void (async () => {
+      try {
+        await testGitHubConnection(config);
+        showSyncStatus(`Connected to ${config.repo}.`, false);
+        persistSyncConfig();
+      } catch (err) {
+        showSyncStatus(err instanceof Error ? err.message : "Connection failed.", true);
+      } finally {
+        testBtn.disabled = false;
+        testBtn.textContent = "Test Connection";
+      }
+    })();
+  });
+
+  // ── Sync ────────────────────────────────────────────────────
+
+  syncBtn.addEventListener("click", () => {
+    const config = getSyncConfig();
+    if (!config.repo) {
+      showSyncStatus("Enter a repository first.", true);
+      return;
+    }
+    if (!config.installationId) {
+      showSyncStatus("Connect Gedonus first.", true);
+      return;
+    }
+    const label = syncBtn.querySelector<HTMLSpanElement>(".btn-label")!;
+    const spinner = syncBtn.querySelector<HTMLSpanElement>(".btn-spinner")!;
+    syncBtn.disabled = true;
+    testBtn.disabled = true;
+    hide(label);
+    show(spinner);
+    showSyncStatus("Starting sync...", false);
+    void (async () => {
+      try {
+        const versions = await listVersions();
+        if (versions.length === 0) {
+          showSyncStatus("No versions to sync.", false);
+          return;
+        }
+        const result = await pushVersionsToGitHub(config, versions, getVersionBlob, (progress) => {
+          showSyncStatus(`${progress.label} (${progress.current}/${progress.total})`, false);
+        });
+        persistSyncConfig();
+        if (result.errors.length === 0) {
+          showSyncStatus(`Synced ${result.pushed} files to ${config.repo}.`, false);
+        } else {
+          showSyncStatus(
+            `Synced ${result.pushed} files. ${result.errors.length} error(s): ${result.errors[0]}`,
+            true
+          );
+        }
+      } catch (err) {
+        showSyncStatus(err instanceof Error ? err.message : "Sync failed.", true);
+      } finally {
+        syncBtn.disabled = false;
+        testBtn.disabled = false;
+        show(label);
+        hide(spinner);
+      }
+    })();
+  });
 }
 
 // ── Restore ───────────────────────────────────────────────────

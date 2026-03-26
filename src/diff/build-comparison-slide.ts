@@ -272,6 +272,103 @@ async function copyChartSubResources(
   destZip.file(relsPathOf(destChartPath), updatedRelsXml);
 }
 
+// ── Shape-level diff ──────────────────────────────────────────
+
+interface ShapeMap {
+  byId: Map<string, string>;
+}
+
+function parseShapeMap(spTreeContent: string): ShapeMap {
+  const byId = new Map<string, string>();
+  for (const pattern of [/<p:sp\b[\s\S]*?<\/p:sp>/g, /<p:pic\b[\s\S]*?<\/p:pic>/g]) {
+    for (const m of spTreeContent.matchAll(pattern)) {
+      const idMatch = m[0].match(/\bcNvPr[^>]*\bid="(\d+)"/);
+      if (idMatch) byId.set(idMatch[1], m[0]);
+    }
+  }
+  return { byId };
+}
+
+function getShapeTextContent(xml: string): string {
+  return [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => m[1]).join("\0");
+}
+
+interface DiffResult {
+  changedInFrom: Set<string>;
+  removedInFrom: Set<string>;
+  changedInTo: Set<string>;
+  addedInTo: Set<string>;
+}
+
+function computeShapeDiff(fromMap: ShapeMap, toMap: ShapeMap): DiffResult {
+  const changedInFrom = new Set<string>();
+  const removedInFrom = new Set<string>();
+  const changedInTo = new Set<string>();
+  const addedInTo = new Set<string>();
+
+  for (const [id, fromXml] of fromMap.byId) {
+    const toXml = toMap.byId.get(id);
+    if (!toXml) {
+      removedInFrom.add(id);
+    } else if (getShapeTextContent(fromXml) !== getShapeTextContent(toXml)) {
+      changedInFrom.add(id);
+    }
+  }
+
+  for (const [id, toXml] of toMap.byId) {
+    const fromXml = fromMap.byId.get(id);
+    if (!fromXml) {
+      addedInTo.add(id);
+    } else if (getShapeTextContent(fromXml) !== getShapeTextContent(toXml)) {
+      changedInTo.add(id);
+    }
+  }
+
+  return { changedInFrom, removedInFrom, changedInTo, addedInTo };
+}
+
+// Border width 3pt (38100 EMU). Replaces any existing <a:ln> in <p:spPr>.
+function addBorderToShapeXml(shapeXml: string, colorHex: string): string {
+  const border = `<a:ln w="38100"><a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill></a:ln>`;
+  if (/<a:ln[\s/>]/.test(shapeXml)) {
+    return shapeXml.replace(/<a:ln(?:\s[^>]*)?\/>|<a:ln(?:[^>]*)?>[\s\S]*?<\/a:ln>/, border);
+  }
+  return shapeXml.replace("</p:spPr>", border + "</p:spPr>");
+}
+
+function applyDiffBorders(
+  spTreeContent: string,
+  changedIds: Set<string>,
+  addedIds: Set<string>,
+  removedIds: Set<string>
+): string {
+  const applyToShape = (xml: string): string => {
+    const idMatch = xml.match(/\bcNvPr[^>]*\bid="(\d+)"/);
+    if (!idMatch) return xml;
+    const id = idMatch[1];
+    // amber = changed, green = added, red = removed
+    if (changedIds.has(id)) return addBorderToShapeXml(xml, "F59E0B");
+    if (addedIds.has(id)) return addBorderToShapeXml(xml, "22C55E");
+    if (removedIds.has(id)) return addBorderToShapeXml(xml, "EF4444");
+    return xml;
+  };
+
+  return spTreeContent
+    .replace(/<p:sp\b[\s\S]*?<\/p:sp>/g, applyToShape)
+    .replace(/<p:pic\b[\s\S]*?<\/p:pic>/g, applyToShape);
+}
+
+function applyDiffBordersToSlideXml(
+  slideXml: string,
+  changedIds: Set<string>,
+  addedIds: Set<string>
+): string {
+  return slideXml.replace(/<p:spTree>([\s\S]*?)<\/p:spTree>/, (_, content: string) => {
+    const marked = applyDiffBorders(content, changedIds, addedIds, new Set());
+    return `<p:spTree>${marked}</p:spTree>`;
+  });
+}
+
 function escapeXml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
@@ -651,6 +748,11 @@ export async function buildComparisonSlide(
 
   const rawOldShapes = extractShapeContent(fromSlideXml);
 
+  // ── Shape diff ────────────────────────────────────────────────
+  const fromShapeMap = parseShapeMap(rawOldShapes);
+  const toShapeMap = parseShapeMap(extractShapeContent(toSlideXml));
+  const diff = computeShapeDiff(fromShapeMap, toShapeMap);
+
   // ── Copy FROM-slide content resources (images, charts, embeddings) into TO zip ──
   // Without this, the injected shapes reference r:id values that don't exist in
   // the TO slide's .rels file, making the PPTX invalid → insertSlidesFromBase64
@@ -685,10 +787,21 @@ export async function buildComparisonSlide(
     }
   }
 
+  // ── Apply diff borders ────────────────────────────────────────
+  // Old shapes (below): amber = changed, red = removed
+  const markedOldShapes = applyDiffBorders(
+    oldShapes,
+    diff.changedInFrom,
+    new Set<string>(),
+    diff.removedInFrom
+  );
+  // Current slide (above): amber = changed, green = added
+  const markedToSlideXml = applyDiffBordersToSlideXml(toSlideXml, diff.changedInTo, diff.addedInTo);
+
   const bgRect = buildBgRect(slideSize);
   const label = buildLabelShape(slideSize, toName, fromName, toTimestamp, toAuthor);
-  const compareGroup = buildCompareGroup(oldShapes, slideSize);
-  const modifiedSlideXml = injectIntoSpTree(toSlideXml, bgRect, label, compareGroup);
+  const compareGroup = buildCompareGroup(markedOldShapes, slideSize);
+  const modifiedSlideXml = injectIntoSpTree(markedToSlideXml, bgRect, label, compareGroup);
 
   toZip.file(toSlidePath, modifiedSlideXml);
 

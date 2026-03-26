@@ -330,31 +330,65 @@
                     i
                   </span>
                 </div>
-                <div class="pptvc-settings-card pptvc-settings-card--coming-soon">
-                  <div class="pptvc-settings-card-icon">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke-width="1.5"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z"
-                      />
-                    </svg>
-                  </div>
-                  <div class="pptvc-settings-card-content">
-                    <p class="pptvc-settings-card-title">GitHub / GitLab sync</p>
-                    <p class="pptvc-settings-card-desc">
-                      Push versions to a remote repository for team access and backup.
-                    </p>
-                  </div>
-                  <span class="pptvc-settings-soon-badge">Soon</span>
+                <div class="pptvc-settings-field">
+                  <label class="pptvc-settings-field-label" for="settings-github-repo">
+                    Repository
+                  </label>
+                  <input
+                    id="settings-github-repo"
+                    type="text"
+                    class="pptvc-text-input pptvc-settings-input"
+                    placeholder="owner/repo"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
                 </div>
+                <div class="pptvc-settings-field">
+                  <label class="pptvc-settings-field-label" for="settings-github-branch">
+                    Branch
+                  </label>
+                  <input
+                    id="settings-github-branch"
+                    type="text"
+                    class="pptvc-text-input pptvc-settings-input"
+                    placeholder="main"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                </div>
+                <!-- Gedonus App connection -->
+                <div id="gedonus-disconnected" class="pptvc-gedonus-row pptvc-hidden">
+                  <button id="btn-gedonus-connect" type="button" class="pptvc-btn pptvc-btn--ghost">
+                    Connect Gedonus
+                  </button>
+                  <button id="btn-gedonus-confirm" type="button" class="pptvc-btn pptvc-btn--ghost">
+                    I've installed it
+                  </button>
+                </div>
+                <div id="gedonus-connected" class="pptvc-gedonus-row pptvc-hidden">
+                  <span class="pptvc-gedonus-status">Gedonus connected</span>
+                  <button id="btn-gedonus-test-commit" type="button" class="pptvc-btn--link">
+                    Test commit
+                  </button>
+                  <button id="btn-gedonus-disconnect" type="button" class="pptvc-btn--link">
+                    Disconnect
+                  </button>
+                </div>
+                <div class="pptvc-sync-actions">
+                  <button id="btn-github-test" type="button" class="pptvc-btn pptvc-btn--ghost">
+                    Test Connection
+                  </button>
+                  <button id="btn-github-sync" type="button" class="pptvc-btn pptvc-btn--primary">
+                    <span class="btn-label">Sync to GitHub</span>
+                    <span class="btn-spinner pptvc-hidden" aria-hidden="true"></span>
+                  </button>
+                </div>
+                <div
+                  id="github-sync-status"
+                  class="pptvc-sync-status pptvc-hidden"
+                  role="status"
+                  aria-live="polite"
+                ></div>
               </div>
             </section>
 
@@ -375,7 +409,9 @@
                 </div>
                 <div class="pptvc-settings-row">
                   <span class="pptvc-settings-row-label">Used</span>
-                  <span id="settings-storage-used" class="pptvc-settings-row-value">Calculating...</span>
+                  <span id="settings-storage-used" class="pptvc-settings-row-value"
+                    >Calculating...</span
+                  >
                 </div>
               </div>
 
@@ -512,7 +548,11 @@
                     class="pptvc-text-input pptvc-settings-input"
                     placeholder="Add tag"
                   />
-                  <button id="btn-settings-tag-add" class="pptvc-btn pptvc-btn--ghost" type="button">
+                  <button
+                    id="btn-settings-tag-add"
+                    class="pptvc-btn pptvc-btn--ghost"
+                    type="button"
+                  >
                     Add
                   </button>
                 </div>

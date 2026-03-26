@@ -4,6 +4,13 @@ import { OpfsStorageAdapter } from "./opfs-storage";
 
 const USER_SETTINGS_PATH = "settings/user-settings.json";
 
+export interface GitHubSyncConfig {
+  token?: string; // Optional — not needed when Gedonus App is connected
+  repo: string;
+  branch: string;
+  installationId?: number; // Gedonus GitHub App installation ID for this repo
+}
+
 export interface UserSettings {
   authorName?: string;
   email?: string;
@@ -11,6 +18,7 @@ export interface UserSettings {
   autoSaveOnDocumentSave?: boolean;
   namingScheme?: NamingScheme;
   customTags?: string[];
+  githubSync?: GitHubSyncConfig;
 }
 
 export type NamingSchemeMode = "version" | "date" | "prefix";

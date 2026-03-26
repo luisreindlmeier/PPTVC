@@ -857,14 +857,14 @@ ul {
 
 .pptvc-version-header,
 .pptvc-version-meta,
-.pptvc-version-author,
+.pptvc-version-author-row,
 .pptvc-version-tags {
   transition: transform 0.12s var(--ease);
 }
 
 .pptvc-version-item:hover .pptvc-version-header,
 .pptvc-version-item:hover .pptvc-version-meta,
-.pptvc-version-item:hover .pptvc-version-author,
+.pptvc-version-item:hover .pptvc-version-author-row,
 .pptvc-version-item:hover .pptvc-version-tags {
   transform: translateX(2px);
 }
@@ -951,14 +951,38 @@ ul {
   flex-shrink: 0;
 }
 
-.pptvc-version-author {
-  display: block;
-  font-size: 10px;
+.pptvc-version-author-row {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px 4px 12px;
+}
+
+.pptvc-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 8px;
+  font-weight: 700;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  color: #fff;
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.pptvc-version-author-name {
+  font-size: 11px;
   color: var(--color-text-muted);
   font-family: var(--font-sans);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0 6px 2px 12px;
 }
 
 /* Tags row (chips + options) — hidden when empty */
@@ -1810,8 +1834,8 @@ ul {
 .pptvc-settings-tabs {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 2px;
+  border-radius: var(--radius-md);
+  padding: 4px;
 }
 
 .pptvc-settings-tabs__track {
@@ -1819,26 +1843,18 @@ ul {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 
 .pptvc-settings-tabs__indicator {
-  position: absolute;
-  top: 2px;
-  bottom: 2px;
-  left: 2px;
-  width: calc(25% - 4px);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg);
-  box-shadow: inset 0 0 0 1px var(--color-border);
-  transition: transform 0.2s var(--ease);
-  z-index: 0;
+  display: none;
 }
 
 .pptvc-settings-tab {
   position: relative;
   z-index: 1;
-  padding: 6px 8px;
+  min-height: 34px;
+  padding: 6px 10px;
   border: none;
   background: transparent;
   color: var(--color-text-muted);
@@ -1847,11 +1863,21 @@ ul {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   cursor: pointer;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
+  transition:
+    color 0.15s var(--ease),
+    background 0.15s var(--ease),
+    box-shadow 0.15s var(--ease);
+}
+
+.pptvc-settings-tab:hover {
+  color: var(--color-text);
 }
 
 .pptvc-settings-tab--active {
   color: var(--color-text);
+  background: var(--color-bg);
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
 
 .pptvc-settings-panels {
@@ -1944,7 +1970,9 @@ ul {
   opacity: 0;
   transform: translateY(-4px);
   pointer-events: none;
-  transition: opacity 0.15s var(--ease), transform 0.15s var(--ease);
+  transition:
+    opacity 0.15s var(--ease),
+    transform 0.15s var(--ease);
   z-index: 2;
 }
 
@@ -2179,4 +2207,89 @@ ul {
   padding: 2px 6px;
   border-radius: var(--radius-full);
   align-self: flex-start;
+}
+
+/* ════════════════════════════════════════════
+   GitHub Sync
+   ════════════════════════════════════════════ */
+
+.pptvc-settings-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.pptvc-settings-hint code {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  background: var(--color-tag-bg);
+  padding: 1px 4px;
+  border-radius: var(--radius-xs);
+}
+
+.pptvc-gedonus-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-tag-bg);
+}
+
+.pptvc-gedonus-status {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-green);
+}
+
+.pptvc-gedonus-status::before {
+  content: "✓ ";
+}
+
+.pptvc-btn--link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pptvc-btn--link:hover {
+  color: var(--color-danger);
+}
+
+.pptvc-sync-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pptvc-sync-actions .pptvc-btn {
+  flex: 1;
+}
+
+.pptvc-sync-status {
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.pptvc-sync-status--ok {
+  color: var(--color-green);
+  background: var(--color-green-light);
+}
+
+.pptvc-sync-status--error {
+  color: var(--color-danger);
+  background: var(--color-danger-light);
 }

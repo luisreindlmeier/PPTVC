@@ -8,6 +8,7 @@ export {
   type UserSettings,
   type NamingScheme,
   type NamingSchemeMode,
+  type GitHubSyncConfig,
 } from "./user-settings";
 
 export function createStorageAdapter(): OpfsStorageAdapter {
