@@ -2,5 +2,7 @@ name = "gedonus-token-relay"
 main = "gedonus-token-relay.js"
 compatibility_date = "2024-01-01"
 
-[vars]
-# Set the actual token via: wrangler secret put GEDONUS_TOKEN
+# Secrets (set via wrangler secret put):
+#   GITHUB_APP_ID          — numeric App ID (e.g. 3192548)
+#   GITHUB_APP_PRIVATE_KEY — PKCS#8 PEM (see worker/README for conversion)
+#   GITHUB_APP_NAME        — App slug (gedonus)
