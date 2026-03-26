@@ -1302,8 +1302,6 @@ async function onSaveClick(): Promise<void> {
   }
 }
 
-// ── Restore ───────────────────────────────────────────────────
-
 // ── Settings ───────────────────────────────────────────────────
 
 function initSettings(): void {
@@ -1491,9 +1489,12 @@ function initSettings(): void {
   });
 
   switchSettingsTab("general");
-  void refreshStorageUsage();
 
-  btnOpen.addEventListener("click", () => show(settingsPage));
+  btnOpen.addEventListener("click", () => {
+    switchSettingsTab("general");
+    show(settingsPage);
+    void refreshStorageUsage();
+  });
   btnBack.addEventListener("click", () => hide(settingsPage));
 
   initGitHubSync();
