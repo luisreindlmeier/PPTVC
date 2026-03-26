@@ -1551,15 +1551,30 @@ function initGitHubSync(): void {
     } else {
       show(disconnectedRow);
       hide(connectedRow);
-      hide(confirmBtn);
-      show(connectBtn);
     }
   };
 
-  // Connect button: open GitHub App install page, then show confirm button
-  connectBtn.addEventListener("click", () => {
+  // Shared: look up installation for current repo and connect
+  const verifyAndConnect = async (): Promise<void> => {
     const repo = repoInput.value.trim();
     if (!repo) {
+      showSyncStatus("Enter a repository first.", true);
+      return;
+    }
+    const id = await findInstallation(repo);
+    if (id === null) {
+      showSyncStatus("App not found on this repo. Install it via 'Connect Gedonus' first.", true);
+      return;
+    }
+    storedInstallationId = id;
+    persistSyncConfig();
+    setGedonusState("connected");
+    showSyncStatus("Gedonus connected. Commits will appear under the Gedonus account.", false);
+  };
+
+  // Connect button: open GitHub App install page
+  connectBtn.addEventListener("click", () => {
+    if (!repoInput.value.trim()) {
       showSyncStatus("Enter a repository first.", true);
       return;
     }
@@ -1572,41 +1587,20 @@ function initGitHubSync(): void {
           return;
         }
         window.open(url, "_blank", "noopener,noreferrer");
-        hide(connectBtn);
-        show(confirmBtn);
       } finally {
         connectBtn.disabled = false;
       }
     })();
   });
 
-  // Confirm button: verify install happened, save installationId
+  // Confirm button: verify install happened (also works if already installed)
   confirmBtn.addEventListener("click", () => {
-    const repo = repoInput.value.trim();
-    if (!repo) {
-      showSyncStatus("Enter a repository first.", true);
-      return;
-    }
     confirmBtn.disabled = true;
     confirmBtn.textContent = "Checking…";
-    void (async () => {
-      try {
-        const id = await findInstallation(repo);
-        if (id === null) {
-          showSyncStatus("App not found on this repo. Install it first, then try again.", true);
-          return;
-        }
-        storedInstallationId = id;
-        persistSyncConfig();
-        setGedonusState("connected");
-        showSyncStatus("Gedonus connected. Commits will appear under the Gedonus account.", false);
-      } catch (err) {
-        showSyncStatus(err instanceof Error ? err.message : "Verification failed.", true);
-      } finally {
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = "I've installed it";
-      }
-    })();
+    void verifyAndConnect().finally(() => {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "I've installed it";
+    });
   });
 
   // Disconnect: clear installationId
