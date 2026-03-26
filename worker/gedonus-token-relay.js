@@ -88,7 +88,7 @@ async function createAppJWT(appId, privateKeyPem) {
   const payload = {
     iat: now - 60, // 60s back for clock skew tolerance
     exp: now + 540, // 9 minutes (max allowed: 10m)
-    iss: String(appId),
+    iss: parseInt(String(appId), 10), // must be integer, not string
   };
 
   const encode = (obj) => {
@@ -143,6 +143,7 @@ function ghRequest(url, method, body, token) {
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "gedonus-pptvc-worker/1.0",
       ...(body ? { "Content-Type": "application/json" } : {}),
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
