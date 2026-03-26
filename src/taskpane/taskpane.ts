@@ -24,6 +24,7 @@ import {
   pushVersionsToGitHub,
   getAppInstallUrl,
   findInstallation,
+  testGedonusCommit,
 } from "../sync/github-sync";
 
 // ── Constants ─────────────────────────────────────────────────
@@ -1501,7 +1502,6 @@ function initSettings(): void {
 // ── GitHub Sync ────────────────────────────────────────────────
 
 function initGitHubSync(): void {
-  const tokenInput = getEl<HTMLInputElement>("settings-github-token");
   const repoInput = getEl<HTMLInputElement>("settings-github-repo");
   const branchInput = getEl<HTMLInputElement>("settings-github-branch");
   const testBtn = getEl<HTMLButtonElement>("btn-github-test");
@@ -1512,13 +1512,13 @@ function initGitHubSync(): void {
   const connectBtn = getEl<HTMLButtonElement>("btn-gedonus-connect");
   const confirmBtn = getEl<HTMLButtonElement>("btn-gedonus-confirm");
   const disconnectBtn = getEl<HTMLButtonElement>("btn-gedonus-disconnect");
+  const testCommitBtn = getEl<HTMLButtonElement>("btn-gedonus-test-commit");
 
   // installationId is stored in userSettings.githubSync — kept in sync via persistSyncConfig
   let storedInstallationId: number | undefined;
 
   const getSyncConfig = (): GitHubSyncConfig => {
     const cfg: GitHubSyncConfig = {
-      token: tokenInput.value.trim(),
       repo: repoInput.value.trim(),
       branch: branchInput.value.trim() || "main",
     };
@@ -1534,7 +1534,7 @@ function initGitHubSync(): void {
 
   const persistSyncConfig = (): void => {
     const config = getSyncConfig();
-    if (config.token || config.repo) {
+    if (config.repo) {
       userSettings.githubSync = config;
     } else {
       delete userSettings.githubSync;
@@ -1624,7 +1624,6 @@ function initGitHubSync(): void {
       const stored = await readUserSettings();
       const cfg = stored.githubSync;
       if (cfg) {
-        tokenInput.value = cfg.token;
         repoInput.value = cfg.repo;
         branchInput.value = cfg.branch !== "main" ? cfg.branch : "";
         storedInstallationId = cfg.installationId;
@@ -1636,9 +1635,30 @@ function initGitHubSync(): void {
     setGedonusState(storedInstallationId !== undefined ? "connected" : "disconnected");
   })();
 
-  tokenInput.addEventListener("blur", persistSyncConfig);
   repoInput.addEventListener("blur", persistSyncConfig);
   branchInput.addEventListener("blur", persistSyncConfig);
+
+  // ── Test Gedonus Commit ─────────────────────────────────────
+
+  testCommitBtn.addEventListener("click", () => {
+    const config = getSyncConfig();
+    testCommitBtn.textContent = "Committing…";
+    testCommitBtn.setAttribute("disabled", "");
+    void (async () => {
+      try {
+        await testGedonusCommit(config);
+        showSyncStatus(
+          "Test commit created. Check your repo — Gedonus should appear as committer.",
+          false
+        );
+      } catch (err) {
+        showSyncStatus(err instanceof Error ? err.message : "Test commit failed.", true);
+      } finally {
+        testCommitBtn.textContent = "Test commit";
+        testCommitBtn.removeAttribute("disabled");
+      }
+    })();
+  });
 
   // ── Test Connection ─────────────────────────────────────────
 
@@ -1648,8 +1668,8 @@ function initGitHubSync(): void {
       showSyncStatus("Enter a repository first.", true);
       return;
     }
-    if (!config.token && !config.installationId) {
-      showSyncStatus("Connect Gedonus or enter a Personal Access Token.", true);
+    if (!config.installationId) {
+      showSyncStatus("Connect Gedonus first.", true);
       return;
     }
     testBtn.disabled = true;
@@ -1676,8 +1696,8 @@ function initGitHubSync(): void {
       showSyncStatus("Enter a repository first.", true);
       return;
     }
-    if (!config.token && !config.installationId) {
-      showSyncStatus("Connect Gedonus or enter a Personal Access Token.", true);
+    if (!config.installationId) {
+      showSyncStatus("Connect Gedonus first.", true);
       return;
     }
     const label = syncBtn.querySelector<HTMLSpanElement>(".btn-label")!;

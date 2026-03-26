@@ -160,24 +160,42 @@ function jsonToBase64(value: unknown): string {
 
 // ── Public API ─────────────────────────────────────────────────
 
+async function resolveWriteToken(config: GitHubSyncConfig): Promise<string> {
+  const appToken = config.installationId
+    ? await fetchInstallationToken(config.installationId)
+    : null;
+  const token = appToken ?? config.token;
+  if (!token) throw new Error("No token available. Connect Gedonus or enter a PAT.");
+  return token;
+}
+
 export async function testGitHubConnection(config: GitHubSyncConfig): Promise<void> {
   const parts = config.repo.split("/");
   if (parts.length !== 2 || !parts[0] || !parts[1]) {
     throw new Error('Invalid repo format. Use "owner/repo".');
   }
-  // When Gedonus is connected we can verify via an app token — no user PAT needed.
-  const appToken = config.installationId
-    ? await fetchInstallationToken(config.installationId)
-    : null;
-  const authToken = appToken ?? config.token;
-  if (!authToken) throw new Error("No token available. Connect Gedonus or enter a PAT.");
   const [owner, repo] = parts;
+  const token = await resolveWriteToken(config);
   const res = await fetch(`${API_BASE}/repos/${owner}/${repo}`, {
-    headers: apiHeaders(authToken),
+    headers: apiHeaders(token),
   });
   if (res.status === 401) throw new Error("Invalid token.");
   if (res.status === 404) throw new Error("Repository not found or no access.");
   if (!res.ok) throw new Error(`GitHub API ${res.status}.`);
+}
+
+/** Creates a test commit via the Gedonus App to verify the full write flow. */
+export async function testGedonusCommit(config: GitHubSyncConfig): Promise<void> {
+  if (!config.installationId) throw new Error("Gedonus not connected.");
+  const token = await resolveWriteToken(config);
+  const path = `${SYNC_ROOT}/.gedonus-connected`;
+  const sha = await getFileSha(config, path, token);
+  const content = jsonToBase64({
+    connected: true,
+    repo: config.repo,
+    timestamp: new Date().toISOString(),
+  });
+  await putFile(config, token, path, content, sha, "chore: Gedonus connection verified");
 }
 
 /** Returns the Gedonus App install URL from the Worker. */
@@ -217,13 +235,7 @@ export async function pushVersionsToGitHub(
   getBlob: (snapshotPath: string) => Promise<Blob>,
   onProgress: SyncProgressCallback
 ): Promise<SyncResult> {
-  // Try to get an installation access token so commits appear under the Gedonus account.
-  // Falls back to user's own token when Worker is unreachable or app is not installed.
-  const appToken = config.installationId
-    ? await fetchInstallationToken(config.installationId)
-    : null;
-  const writeToken = appToken ?? config.token;
-  if (!writeToken) throw new Error("No token available. Connect Gedonus or enter a PAT.");
+  const writeToken = await resolveWriteToken(config);
 
   const total = versions.length * 2;
   let current = 0;

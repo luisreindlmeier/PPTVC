@@ -331,23 +331,6 @@
                   </span>
                 </div>
                 <div class="pptvc-settings-field">
-                  <label class="pptvc-settings-field-label" for="settings-github-token">
-                    GitHub Token
-                  </label>
-                  <input
-                    id="settings-github-token"
-                    type="password"
-                    class="pptvc-text-input pptvc-settings-input"
-                    placeholder="ghp_xxxxxxxxxxxx"
-                    autocomplete="off"
-                    spellcheck="false"
-                  />
-                  <span class="pptvc-settings-hint">
-                    Optional when Gedonus is connected. Otherwise: Personal Access Token with
-                    <code>repo</code> scope (or fine-grained: Contents read &amp; write).
-                  </span>
-                </div>
-                <div class="pptvc-settings-field">
                   <label class="pptvc-settings-field-label" for="settings-github-repo">
                     Repository
                   </label>
@@ -388,6 +371,9 @@
                 </div>
                 <div id="gedonus-connected" class="pptvc-gedonus-row pptvc-hidden">
                   <span class="pptvc-gedonus-status">Gedonus connected</span>
+                  <button id="btn-gedonus-test-commit" type="button" class="pptvc-btn--link">
+                    Test commit
+                  </button>
                   <button id="btn-gedonus-disconnect" type="button" class="pptvc-btn--link">
                     Disconnect
                   </button>
