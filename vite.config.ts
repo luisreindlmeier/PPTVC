@@ -36,8 +36,8 @@ export default defineConfig({
     outDir: "dist",
     rollupOptions: {
       input: {
-        taskpane: path.resolve(__dirname, "index.html"),
-        commands: path.resolve(__dirname, "src/commands/commands.html"),
+        taskpane: path.resolve(__dirname, "taskpane.html"),
+        commands: path.resolve(__dirname, "commands.html"),
       },
     },
   },
