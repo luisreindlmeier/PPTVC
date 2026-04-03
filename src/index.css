@@ -1,0 +1,242 @@
+@import "tailwindcss";
+
+/* ── Fonts ──────────────────────────────────────────────────── */
+@theme {
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+
+  /* ── Palette (beige / warm brown) ──────────────────────────── */
+  --color-bg: #f0ece3;
+  --color-surface: #f7f4ef;
+  --color-surface-raised: #ffffff;
+  --color-border: #e0d8c8;
+  --color-border-focus: #b8a888;
+  --color-text: #2c2820;
+  --color-text-muted: #7a7060;
+  --color-text-placeholder: #b0a898;
+
+  /* Primary (warm brown) */
+  --color-primary: #5d4e37;
+  --color-primary-hover: #6f5a45;
+  --color-primary-active: #4a3d2c;
+  --color-primary-light: #f0e8df;
+
+  /* Tags */
+  --color-tag-bg: #e6d9cc;
+  --color-tag-text: #3d2f22;
+
+  /* Danger */
+  --color-danger: #b87050;
+  --color-danger-hover: #9a5c40;
+  --color-danger-light: #f5ece6;
+
+  /* Shadows */
+  --shadow-subtle: 0 1px 6px rgba(44, 40, 32, 0.07);
+  --shadow-card: 0 2px 10px rgba(44, 40, 32, 0.1);
+  --shadow-elevated: 0 4px 18px rgba(44, 40, 32, 0.14);
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 7px;
+  --radius-md: 10px;
+  --radius-full: 999px;
+
+  /* Easing */
+  --ease-default: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ── shadcn CSS variable mapping ────────────────────────────── */
+:root {
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
+  --card: var(--color-surface);
+  --card-foreground: var(--color-text);
+  --popover: var(--color-surface-raised);
+  --popover-foreground: var(--color-text);
+  --primary: var(--color-primary);
+  --primary-foreground: #ffffff;
+  --secondary: var(--color-primary-light);
+  --secondary-foreground: var(--color-primary);
+  --muted: var(--color-surface);
+  --muted-foreground: var(--color-text-muted);
+  --accent: var(--color-primary-light);
+  --accent-foreground: var(--color-primary);
+  --destructive: var(--color-danger);
+  --destructive-foreground: #ffffff;
+  --border: var(--color-border);
+  --input: var(--color-border);
+  --ring: var(--color-border-focus);
+  --radius: var(--radius-md);
+}
+
+/* ── Base ────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── App root ───────────────────────────────────────────────── */
+.app-root {
+  font-family: var(--font-sans);
+}
+
+/* ── Sideload message ────────────────────────────────────────── */
+.pptvc-sideload {
+  padding: 20px;
+  color: var(--color-text-muted);
+}
+
+.pptvc-sideload a {
+  color: var(--color-primary);
+}
+
+/* ── Scope tab indicator animation ──────────────────────────── */
+.scope-indicator {
+  transition: transform 0.2s var(--ease-default);
+}
+
+/* ── Version dot timeline line ──────────────────────────────── */
+.versions-timeline::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: var(--color-border);
+}
+
+/* ── Spinner ─────────────────────────────────────────────────── */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+/* ── Scope tab bounce ────────────────────────────────────────── */
+@keyframes tab-bounce {
+  0% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-3px);
+  }
+  70% {
+    transform: translateY(1px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.tab-bounce {
+  animation: tab-bounce 0.3s var(--ease-default);
+}
+
+/* ── Version name inline edit ────────────────────────────────── */
+.version-name-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text);
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  cursor: text;
+}
+
+.version-name-input:focus {
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-xs);
+  padding: 1px 4px;
+  outline: 1px solid var(--color-border-focus);
+}
+
+/* ── Settings hint table ─────────────────────────────────────── */
+.settings-hint-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+.settings-hint-table th {
+  text-align: left;
+  padding: 3px 6px;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 500;
+}
+
+.settings-hint-table td {
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.settings-hint-table code {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  background: var(--color-tag-bg);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* ── Diff comparison select caret ────────────────────────────── */
+.diff-select-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.diff-select-wrap select {
+  appearance: none;
+  width: 100%;
+  padding-right: 28px;
+}
+
+.diff-select-caret {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--color-text-muted);
+  width: 10px;
+  height: 6px;
+}
