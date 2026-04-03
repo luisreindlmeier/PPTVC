@@ -202,11 +202,10 @@ function getAuthorLabel(version: Version): string {
   return versionAuthor || fallbackAuthor || "Unknown";
 }
 
-
 function registerAutoSaveHandler(): void {
   Office.context.document.addHandlerAsync(
-    Office.EventType.DocumentBeforeSave,
-    (eventArgs: Office.DocumentBeforeSaveEventArgs) => {
+    "documentBeforeSave" as unknown as Office.EventType,
+    (eventArgs: { completed: () => void }) => {
       if (!userSettings.autoSaveOnDocumentSave || autoSaveInProgress) {
         eventArgs.completed();
         return;
@@ -904,8 +903,7 @@ function initGitHubSync(): void {
       }
     })();
   });
-
-
+}
 
 // ── Restore ───────────────────────────────────────────────────
 

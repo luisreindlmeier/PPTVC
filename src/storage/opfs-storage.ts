@@ -122,7 +122,7 @@ export class OpfsStorageAdapter implements StorageAdapter {
 
     const entries: string[] = [];
 
-    for await (const [name] of directoryHandle.entries()) {
+    for await (const [name] of directoryHandle as unknown as AsyncIterable<[string, unknown]>) {
       entries.push(name);
     }
 
