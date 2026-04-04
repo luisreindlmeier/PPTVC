@@ -311,7 +311,6 @@ export function App() {
             onViewDiff={(id) => switchTab("diff", id)}
             getVersionName={getVersionName}
             getAuthorLabel={getAuthorLabel}
-            onDisplayedVersionChange={setDisplayedVersionId}
           />
         )}
 
@@ -347,7 +346,7 @@ export function App() {
             role="status"
             aria-live="polite"
             className={[
-              "mx-3 mb-2 px-3 py-2 rounded-[var(--radius-sm)] text-xs font-medium",
+              "mx-3 mb-2 px-3 py-2 rounded-[var(--radius-sm)] text-xs",
               status.isError
                 ? "bg-[var(--color-danger-light)] text-[var(--color-danger)]"
                 : "bg-[var(--color-primary-light)] text-[var(--color-primary)]",

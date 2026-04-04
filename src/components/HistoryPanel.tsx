@@ -22,7 +22,6 @@ interface HistoryPanelProps {
   onViewDiff: (id: string) => void;
   getVersionName: (v: Version) => string;
   getAuthorLabel: (v: Version) => string;
-  onDisplayedVersionChange: (id: string) => void;
 }
 
 export function HistoryPanel({
@@ -38,7 +37,6 @@ export function HistoryPanel({
   onViewDiff,
   getVersionName,
   getAuthorLabel,
-  onDisplayedVersionChange,
 }: HistoryPanelProps) {
   const [saving, setSaving] = useState(false);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
@@ -182,7 +180,6 @@ export function HistoryPanel({
                 isDisplayed={version.id === displayedVersionId}
                 isNewer={displayedIdx !== -1 && idx < displayedIdx}
                 authorLabel={getAuthorLabel(version)}
-                onSelect={() => onDisplayedVersionChange(version.id)}
                 onRestore={() => onRestore(version.id)}
                 onDelete={() => onDelete(version.id)}
                 onUpdateMeta={(opts) => onUpdateMeta(version.id, opts)}
