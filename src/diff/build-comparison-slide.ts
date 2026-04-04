@@ -511,9 +511,9 @@ function getDiffVisual(
 ): DiffVisual | null {
   if (changedIds.has(id)) {
     return {
-      colorHex: "FDBA74", // light orange
+      colorHex: "FCD34D", // slightly yellower orange
       statusText: "Modified",
-      textColorHex: "7C2D12",
+      textColorHex: "C2410C", // orange text
     };
   }
 
@@ -521,15 +521,15 @@ function getDiffVisual(
     return {
       colorHex: "86EFAC", // light green
       statusText: "Added",
-      textColorHex: "14532D",
+      textColorHex: "166534", // dark green, still readable
     };
   }
 
   if (removedIds.has(id)) {
     return {
-      colorHex: "FCA5A5", // light red
+      colorHex: "F87171", // redder (less pink)
       statusText: "Deleted",
-      textColorHex: "7F1D1D",
+      textColorHex: "7A1F2B", // wine red text
     };
   }
 
