@@ -589,52 +589,6 @@ function createOverlayBorderShape(bounds: TransformBounds, colorHex: string, idx
   );
 }
 
-function getObjectNoun(kind: DrawingObjectKind, xml: string): string {
-  if (kind === "graphicFrame") {
-    if (/drawingml\/2006\/table/.test(xml)) {
-      return "table";
-    }
-    if (/drawingml\/2006\/chart/.test(xml)) {
-      return "chart";
-    }
-    if (/drawingml\/2006\/diagram/.test(xml)) {
-      return "diagram";
-    }
-    return "object";
-  }
-
-  if (kind === "pic") {
-    if (/videoFile|\/relationships\/video|\/media\//.test(xml)) {
-      return "video";
-    }
-    if (/audioFile|\/relationships\/audio/.test(xml)) {
-      return "audio";
-    }
-    if (/svgBlip|icon/i.test(xml)) {
-      return "icon";
-    }
-    return "image";
-  }
-
-  if (kind === "cxnSp") {
-    return "connector";
-  }
-
-  if (kind === "grpSp") {
-    return "group";
-  }
-
-  if (kind === "contentPart") {
-    return "embedded object";
-  }
-
-  if (/<a:t>[^<]*<\/a:t>/.test(xml)) {
-    return "text shape";
-  }
-
-  return "shape";
-}
-
 function toEmuNumber(value: string): number {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -648,10 +602,10 @@ function createDiffBadgeShapes(
   idx: number
 ): string {
   const badgeHeight = 203200;
-  // Use a conservative glyph-width estimate for bold text so right padding doesn't collapse.
-  const charWidth = 56000;
-  const inset = 38100;
-  const extraWidth = 76200;
+  // Compact dimensions for short status-only labels.
+  const charWidth = 52000;
+  const inset = 25400;
+  const extraWidth = 25400;
   const estimatedTextWidth = Math.max(228600, labelText.length * charWidth);
   const badgeWidth = estimatedTextWidth + inset * 2 + extraWidth;
   const badgeGap = 38100; // small but visible space between badge and highlight border
@@ -679,7 +633,9 @@ function createDiffBadgeShapes(
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="760" b="1" noProof="1" dirty="0">` +
     `<a:solidFill><a:srgbClr val="${textColorHex}"/></a:solidFill>` +
-    `<a:latin typeface="+mn-lt"/>` +
+    `<a:latin typeface="Geist"/>` +
+    `<a:ea typeface="Geist"/>` +
+    `<a:cs typeface="Geist"/>` +
     `</a:rPr><a:t>${escapeXml(labelText)}</a:t></a:r>` +
     `</a:p>` +
     `</p:txBody>` +
@@ -810,7 +766,7 @@ function applyDiffBorders(
   let overlayIndex = 0;
   const overlays: string[] = [];
 
-  const applyToObject = (xml: string, kind: DrawingObjectKind): string => {
+  const applyToObject = (xml: string): string => {
     const id = extractObjectId(xml);
     if (!id) {
       return xml;
@@ -821,8 +777,7 @@ function applyDiffBorders(
       return xml;
     }
 
-    const noun = getObjectNoun(kind, xml);
-    const badgeText = `${visual.statusText} ${noun}`;
+    const badgeText = visual.statusText.toUpperCase();
     const bounds = extractTransformBounds(xml);
     if (bounds) {
       overlayIndex += 1;
@@ -850,7 +805,7 @@ function applyDiffBorders(
 
   let updatedSpTree = spTreeContent;
   for (const pattern of DIFF_OBJECT_PATTERNS) {
-    updatedSpTree = updatedSpTree.replace(pattern.regex, (xml) => applyToObject(xml, pattern.kind));
+    updatedSpTree = updatedSpTree.replace(pattern.regex, applyToObject);
   }
 
   return overlays.length > 0 ? `${updatedSpTree}${overlays.join("")}` : updatedSpTree;
