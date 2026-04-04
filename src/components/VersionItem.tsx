@@ -232,7 +232,7 @@ export function VersionItem({
 
         {/* Delete confirm popup */}
         {showDeleteConfirm && (
-          <div className="mt-2 p-2.5 rounded-[var(--radius-sm)] bg-[var(--color-danger-light)] border border-[var(--color-danger)]/20">
+          <div className="absolute left-6 right-0 top-7 z-40 p-2.5 rounded-[var(--radius-sm)] bg-[var(--color-danger-light)] border border-[var(--color-danger)]/20 shadow-[var(--shadow-card)]">
             <p className="text-[11px] text-[var(--color-text)] mb-2">Delete this version?</p>
             <div className="flex gap-2">
               <Button
@@ -260,7 +260,7 @@ export function VersionItem({
 
         {/* Restore confirm popup */}
         {showRestoreConfirm && (
-          <div className="mt-2 p-2.5 rounded-[var(--radius-sm)] bg-[var(--color-primary-light)] border border-[var(--color-border)]">
+          <div className="absolute left-6 right-0 top-7 z-40 p-2.5 rounded-[var(--radius-sm)] bg-[var(--color-primary-light)] border border-[var(--color-border)] shadow-[var(--shadow-card)]">
             <p className="text-[11px] text-[var(--color-text)] mb-2">Restore this version?</p>
             <div className="flex gap-2">
               <Button
