@@ -63,6 +63,7 @@ export function App() {
   const [status, setStatus] = useState<StatusMessage | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [diffPreselectedId, setDiffPreselectedId] = useState<string | undefined>();
+  const [hasActiveDiffComparison, setHasActiveDiffComparison] = useState(false);
   const autoSaveInProgress = useRef(false);
   const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -316,7 +317,8 @@ export function App() {
         )}
 
         {/* ── Diff ─────────────────────────────────────────────── */}
-        {currentTab === "diff" && (
+        {(currentTab === "diff" || hasActiveDiffComparison) && (
+          <div className={currentTab === "diff" ? "flex-1 min-h-0" : "hidden"}>
           <DiffPanel
             versions={versions}
             currentSlide={currentSlide}
@@ -331,7 +333,9 @@ export function App() {
             formatTimestamp={formatTimestamp}
             getAuthorLabel={getAuthorLabel}
             showStatus={showStatus}
+            onComparisonActiveChange={setHasActiveDiffComparison}
           />
+          </div>
         )}
 
         {/* ── Workflow ─────────────────────────────────────────── */}

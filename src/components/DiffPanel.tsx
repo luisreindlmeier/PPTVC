@@ -39,6 +39,7 @@ interface DiffPanelProps {
   formatTimestamp: (ts: number) => string;
   getAuthorLabel: (v: Version) => string;
   showStatus: (msg: string, isError: boolean) => void;
+  onComparisonActiveChange?: (active: boolean) => void;
 }
 
 type ChangeFilter = "all" | "style" | "content";
@@ -63,6 +64,7 @@ export function DiffPanel({
   formatTimestamp,
   getAuthorLabel,
   showStatus,
+  onComparisonActiveChange,
 }: DiffPanelProps) {
   const [fromId, setFromId] = useState<string>("");
   const [toId, setToId] = useState<string>("");
@@ -104,6 +106,10 @@ export function DiffPanel({
       }
     })();
   }, [currentSlide.num, showStatus]);
+
+  useEffect(() => {
+    onComparisonActiveChange?.(activeComparison !== null);
+  }, [activeComparison, onComparisonActiveChange]);
 
   if (versions.length < 2) {
     return (
