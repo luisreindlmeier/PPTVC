@@ -397,7 +397,7 @@ function buildBgRect(size: SlideSize): string {
     `<a:ln><a:noFill/></a:ln>` +
     `<a:effectLst>` +
     `<a:outerShdw blurRad="76200" dist="25400" dir="5400000" algn="ctr" rotWithShape="0">` +
-    `<a:srgbClr val="2C2820"><a:alpha val="10000"/></a:srgbClr>` +
+    `<a:srgbClr val="000000"><a:alpha val="8000"/></a:srgbClr>` +
     `</a:outerShdw>` +
     `</a:effectLst>` +
     `</p:spPr>` +
@@ -407,9 +407,9 @@ function buildBgRect(size: SlideSize): string {
 }
 
 /**
- * Full-width beige panel between the main slide and the comparison area.
+ * Full-width neutral panel between the main slide and the comparison area.
  * Contains a "Comparing" headline with a horizontal divider, then two version
- * chips (from = muted, to = highlighted brown) — read-only, all shapes locked.
+ * chips (from = muted, to = highlighted black) — read-only, all shapes locked.
  */
 function buildLabelShape(
   size: SlideSize,
@@ -449,7 +449,7 @@ function buildLabelShape(
 
   const spLocks = `<a:spLocks noSelect="1" noMove="1" noResize="1" noTextEdit="1"/>`;
 
-  // Background panel — beige fill, full slide width
+  // Background panel — soft neutral fill, full slide width
   const bg =
     `<p:sp>` +
     `<p:nvSpPr><p:cNvPr id="9910" name="GEDONUS_PANEL_BG"/>` +
@@ -457,8 +457,8 @@ function buildLabelShape(
     `<p:spPr>` +
     `<a:xfrm><a:off x="0" y="${groupY}"/><a:ext cx="${size.cx}" cy="${LABEL_HEIGHT}"/></a:xfrm>` +
     `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
-    `<a:solidFill><a:srgbClr val="F3EDE2"/></a:solidFill>` +
-    `<a:ln><a:noFill/></a:ln>` +
+    `<a:solidFill><a:srgbClr val="F5F5F5"/></a:solidFill>` +
+    `<a:ln w="12700"><a:solidFill><a:srgbClr val="E5E5E5"/></a:solidFill></a:ln>` +
     `</p:spPr>` +
     `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>` +
     `</p:sp>`;
@@ -478,7 +478,7 @@ function buildLabelShape(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="1300" b="1" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="171717"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>Comparing</a:t></a:r>` +
     `</a:p></p:txBody>` +
@@ -492,13 +492,13 @@ function buildLabelShape(
     `<p:spPr>` +
     `<a:xfrm><a:off x="${dividerX}" y="${dividerY}"/><a:ext cx="${dividerW}" cy="${dividerH}"/></a:xfrm>` +
     `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
-    `<a:solidFill><a:srgbClr val="D4C9B8"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="D4D4D4"/></a:solidFill>` +
     `<a:ln><a:noFill/></a:ln>` +
     `</p:spPr>` +
     `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>` +
     `</p:sp>`;
 
-  // From-version chip — white with muted border, grey text
+  // From-version chip — white with neutral border, muted text
   const fromBox =
     `<p:sp>` +
     `<p:nvSpPr><p:cNvPr id="9913" name="GEDONUS_FROM_BOX"/>` +
@@ -507,14 +507,14 @@ function buildLabelShape(
     `<a:xfrm><a:off x="${box1X}" y="${versionRowY}"/><a:ext cx="${boxW}" cy="${PANEL_VERSION_H}"/></a:xfrm>` +
     `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 12500"/></a:avLst></a:prstGeom>` +
     `<a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>` +
-    `<a:ln w="19050"><a:solidFill><a:srgbClr val="D4C9B8"/></a:solidFill></a:ln>` +
+    `<a:ln w="12700"><a:solidFill><a:srgbClr val="D4D4D4"/></a:solidFill></a:ln>` +
     `</p:spPr>` +
     `<p:txBody>` +
     `<a:bodyPr anchor="ctr" lIns="101600" rIns="101600" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="950" b="0" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="737373"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>${escapeXml(fromName)}</a:t></a:r>` +
     `</a:p></p:txBody>` +
@@ -535,13 +535,13 @@ function buildLabelShape(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="ctr"/>` +
     `<a:r><a:rPr lang="en-US" sz="1300" b="1" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="737373"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>&#x2192;</a:t></a:r>` +
     `</a:p></p:txBody>` +
     `</p:sp>`;
 
-  // To-version chip — brown fill, cream text (highlighted as current)
+  // To-version chip — black fill, white text (highlighted as current)
   const toBox =
     `<p:sp>` +
     `<p:nvSpPr><p:cNvPr id="9915" name="GEDONUS_TO_BOX"/>` +
@@ -549,7 +549,7 @@ function buildLabelShape(
     `<p:spPr>` +
     `<a:xfrm><a:off x="${box2X}" y="${versionRowY}"/><a:ext cx="${boxW}" cy="${PANEL_VERSION_H}"/></a:xfrm>` +
     `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 12500"/></a:avLst></a:prstGeom>` +
-    `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="171717"/></a:solidFill>` +
     `<a:ln><a:noFill/></a:ln>` +
     `</p:spPr>` +
     `<p:txBody>` +
@@ -557,7 +557,7 @@ function buildLabelShape(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="950" b="0" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="F7F4EF"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>${escapeXml(toName)}</a:t></a:r>` +
     `</a:p></p:txBody>` +
@@ -577,7 +577,7 @@ function buildLabelShape(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="950" b="1" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="525252"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>Below</a:t></a:r>` +
     `</a:p></p:txBody>` +
@@ -597,7 +597,7 @@ function buildLabelShape(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="950" b="1" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="525252"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>Above</a:t></a:r>` +
     `</a:p></p:txBody>` +
@@ -617,7 +617,7 @@ function buildLabelShape(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="r"/>` +
     `<a:r><a:rPr lang="en-US" sz="1000" b="0" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="737373"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>${escapeXml(toTimestamp)}</a:t></a:r>` +
     `</a:p></p:txBody>` +
@@ -637,7 +637,7 @@ function buildLabelShape(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="r"/>` +
     `<a:r><a:rPr lang="en-US" sz="900" b="0" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="737373"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>Author: ${escapeXml(toAuthor)}</a:t></a:r>` +
     `</a:p></p:txBody>` +
