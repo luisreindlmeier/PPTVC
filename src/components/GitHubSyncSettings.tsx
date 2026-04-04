@@ -242,7 +242,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
         </div>
       ) : (
         <div className="flex items-center justify-between text-[11px]">
-          <span className="text-[var(--color-primary)] font-medium">Gedonus connected</span>
+          <span className="text-[var(--color-primary)]">Gedonus connected</span>
           <div className="flex gap-2">
             <button
               type="button"

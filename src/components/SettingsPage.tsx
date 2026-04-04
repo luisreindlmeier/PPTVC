@@ -34,7 +34,7 @@ interface SettingsPageProps {
 function SectionHeader({ label, tooltip }: { label: string; tooltip?: string }) {
   return (
     <div className="flex items-center gap-2 mb-2">
-      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] whitespace-nowrap">
+      <h3 className="text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] whitespace-nowrap">
         {label}
       </h3>
       <div className="flex-1 h-px bg-[var(--color-border)]" />
@@ -126,7 +126,7 @@ export function SettingsPage({
         >
           <IconChevronLeft className="w-4 h-4 text-[var(--color-text-muted)]" />
         </button>
-        <h2 className="text-[13px] font-semibold text-[var(--color-text)]">Settings</h2>
+        <h2 className="text-[13px] text-[var(--color-text)]">Settings</h2>
       </header>
 
       {/* Tab bar */}
@@ -151,7 +151,7 @@ export function SettingsPage({
               aria-selected={activeTab === tab.id}
               onClick={() => void handleTabClick(tab.id)}
               className={cn(
-                "relative flex-1 z-10 px-1 py-1 text-[10px] font-medium rounded-[var(--radius-xs)] transition-colors cursor-pointer",
+                "relative flex-1 z-10 px-1 py-1 text-[10px] rounded-[var(--radius-xs)] transition-colors cursor-pointer",
                 activeTab === tab.id
                   ? "text-[var(--color-text)]"
                   : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
@@ -245,7 +245,7 @@ export function SettingsPage({
               />
               <div className="flex items-center justify-between text-[12px]">
                 <span className="text-[var(--color-text-muted)]">Used</span>
-                <span className="font-medium text-[var(--color-text)]">{storageText}</span>
+                <span className="text-[var(--color-text)]">{storageText}</span>
               </div>
             </div>
 

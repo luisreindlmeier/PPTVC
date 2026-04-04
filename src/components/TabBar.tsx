@@ -46,7 +46,7 @@ export function TabBar({ currentTab, onTabChange }: TabBarProps) {
             aria-selected={currentTab === tab.id}
             onClick={() => handleClick(tab.id)}
             className={cn(
-              "relative flex-1 z-10 px-2 py-1 text-[11px] font-medium rounded-[var(--radius-xs)] transition-colors duration-150 cursor-pointer",
+              "relative flex-1 z-10 px-2 py-1 text-[11px] rounded-[var(--radius-xs)] transition-colors duration-150 cursor-pointer",
               currentTab === tab.id
                 ? "text-[var(--color-text)]"
                 : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
