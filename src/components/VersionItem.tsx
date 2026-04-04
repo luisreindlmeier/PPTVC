@@ -102,7 +102,10 @@ export function VersionItem({
 
   return (
     <li
-      className={cn("relative pl-6 pb-3 group", isNewer && "opacity-60")}
+      className={cn(
+        "relative pl-6 pb-3 group transition-transform duration-150 ease-out hover:translate-x-px",
+        isNewer && "opacity-60"
+      )}
       data-version-id={version.id}
     >
       {/* Timeline dot */}
@@ -177,7 +180,7 @@ export function VersionItem({
       {/* Author row */}
       <div className="flex items-center gap-1.5 mt-1">
         <div
-          className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0"
+          className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] text-white shrink-0"
           style={{ background: authorColor(authorLabel) }}
           aria-hidden="true"
         >
@@ -227,9 +230,7 @@ export function VersionItem({
       {/* Delete confirm popup */}
       {showDeleteConfirm && (
         <div className="mt-2 p-2.5 rounded-[var(--radius-sm)] bg-[var(--color-danger-light)] border border-[var(--color-danger)]/20">
-          <p className="text-[11px] font-medium text-[var(--color-text)] mb-2">
-            Delete this version?
-          </p>
+          <p className="text-[11px] text-[var(--color-text)] mb-2">Delete this version?</p>
           <div className="flex gap-2">
             <Button
               variant="outline"
