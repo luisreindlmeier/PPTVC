@@ -519,7 +519,7 @@ function getDiffVisual(
 
   if (addedIds.has(id)) {
     return {
-      colorHex: "86EFAC", // light green
+      colorHex: "4ADE80", // slightly darker light green
       statusText: "Added",
       textColorHex: "FFFFFF",
     };
