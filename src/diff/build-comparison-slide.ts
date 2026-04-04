@@ -604,7 +604,7 @@ function createDiffBadgeShapes(
   const badgeHeight = 203200;
   // Compact dimensions for short status-only labels.
   const charWidth = 52000;
-  const inset = 25400;
+  const inset = 50800;
   const extraWidth = 25400;
   const estimatedTextWidth = Math.max(228600, labelText.length * charWidth);
   const badgeWidth = estimatedTextWidth + inset * 2 + extraWidth;

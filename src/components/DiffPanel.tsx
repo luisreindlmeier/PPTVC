@@ -279,7 +279,7 @@ export function DiffPanel({
               size="sm"
               onClick={() => void handleClear()}
               disabled={clearing}
-              className="w-full mt-1 cursor-pointer"
+              className="w-full mt-1 cursor-pointer border-black"
             >
               {clearing ? "Exiting..." : "Exit Comparison Mode"}
             </Button>
