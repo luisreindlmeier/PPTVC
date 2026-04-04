@@ -2,19 +2,20 @@
 
 import JSZip from "jszip";
 import { createStorageAdapter } from "../storage";
+import { getVersionRootPath } from "./document-scope";
 
-const VERSION_ROOT_PATH = "versions";
 const SNAPSHOT_FILE_NAME = "snapshot.pptx";
 const METADATA_FILE_NAME = "metadata.json";
 
 export async function exportVersionsZip(): Promise<Blob> {
   const storage = createStorageAdapter();
-  const versionIds = await storage.listDirectory(VERSION_ROOT_PATH);
+  const versionRootPath = await getVersionRootPath();
+  const versionIds = await storage.listDirectory(versionRootPath);
   const zip = new JSZip();
 
   for (const id of versionIds) {
-    const snapshotPath = `${VERSION_ROOT_PATH}/${id}/${SNAPSHOT_FILE_NAME}`;
-    const metadataPath = `${VERSION_ROOT_PATH}/${id}/${METADATA_FILE_NAME}`;
+    const snapshotPath = `${versionRootPath}/${id}/${SNAPSHOT_FILE_NAME}`;
+    const metadataPath = `${versionRootPath}/${id}/${METADATA_FILE_NAME}`;
 
     try {
       const [snapshotBlob, metadataBlob] = await Promise.all([

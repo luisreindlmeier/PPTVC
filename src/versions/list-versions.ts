@@ -1,18 +1,19 @@
 import { createStorageAdapter } from "../storage";
+import { getVersionRootPath } from "./document-scope";
 import type { Version, VersionSnapshotMetadata } from "./types";
 
-const VERSION_ROOT_PATH = "versions";
 const SNAPSHOT_FILE_NAME = "snapshot.pptx";
 const METADATA_FILE_NAME = "metadata.json";
 
 export async function listVersions(): Promise<Version[]> {
   const storage = createStorageAdapter();
-  const versionIds = await storage.listDirectory(VERSION_ROOT_PATH);
+  const versionRootPath = await getVersionRootPath();
+  const versionIds = await storage.listDirectory(versionRootPath);
   const versions: Version[] = [];
 
   for (const id of versionIds) {
-    const metadataPath = `${VERSION_ROOT_PATH}/${id}/${METADATA_FILE_NAME}`;
-    const snapshotPath = `${VERSION_ROOT_PATH}/${id}/${SNAPSHOT_FILE_NAME}`;
+    const metadataPath = `${versionRootPath}/${id}/${METADATA_FILE_NAME}`;
+    const snapshotPath = `${versionRootPath}/${id}/${SNAPSHOT_FILE_NAME}`;
 
     try {
       const metadata = await storage.readJson<VersionSnapshotMetadata>(metadataPath);

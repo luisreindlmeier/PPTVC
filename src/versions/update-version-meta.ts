@@ -1,7 +1,7 @@
 import { createStorageAdapter } from "../storage";
+import { getVersionRootPath } from "./document-scope";
 import type { UpdateVersionMetaOptions, VersionSnapshotMetadata } from "./types";
 
-const VERSION_ROOT_PATH = "versions";
 const METADATA_FILE_NAME = "metadata.json";
 
 export async function updateVersionMeta(
@@ -9,7 +9,8 @@ export async function updateVersionMeta(
   options: UpdateVersionMetaOptions
 ): Promise<void> {
   const storage = createStorageAdapter();
-  const metadataPath = `${VERSION_ROOT_PATH}/${id}/${METADATA_FILE_NAME}`;
+  const versionRootPath = await getVersionRootPath();
+  const metadataPath = `${versionRootPath}/${id}/${METADATA_FILE_NAME}`;
   const metadata = await storage.readJson<VersionSnapshotMetadata>(metadataPath);
 
   if (options.displayName !== undefined) {
