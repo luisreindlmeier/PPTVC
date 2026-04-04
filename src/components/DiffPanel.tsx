@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import type { Version } from "../versions";
 import type { SlideInfo } from "../App";
 import { Button } from "./ui/button";
+import { Switch } from "./ui/switch";
 
 interface ActiveComparison {
   fromVersion: Version;
@@ -244,14 +245,6 @@ export function DiffPanel({
               <span className="uppercase tracking-wide text-[10px] text-[#52525b]">
                 Active comparison — slide {activeComparison.slideNum}
               </span>
-              <Button
-                type="button"
-                onClick={() => void handleClear()}
-                disabled={clearing}
-                className="h-6 px-2 text-[10px] bg-[#ffffff] hover:bg-[#f4f4f5] text-[#18181b] border border-[#a1a1aa] cursor-pointer"
-              >
-                {clearing ? "Exiting..." : "Exit Comparison Mode"}
-              </Button>
             </div>
             <div className="flex items-center gap-1.5 text-[#27272a]">
               <span className="truncate max-w-[100px]">
@@ -262,26 +255,34 @@ export function DiffPanel({
                 {getVersionName(activeComparison.toVersion)}
               </span>
             </div>
-            <label className="flex items-center justify-between gap-2 text-[11px] text-[#3f3f46] mt-0.5">
+            <label className="flex items-center justify-between gap-2 text-[11px] text-[#3f3f46] mt-0.5 cursor-pointer">
               <span>Highlight diffs</span>
-              <input
-                type="checkbox"
+              <Switch
                 checked={highlightDiffs}
-                onChange={(e) => {
-                  const nextValue = e.target.checked;
+                onCheckedChange={(nextValue) => {
                   setHighlightDiffs(nextValue);
                   const current = activeComparisonRef.current;
                   if (current) {
                     void runComparison(current.fromVersion, current.toVersion, nextValue);
                   }
                 }}
-                className="h-4 w-4 cursor-pointer"
+                className="data-[state=checked]:bg-[var(--color-primary)]"
                 aria-label="Toggle diff highlights"
               />
             </label>
             <p className="text-[#71717a] text-[10px] leading-snug mt-0.5">
               Scroll down on slide {activeComparison.slideNum} to see the diff below it.
             </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void handleClear()}
+              disabled={clearing}
+              className="w-full mt-1 cursor-pointer"
+            >
+              {clearing ? "Exiting..." : "Exit Comparison Mode"}
+            </Button>
           </div>
         </section>
       )}
