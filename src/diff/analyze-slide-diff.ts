@@ -201,6 +201,11 @@ function kindLabel(kind: DiffObjectKind): string {
   return "object";
 }
 
+function kindLabelTitle(kind: DiffObjectKind): string {
+  const label = kindLabel(kind);
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
+}
+
 function limit(items: DiffChange[], max: number, category: DiffChangeCategory): DiffChange[] {
   if (items.length <= max) {
     return items;
@@ -242,7 +247,7 @@ export async function analyzeSlideDiff(
   const toSlide = toSlides[slideIndex];
   const fromSlide = fromSlides[slideIndex];
   if (!toSlide || !fromSlide) {
-    return { styleChanges: [], contentChanges: [] };
+    return { styleChanges: [], contentChanges: [], allChanges: [] };
   }
 
   const [toSlideXml, fromSlideXml] = await Promise.all([
@@ -265,7 +270,7 @@ export async function analyzeSlideDiff(
       contentChanges.push({
         id,
         category: "content",
-        description: `Added ${kindLabel(toObj.kind)}: ${toObj.name}`,
+        description: `Added ${kindLabel(toObj.kind)}`,
       });
       continue;
     }
@@ -274,7 +279,7 @@ export async function analyzeSlideDiff(
       contentChanges.push({
         id,
         category: "content",
-        description: `Deleted ${kindLabel(fromObj.kind)}: ${fromObj.name}`,
+        description: `Deleted ${kindLabel(fromObj.kind)}`,
       });
       continue;
     }
@@ -287,7 +292,7 @@ export async function analyzeSlideDiff(
       styleChanges.push({
         id,
         category: "style",
-        description: `${toObj.name}: position/appearance changed`,
+        description: `${kindLabelTitle(toObj.kind)} appearance changed`,
       });
     }
 
@@ -295,7 +300,7 @@ export async function analyzeSlideDiff(
       contentChanges.push({
         id,
         category: "content",
-        description: `${toObj.name}: content changed`,
+        description: `${kindLabelTitle(toObj.kind)} content changed`,
       });
     }
   }

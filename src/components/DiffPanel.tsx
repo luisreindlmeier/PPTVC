@@ -4,6 +4,7 @@ import type { SlideInfo } from "../App";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Switch } from "./ui/switch";
+import { IconDocumentText, IconSwatch } from "./icons";
 import type { DiffChange, SlideDiffSummary } from "../diff/analyze-slide-diff";
 
 interface ActiveComparison {
@@ -227,14 +228,16 @@ export function DiffPanel({
     });
   };
 
-  const getChangeBadge = (category: DiffChange["category"]): { label: string; variant: "outline" | "secondary" } => {
+  const getChangeBadge = (
+    category: DiffChange["category"]
+  ): { icon: typeof IconSwatch; variant: "outline" | "secondary"; ariaLabel: string } => {
     if (category === "style") {
-      return { label: "Style", variant: "outline" };
+      return { icon: IconSwatch, variant: "outline", ariaLabel: "Style change" };
     }
     if (category === "content") {
-      return { label: "Content", variant: "secondary" };
+      return { icon: IconDocumentText, variant: "secondary", ariaLabel: "Content change" };
     }
-    return { label: "Change", variant: "outline" };
+    return { icon: IconSwatch, variant: "outline", ariaLabel: "Change" };
   };
 
   return (
@@ -379,6 +382,7 @@ export function DiffPanel({
                   {displayedChanges.map((change, index) => {
                     const isFocused = selectedChangeId === change.id;
                     const categoryBadge = getChangeBadge(change.category);
+                    const CategoryIcon = categoryBadge.icon;
                     return (
                       <li
                         key={`${change.category}-${change.id}-${index}`}
@@ -394,9 +398,11 @@ export function DiffPanel({
                         <div className="flex items-start gap-2">
                           <Badge
                             variant={categoryBadge.variant}
-                            className="mt-0.5 min-w-[54px] justify-center px-1.5 py-0 text-[9px] uppercase tracking-wide"
+                            className="mt-0.5 h-4 w-6 justify-center px-0"
+                            aria-label={categoryBadge.ariaLabel}
+                            title={categoryBadge.ariaLabel}
                           >
-                            {categoryBadge.label}
+                            <CategoryIcon className="h-2.5 w-2.5" />
                           </Badge>
                           <span className="text-[10px] leading-snug text-[var(--color-text)]">
                             {change.description}

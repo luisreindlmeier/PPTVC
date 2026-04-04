@@ -167,3 +167,45 @@ export function IconArrowRight({ className, ...props }: IconProps) {
     </svg>
   );
 }
+
+export function IconSwatch({ className, ...props }: IconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      strokeWidth="1.5"
+      className={cn(base, className)}
+      aria-hidden={props["aria-hidden"] ?? true}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M4.098 19.902a3.75 3.75 0 0 1 0-5.304l7.705-7.705a3.75 3.75 0 1 1 5.304 5.304l-7.705 7.705a3.75 3.75 0 0 1-5.304 0Z"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15.75h.008v.008H8.25v-.008Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 12.75h.008v.008h-.008v-.008Z" />
+    </svg>
+  );
+}
+
+export function IconDocumentText({ className, ...props }: IconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      strokeWidth="1.5"
+      className={cn(base, className)}
+      aria-hidden={props["aria-hidden"] ?? true}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M19.5 14.25V8.25a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 6 8.25v7.5A2.25 2.25 0 0 0 8.25 18h7.5"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75h6" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 12.75h6" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 15.75h3" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.5 18 16.5m0 0 3 3m-3-3v6" />
+    </svg>
+  );
+}
