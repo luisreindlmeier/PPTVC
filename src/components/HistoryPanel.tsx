@@ -105,7 +105,7 @@ export function HistoryPanel({
             aria-expanded={tagPickerOpen}
             aria-label="Add tags"
             className={cn(
-              "h-7 w-7 flex items-center justify-center rounded-md border text-[var(--color-text-muted)] transition-colors cursor-pointer shrink-0",
+              "h-7 w-7 flex items-center justify-center rounded-[var(--radius-sm)] border text-[var(--color-text-muted)] transition-colors cursor-pointer shrink-0",
               tagPickerOpen
                 ? "border-[var(--color-primary)] bg-[var(--color-primary-light)] text-[var(--color-primary)]"
                 : "border-[var(--color-border)] bg-[var(--color-surface-raised)] hover:border-[var(--color-border-focus)]"

@@ -2,42 +2,42 @@
 
 /* ── Fonts ──────────────────────────────────────────────────── */
 @theme {
-  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-sans: "Geist", system-ui, -apple-system, sans-serif;
 
-  /* ── Palette (beige / warm brown) ──────────────────────────── */
-  --color-bg: #f0ece3;
-  --color-surface: #f7f4ef;
+  /* ── Palette (black / white) ────────────────────────────────── */
+  --color-bg: #ffffff;
+  --color-surface: #f5f5f5;
   --color-surface-raised: #ffffff;
-  --color-border: #e0d8c8;
-  --color-border-focus: #b8a888;
-  --color-text: #2c2820;
-  --color-text-muted: #7a7060;
-  --color-text-placeholder: #b0a898;
+  --color-border: #e5e5e5;
+  --color-border-focus: #000000;
+  --color-text: #000000;
+  --color-text-muted: #737373;
+  --color-text-placeholder: #a3a3a3;
 
-  /* Primary (warm brown) */
-  --color-primary: #5d4e37;
-  --color-primary-hover: #6f5a45;
-  --color-primary-active: #4a3d2c;
-  --color-primary-light: #f0e8df;
+  /* Primary (black) */
+  --color-primary: #000000;
+  --color-primary-hover: #262626;
+  --color-primary-active: #000000;
+  --color-primary-light: #f5f5f5;
 
   /* Tags */
-  --color-tag-bg: #e6d9cc;
-  --color-tag-text: #3d2f22;
+  --color-tag-bg: #ebebeb;
+  --color-tag-text: #000000;
 
   /* Danger */
-  --color-danger: #b87050;
-  --color-danger-hover: #9a5c40;
-  --color-danger-light: #f5ece6;
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-danger-light: #fef2f2;
 
   /* Shadows */
-  --shadow-subtle: 0 1px 6px rgba(44, 40, 32, 0.07);
-  --shadow-card: 0 2px 10px rgba(44, 40, 32, 0.1);
-  --shadow-elevated: 0 4px 18px rgba(44, 40, 32, 0.14);
+  --shadow-subtle: 0 1px 6px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.08);
+  --shadow-elevated: 0 4px 18px rgba(0, 0, 0, 0.12);
 
   /* Radius */
-  --radius-xs: 4px;
-  --radius-sm: 7px;
-  --radius-md: 10px;
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius-md: 7px;
   --radius-full: 999px;
 
   /* Easing */
@@ -89,6 +89,7 @@ body {
   color: var(--color-text);
   font-family: var(--font-sans);
   font-size: 13px;
+  font-weight: 400;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -102,6 +103,11 @@ ul {
 /* ── App root ───────────────────────────────────────────────── */
 .app-root {
   font-family: var(--font-sans);
+}
+
+.header-slogan {
+  font-family: "Crimson Text", Georgia, "Times New Roman", serif;
+  font-weight: 400;
 }
 
 /* ── Sideload message ────────────────────────────────────────── */
@@ -174,7 +180,7 @@ ul {
   outline: none;
   font-family: var(--font-sans);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--color-text);
   width: 100%;
   min-width: 0;
@@ -202,7 +208,7 @@ ul {
   padding: 3px 6px;
   color: var(--color-text-muted);
   border-bottom: 1px solid var(--color-border);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .settings-hint-table td {
