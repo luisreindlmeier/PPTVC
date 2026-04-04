@@ -511,9 +511,9 @@ function getDiffVisual(
 ): DiffVisual | null {
   if (changedIds.has(id)) {
     return {
-      colorHex: "FDE047", // slightly more yellow
+      colorHex: "FBBF24", // amber, less red
       statusText: "Modified",
-      textColorHex: "EA580C", // stronger orange text
+      textColorHex: "D97706", // orange text, less red
     };
   }
 
