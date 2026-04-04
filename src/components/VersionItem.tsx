@@ -39,7 +39,8 @@ interface VersionItemProps {
   isDisplayed: boolean;
   isNewer: boolean;
   authorLabel: string;
-  onRestore: () => Promise<void>;
+  isRestoring: boolean;
+  onRequestRestore: () => void;
   onDelete: () => Promise<void>;
   onUpdateMeta: (opts: { displayName?: string; tags?: string[] }) => Promise<void>;
   onViewDiff: () => void;
@@ -51,7 +52,8 @@ export function VersionItem({
   isDisplayed,
   isNewer,
   authorLabel,
-  onRestore,
+  isRestoring,
+  onRequestRestore,
   onDelete,
   onUpdateMeta,
   onViewDiff,
@@ -60,8 +62,6 @@ export function VersionItem({
   const [name, setName] = useState(version.displayName ?? version.name);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
-  const [restoring, setRestoring] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
 
   const availableTags = getAvailableTags(settings).filter((t) => !tags.includes(t));
@@ -90,21 +90,6 @@ export function VersionItem({
     void onUpdateMeta({ tags: next });
   };
 
-  const handleRestore = async () => {
-    setRestoring(true);
-    try {
-      await onRestore();
-      setShowRestoreConfirm(false);
-    } finally {
-      setRestoring(false);
-    }
-  };
-
-  const askRestoreConfirm = () => {
-    setShowDeleteConfirm(false);
-    setShowRestoreConfirm(true);
-  };
-
   return (
     <li
       className={cn("relative pl-6 pb-3 group", isNewer && "opacity-60")}
@@ -114,7 +99,7 @@ export function VersionItem({
       <button
         type="button"
         aria-label={`Restore ${name}`}
-        onClick={askRestoreConfirm}
+        onClick={onRequestRestore}
         className={cn(
           "absolute left-0 top-1 w-3.5 h-3.5 rounded-full border-2 transition-all cursor-pointer",
           isDisplayed
@@ -145,13 +130,13 @@ export function VersionItem({
           </button>
           <button
             type="button"
-            onClick={askRestoreConfirm}
-            disabled={restoring}
+            onClick={onRequestRestore}
+            disabled={isRestoring}
             title="Restore this version"
             aria-label="Restore this version"
             className="p-1 rounded hover:bg-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors cursor-pointer disabled:opacity-50"
           >
-            <IconRestore className="w-3.5 h-3.5" />
+            {isRestoring ? <span className="btn-spinner" aria-hidden="true" /> : <IconRestore className="w-3.5 h-3.5" />}
           </button>
           <button
             type="button"
@@ -232,7 +217,7 @@ export function VersionItem({
 
         {/* Delete confirm popup */}
         {showDeleteConfirm && (
-          <div className="absolute left-6 right-0 top-7 z-40 p-2.5 rounded-[var(--radius-sm)] bg-[var(--color-danger-light)] border border-[var(--color-danger)]/20 shadow-[var(--shadow-card)]">
+          <div className="mt-2 p-2.5 rounded-[var(--radius-sm)] bg-[var(--color-danger-light)] border border-[var(--color-danger)]/20">
             <p className="text-[11px] text-[var(--color-text)] mb-2">Delete this version?</p>
             <div className="flex gap-2">
               <Button
@@ -253,31 +238,6 @@ export function VersionItem({
                 className="flex-1 text-[11px] h-6 bg-[var(--color-danger)] hover:bg-[var(--color-danger-hover)]"
               >
                 Delete
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Restore confirm popup */}
-        {showRestoreConfirm && (
-          <div className="absolute left-6 right-0 top-7 z-40 p-2.5 rounded-[var(--radius-sm)] bg-[var(--color-primary-light)] border border-[var(--color-border)] shadow-[var(--shadow-card)]">
-            <p className="text-[11px] text-[var(--color-text)] mb-2">Restore this version?</p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="xs"
-                onClick={() => setShowRestoreConfirm(false)}
-                className="flex-1 text-[11px] h-6"
-              >
-                Cancel
-              </Button>
-              <Button
-                size="xs"
-                onClick={() => void handleRestore()}
-                disabled={restoring}
-                className="flex-1 text-[11px] h-6 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white"
-              >
-                {restoring ? <span className="btn-spinner" aria-hidden="true" /> : "Restore"}
               </Button>
             </div>
           </div>

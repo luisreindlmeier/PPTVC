@@ -40,6 +40,10 @@ export function HistoryPanel({
 }: HistoryPanelProps) {
   const [saving, setSaving] = useState(false);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
+  const [restoreCandidate, setRestoreCandidate] = useState<{ id: string; name: string } | null>(
+    null
+  );
+  const [restoringId, setRestoringId] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const isDirty = useRef(false);
 
@@ -72,6 +76,17 @@ export function HistoryPanel({
   };
 
   const displayedIdx = versions.findIndex((v) => v.id === displayedVersionId);
+
+  const handleConfirmRestore = async () => {
+    if (!restoreCandidate) return;
+    setRestoringId(restoreCandidate.id);
+    try {
+      await onRestore(restoreCandidate.id);
+      setRestoreCandidate(null);
+    } finally {
+      setRestoringId(null);
+    }
+  };
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -180,7 +195,10 @@ export function HistoryPanel({
                 isDisplayed={version.id === displayedVersionId}
                 isNewer={displayedIdx !== -1 && idx < displayedIdx}
                 authorLabel={getAuthorLabel(version)}
-                onRestore={() => onRestore(version.id)}
+                isRestoring={restoringId === version.id}
+                onRequestRestore={() =>
+                  setRestoreCandidate({ id: version.id, name: getVersionName(version) })
+                }
                 onDelete={() => onDelete(version.id)}
                 onUpdateMeta={(opts) => onUpdateMeta(version.id, opts)}
                 onViewDiff={() => onViewDiff(version.id)}
@@ -189,6 +207,38 @@ export function HistoryPanel({
           </ul>
         )}
       </section>
+
+      {restoreCandidate && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/20 px-4">
+          <div className="w-full max-w-[320px] rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg)] p-3 shadow-[var(--shadow-elevated)]">
+            <p className="text-[12px] text-[var(--color-text)] mb-2 leading-snug">
+              Version wirklich wiederherstellen?
+            </p>
+            <p className="text-[11px] text-[var(--color-text-muted)] mb-3 truncate">
+              {restoreCandidate.name}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => setRestoreCandidate(null)}
+                disabled={restoringId !== null}
+                className="flex-1 text-[11px] h-7"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="xs"
+                onClick={() => void handleConfirmRestore()}
+                disabled={restoringId !== null}
+                className="flex-1 text-[11px] h-7 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white"
+              >
+                {restoringId !== null ? <span className="btn-spinner" aria-hidden="true" /> : "Restore"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
