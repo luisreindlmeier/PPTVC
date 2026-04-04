@@ -1216,7 +1216,8 @@ export async function buildComparisonSlide(
   toName = "New",
   fromName = "Old",
   toTimestamp = "",
-  toAuthor = "Unknown"
+  toAuthor = "Unknown",
+  highlightDiffs = true
 ): Promise<Blob> {
   const [toZip, fromZip] = await Promise.all([
     JSZip.loadAsync(await toBlob.arrayBuffer()),
@@ -1287,16 +1288,14 @@ export async function buildComparisonSlide(
 
   // ── Apply diff borders ────────────────────────────────────────
   // Old shapes (below): amber = changed, red = removed
-  const markedOldShapes = applyDiffBorders(
-    oldShapes,
-    diff.changedInFrom,
-    new Set<string>(),
-    diff.removedInFrom,
-    3000
-  );
+  const markedOldShapes = highlightDiffs
+    ? applyDiffBorders(oldShapes, diff.changedInFrom, new Set<string>(), diff.removedInFrom, 3000)
+    : oldShapes;
   const lockedOldShapes = lockComparisonObjects(markedOldShapes);
   // Current slide (above): amber = changed, green = added
-  const markedToSlideXml = applyDiffBordersToSlideXml(toSlideXml, diff.changedInTo, diff.addedInTo);
+  const markedToSlideXml = highlightDiffs
+    ? applyDiffBordersToSlideXml(toSlideXml, diff.changedInTo, diff.addedInTo)
+    : toSlideXml;
   const lockedToSlideXml = lockComparisonObjects(markedToSlideXml);
 
   const bgRect = buildBgRect(slideSize);

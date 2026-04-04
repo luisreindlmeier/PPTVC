@@ -22,7 +22,8 @@ interface DiffPanelProps {
     toName: string,
     fromName: string,
     toTimestamp: string,
-    toAuthor: string
+    toAuthor: string,
+    highlightDiffs?: boolean
   ) => Promise<Blob>;
   blobToBase64: (blob: Blob) => Promise<string>;
   replacePresentationFromBase64: (base64: string) => Promise<void>;
@@ -50,10 +51,12 @@ export function DiffPanel({
   const [toId, setToId] = useState<string>("");
   const [comparing, setComparing] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [highlightDiffs, setHighlightDiffs] = useState(true);
   const [activeComparison, setActiveComparison] = useState<ActiveComparison | null>(null);
   // Keep a ref so async callbacks can always read the latest value
   const activeComparisonRef = useRef<ActiveComparison | null>(null);
   activeComparisonRef.current = activeComparison;
+  const latestSlideNumRef = useRef<number>(currentSlide.num);
 
   // Initialise selectors when versions load or preselection changes
   useEffect(() => {
@@ -68,6 +71,20 @@ export function DiffPanel({
       setToId(versions[0].id);
     }
   }, [versions, preselectedId]);
+
+  useEffect(() => {
+    const previousSlideNum = latestSlideNumRef.current;
+    latestSlideNumRef.current = currentSlide.num;
+    if (!activeComparisonRef.current) return;
+    if (previousSlideNum === currentSlide.num) return;
+
+    void (async () => {
+      const closed = await closeActiveComparison();
+      if (closed) {
+        showStatus("Exited comparison mode after slide change.", false);
+      }
+    })();
+  }, [currentSlide.num, showStatus]);
 
   if (versions.length < 2) {
     return (
@@ -116,7 +133,8 @@ export function DiffPanel({
         getVersionName(toVersion),
         getVersionName(fromVersion),
         formatTimestamp(toVersion.timestamp),
-        getAuthorLabel(toVersion)
+        getAuthorLabel(toVersion),
+        highlightDiffs
       );
       await replacePresentationFromBase64(await blobToBase64(modifiedBlob));
       setActiveComparison({ fromVersion, toVersion, slideNum: currentSlide.num });
@@ -150,33 +168,14 @@ export function DiffPanel({
               <span className="uppercase tracking-wide text-[10px] opacity-70">
                 Active comparison — slide {activeComparison.slideNum}
               </span>
-              <button
+              <Button
                 type="button"
                 onClick={() => void handleClear()}
                 disabled={clearing}
-                aria-label="Close comparison"
-                className="shrink-0 w-5 h-5 flex items-center justify-center rounded opacity-70 hover:opacity-100 hover:bg-white/20 transition-opacity cursor-pointer disabled:opacity-40"
+                className="h-6 px-2 text-[10px] bg-white/20 hover:bg-white/30 text-white border border-white/30 cursor-pointer"
               >
-                {clearing ? (
-                  <span
-                    className="btn-spinner"
-                    style={{ borderColor: "white", borderTopColor: "transparent" }}
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <svg
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    className="w-3 h-3"
-                    aria-hidden="true"
-                  >
-                    <path d="M3 3l10 10M13 3L3 13" />
-                  </svg>
-                )}
-              </button>
+                {clearing ? "Exiting..." : "Exit Comparison Mode"}
+              </Button>
             </div>
             <div className="flex items-center gap-1.5 opacity-90">
               <span className="truncate max-w-[100px]">
@@ -201,7 +200,7 @@ export function DiffPanel({
                 value={fromId}
                 onChange={(e) => setFromId(e.target.value)}
                 aria-label="From version"
-                className="w-full h-7 text-[12px] px-3 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)] appearance-none pr-7 shadow-xs cursor-pointer transition-[color,box-shadow] outline-none focus-visible:border-[var(--color-border-focus)] focus-visible:ring-1 focus-visible:ring-[var(--color-border-focus)] placeholder:text-[var(--color-text-placeholder)]"
+                className="w-full h-7 text-[12px] px-3 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)] appearance-none pr-7 shadow-xs cursor-pointer transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-[var(--color-text-placeholder)]"
               >
                 {versions.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -223,7 +222,7 @@ export function DiffPanel({
                 value={toId}
                 onChange={(e) => setToId(e.target.value)}
                 aria-label="To version"
-                className="w-full h-7 text-[12px] px-3 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)] appearance-none pr-7 shadow-xs cursor-pointer transition-[color,box-shadow] outline-none focus-visible:border-[var(--color-border-focus)] focus-visible:ring-1 focus-visible:ring-[var(--color-border-focus)] placeholder:text-[var(--color-text-placeholder)]"
+                className="w-full h-7 text-[12px] px-3 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)] appearance-none pr-7 shadow-xs cursor-pointer transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/30 placeholder:text-[var(--color-text-placeholder)]"
               >
                 {versions.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -238,6 +237,17 @@ export function DiffPanel({
               </span>
             </div>
           </div>
+
+          <label className="flex items-center justify-between gap-2 text-[11px] text-[var(--color-text-muted)]">
+            <span>Highlight diffs</span>
+            <input
+              type="checkbox"
+              checked={highlightDiffs}
+              onChange={(e) => setHighlightDiffs(e.target.checked)}
+              className="h-4 w-4 cursor-pointer"
+              aria-label="Toggle diff highlights"
+            />
+          </label>
 
           <Button
             onClick={() => void handleCompare()}
