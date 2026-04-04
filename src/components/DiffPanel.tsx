@@ -137,121 +137,125 @@ export function DiffPanel({
   };
 
   return (
-    <div className="flex-1 flex flex-col px-3.5 pt-3 gap-3 overflow-y-auto">
-      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-        Comparing
-      </h3>
+    <div className="flex flex-col flex-1 overflow-hidden">
+      <section className="px-3.5 pt-3 pb-3 border-b border-[var(--color-border)] bg-[var(--color-bg)] shrink-0">
+        <h3 className="text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] mb-2">
+          Comparing
+        </h3>
 
-      {/* Active comparison indicator */}
-      {activeComparison && (
-        <div className="flex flex-col gap-1.5 px-3 py-2.5 rounded-[var(--radius-sm)] bg-[var(--color-primary)] text-white text-[11px]">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-semibold uppercase tracking-wide text-[10px] opacity-70">
-              Active comparison — slide {activeComparison.slideNum}
-            </span>
-            <button
-              type="button"
-              onClick={() => void handleClear()}
-              disabled={clearing}
-              aria-label="Close comparison"
-              className="shrink-0 w-5 h-5 flex items-center justify-center rounded opacity-70 hover:opacity-100 hover:bg-white/20 transition-opacity cursor-pointer disabled:opacity-40"
-            >
-              {clearing ? (
-                <span
-                  className="btn-spinner"
-                  style={{ borderColor: "white", borderTopColor: "transparent" }}
-                  aria-hidden="true"
-                />
-              ) : (
-                <svg
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  className="w-3 h-3"
-                  aria-hidden="true"
-                >
-                  <path d="M3 3l10 10M13 3L3 13" />
+        {/* Active comparison indicator */}
+        {activeComparison && (
+          <div className="flex flex-col gap-1.5 px-3 py-2.5 mb-2 rounded-[var(--radius-sm)] bg-[var(--color-primary)] text-white text-[11px]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="uppercase tracking-wide text-[10px] opacity-70">
+                Active comparison — slide {activeComparison.slideNum}
+              </span>
+              <button
+                type="button"
+                onClick={() => void handleClear()}
+                disabled={clearing}
+                aria-label="Close comparison"
+                className="shrink-0 w-5 h-5 flex items-center justify-center rounded opacity-70 hover:opacity-100 hover:bg-white/20 transition-opacity cursor-pointer disabled:opacity-40"
+              >
+                {clearing ? (
+                  <span
+                    className="btn-spinner"
+                    style={{ borderColor: "white", borderTopColor: "transparent" }}
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    className="w-3 h-3"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 3l10 10M13 3L3 13" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5 opacity-90">
+              <span className="truncate max-w-[100px]">
+                {getVersionName(activeComparison.fromVersion)}
+              </span>
+              <span className="opacity-60">→</span>
+              <span className="truncate max-w-[100px]">
+                {getVersionName(activeComparison.toVersion)}
+              </span>
+            </div>
+            <p className="opacity-60 text-[10px] leading-snug mt-0.5">
+              Scroll down on slide {activeComparison.slideNum} to see the diff below it.
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2">
+          {/* From / To selectors */}
+          <div className="flex items-center gap-2">
+            <div className="diff-select-wrap flex-1">
+              <select
+                value={fromId}
+                onChange={(e) => setFromId(e.target.value)}
+                aria-label="From version"
+                className="w-full h-7 text-[12px] px-2 rounded-[var(--radius-xs)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)] appearance-none pr-7 cursor-pointer"
+              >
+                {versions.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {getVersionName(v)}
+                  </option>
+                ))}
+              </select>
+              <span className="diff-select-caret">
+                <svg viewBox="0 0 10 6" fill="currentColor" aria-hidden="true">
+                  <path d="M0 0l5 6 5-6H0z" />
                 </svg>
-              )}
-            </button>
+              </span>
+            </div>
+
+            <span className="text-[var(--color-text-muted)] text-[11px] shrink-0">→</span>
+
+            <div className="diff-select-wrap flex-1">
+              <select
+                value={toId}
+                onChange={(e) => setToId(e.target.value)}
+                aria-label="To version"
+                className="w-full h-7 text-[12px] px-2 rounded-[var(--radius-xs)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)] appearance-none pr-7 cursor-pointer"
+              >
+                {versions.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {getVersionName(v)}
+                  </option>
+                ))}
+              </select>
+              <span className="diff-select-caret">
+                <svg viewBox="0 0 10 6" fill="currentColor" aria-hidden="true">
+                  <path d="M0 0l5 6 5-6H0z" />
+                </svg>
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 opacity-90">
-            <span className="truncate max-w-[100px]">
-              {getVersionName(activeComparison.fromVersion)}
-            </span>
-            <span className="opacity-60">→</span>
-            <span className="truncate max-w-[100px] font-medium">
-              {getVersionName(activeComparison.toVersion)}
-            </span>
-          </div>
-          <p className="opacity-60 text-[10px] leading-snug mt-0.5">
-            Scroll down on slide {activeComparison.slideNum} to see the diff below it.
-          </p>
+
+          <Button
+            onClick={() => void handleCompare()}
+            disabled={comparing || !fromVersion || !toVersion || fromId === toId}
+            className="w-full h-7 text-[12px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white border-0 cursor-pointer"
+          >
+            {comparing ? (
+              <span className="btn-spinner" aria-hidden="true" />
+            ) : activeComparison ? (
+              "Replace Comparison"
+            ) : (
+              "Compare Versions"
+            )}
+          </Button>
         </div>
-      )}
+      </section>
 
-      <div className="flex flex-col gap-2">
-        {/* From / To selectors */}
-        <div className="flex items-center gap-2">
-          <div className="diff-select-wrap flex-1">
-            <select
-              value={fromId}
-              onChange={(e) => setFromId(e.target.value)}
-              aria-label="From version"
-              className="w-full h-7 text-[12px] px-2 rounded-[var(--radius-xs)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)] appearance-none pr-7 cursor-pointer"
-            >
-              {versions.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {getVersionName(v)}
-                </option>
-              ))}
-            </select>
-            <span className="diff-select-caret">
-              <svg viewBox="0 0 10 6" fill="currentColor" aria-hidden="true">
-                <path d="M0 0l5 6 5-6H0z" />
-              </svg>
-            </span>
-          </div>
-
-          <span className="text-[var(--color-text-muted)] text-[11px] shrink-0">→</span>
-
-          <div className="diff-select-wrap flex-1">
-            <select
-              value={toId}
-              onChange={(e) => setToId(e.target.value)}
-              aria-label="To version"
-              className="w-full h-7 text-[12px] px-2 rounded-[var(--radius-xs)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)] appearance-none pr-7 cursor-pointer"
-            >
-              {versions.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {getVersionName(v)}
-                </option>
-              ))}
-            </select>
-            <span className="diff-select-caret">
-              <svg viewBox="0 0 10 6" fill="currentColor" aria-hidden="true">
-                <path d="M0 0l5 6 5-6H0z" />
-              </svg>
-            </span>
-          </div>
-        </div>
-
-        <Button
-          onClick={() => void handleCompare()}
-          disabled={comparing || !fromVersion || !toVersion || fromId === toId}
-          className="w-full h-7 text-[12px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white border-0 cursor-pointer"
-        >
-          {comparing ? (
-            <span className="btn-spinner" aria-hidden="true" />
-          ) : activeComparison ? (
-            "Replace Comparison"
-          ) : (
-            "Compare Versions"
-          )}
-        </Button>
-      </div>
+      <div className="flex-1 overflow-y-auto" />
     </div>
   );
 }
