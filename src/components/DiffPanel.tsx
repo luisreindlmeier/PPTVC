@@ -6,6 +6,7 @@ import { Badge } from "./ui/badge";
 import { Switch } from "./ui/switch";
 import { IconDocumentText, IconSwatch } from "./icons";
 import type { DiffChange, SlideDiffSummary } from "../diff/analyze-slide-diff";
+import { cn } from "@/lib/utils";
 
 interface ActiveComparison {
   fromVersion: Version;
@@ -41,6 +42,12 @@ interface DiffPanelProps {
 }
 
 type ChangeFilter = "all" | "style" | "content";
+
+const CHANGE_FILTERS: Array<{ id: ChangeFilter; label: string }> = [
+  { id: "all", label: "All changes" },
+  { id: "style", label: "Style" },
+  { id: "content", label: "Content" },
+];
 
 export function DiffPanel({
   versions,
@@ -203,6 +210,7 @@ export function DiffPanel({
         ? activeComparison.summary.contentChanges
         : activeComparison.summary.allChanges
     : [];
+  const activeFilterIndex = CHANGE_FILTERS.findIndex((entry) => entry.id === changeFilter);
 
   const onChangeClick = (changeId: string) => {
     const current = activeComparisonRef.current;
@@ -230,14 +238,14 @@ export function DiffPanel({
 
   const getChangeBadge = (
     category: DiffChange["category"]
-  ): { icon: typeof IconSwatch; variant: "outline" | "secondary"; ariaLabel: string } => {
+  ): { icon: typeof IconSwatch; ariaLabel: string } => {
     if (category === "style") {
-      return { icon: IconSwatch, variant: "outline", ariaLabel: "Style change" };
+      return { icon: IconSwatch, ariaLabel: "Style change" };
     }
     if (category === "content") {
-      return { icon: IconDocumentText, variant: "secondary", ariaLabel: "Content change" };
+      return { icon: IconDocumentText, ariaLabel: "Content change" };
     }
-    return { icon: IconSwatch, variant: "outline", ariaLabel: "Change" };
+    return { icon: IconSwatch, ariaLabel: "Change" };
   };
 
   return (
@@ -358,27 +366,40 @@ export function DiffPanel({
                 </Badge>
               </div>
 
-              <div className="mb-2 flex items-center gap-1">
-                {([
-                  ["all", "All changes"],
-                  ["style", "Style"],
-                  ["content", "Content"],
-                ] as Array<[ChangeFilter, string]>).map(([value, label]) => (
-                  <Button
-                    key={value}
+              <div
+                role="tablist"
+                aria-label="Change categories"
+                className="relative mb-2 flex rounded-[var(--radius-sm)] bg-[var(--color-bg)] p-0.5"
+              >
+                <div
+                  className="scope-indicator absolute top-0.5 bottom-0.5 rounded-[var(--radius-xs)] bg-[var(--color-surface-raised)] shadow-[var(--shadow-subtle)] transition-transform duration-200"
+                  style={{
+                    width: `calc(${100 / CHANGE_FILTERS.length}% - 2px)`,
+                    left: "2px",
+                    transform: `translateX(calc(${activeFilterIndex * 100}% + ${activeFilterIndex * 1}px))`,
+                  }}
+                />
+                {CHANGE_FILTERS.map((filter) => (
+                  <button
+                    key={filter.id}
                     type="button"
-                    size="xs"
-                    variant={changeFilter === value ? "default" : "secondary"}
-                    onClick={() => setChangeFilter(value)}
-                    className="h-7 rounded-[var(--radius-xs)] px-2 text-[11px] cursor-pointer"
+                    role="tab"
+                    aria-selected={changeFilter === filter.id}
+                    onClick={() => setChangeFilter(filter.id)}
+                    className={cn(
+                      "relative z-10 flex-1 rounded-[var(--radius-xs)] px-2 py-1 text-[11px] transition-colors duration-150 cursor-pointer",
+                      changeFilter === filter.id
+                        ? "text-[var(--color-text)]"
+                        : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                    )}
                   >
-                    {label}
-                  </Button>
+                    {filter.label}
+                  </button>
                 ))}
               </div>
 
               {displayedChanges.length > 0 ? (
-                <ul className="space-y-1">
+                <ul className="versions-timeline relative pl-6 pr-1 pt-0.5">
                   {displayedChanges.map((change, index) => {
                     const isFocused = selectedChangeId === change.id;
                     const categoryBadge = getChangeBadge(change.category);
@@ -387,27 +408,33 @@ export function DiffPanel({
                       <li
                         key={`${change.category}-${change.id}-${index}`}
                         onClick={() => onChangeClick(change.id)}
-                        className={[
-                          "rounded-[var(--radius-xs)] border px-2 py-1.5 transition-colors",
-                          "cursor-pointer",
-                          isFocused
-                            ? "bg-[var(--color-primary)]/12 border-[var(--color-primary)]/35"
-                            : "bg-[var(--color-surface-raised)] border-[var(--color-border)] hover:bg-[var(--color-bg)]",
-                        ].join(" ")}
+                        className={cn(
+                          "relative pb-2 pl-5 pr-1 transition-colors cursor-pointer",
+                          isFocused && "rounded-[var(--radius-xs)] bg-[var(--color-primary)]/10"
+                        )}
                       >
-                        <div className="flex items-start gap-2">
-                          <Badge
-                            variant={categoryBadge.variant}
-                            className="mt-0.5 h-4 w-6 justify-center px-0"
-                            aria-label={categoryBadge.ariaLabel}
-                            title={categoryBadge.ariaLabel}
-                          >
-                            <CategoryIcon className="h-2.5 w-2.5" />
-                          </Badge>
-                          <span className="text-[10px] leading-snug text-[var(--color-text)]">
-                            {change.description}
-                          </span>
-                        </div>
+                        <span
+                          className={cn(
+                            "absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 bg-[var(--color-surface)] flex items-center justify-center",
+                            isFocused
+                              ? "border-[var(--color-primary)] text-[var(--color-primary)]"
+                              : "border-[var(--color-border)] text-[var(--color-text-muted)]"
+                          )}
+                          aria-hidden="true"
+                        >
+                          <CategoryIcon className="h-2 w-2" />
+                        </span>
+
+                        <p
+                          className={cn(
+                            "text-[11px] leading-snug",
+                            isFocused ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]"
+                          )}
+                          aria-label={categoryBadge.ariaLabel}
+                          title={categoryBadge.ariaLabel}
+                        >
+                          {change.description}
+                        </p>
                       </li>
                     );
                   })}
