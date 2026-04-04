@@ -220,13 +220,13 @@ export function HistoryPanel({
               ×
             </button>
             <p className="text-[12px] text-[var(--color-text)] mb-2 leading-snug">
-              Version wirklich wiederherstellen?
+              Restore this version?
             </p>
             <p className="text-[11px] text-[var(--color-text-muted)] mb-3 truncate">
               {restoreCandidate.name}
             </p>
             <p className="text-[11px] text-[var(--color-text-muted)] mb-3 leading-snug">
-              Spaetere Versionen bleiben erhalten und sind weiterhin zugaenglich.
+              Later versions are not deleted and remain available.
             </p>
             <div className="flex gap-2">
               <Button
