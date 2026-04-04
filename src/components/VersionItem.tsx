@@ -41,7 +41,7 @@ interface VersionItemProps {
   authorLabel: string;
   isRestoring: boolean;
   onRequestRestore: () => void;
-  onDelete: () => Promise<void>;
+  onRequestDelete: () => void;
   onUpdateMeta: (opts: { displayName?: string; tags?: string[] }) => Promise<void>;
   onViewDiff: () => void;
 }
@@ -54,14 +54,13 @@ export function VersionItem({
   authorLabel,
   isRestoring,
   onRequestRestore,
-  onDelete,
+  onRequestDelete,
   onUpdateMeta,
   onViewDiff,
 }: VersionItemProps) {
   const [tags, setTags] = useState<string[]>(version.tags ?? []);
   const [name, setName] = useState(version.displayName ?? version.name);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
 
   const availableTags = getAvailableTags(settings).filter((t) => !tags.includes(t));
@@ -140,7 +139,7 @@ export function VersionItem({
           </button>
           <button
             type="button"
-            onClick={() => setShowDeleteConfirm(true)}
+            onClick={onRequestDelete}
             aria-label="Delete version"
             className="p-1 rounded hover:bg-[var(--color-danger-light)] text-[var(--color-text-muted)] hover:text-[var(--color-danger)] transition-colors cursor-pointer"
           >
@@ -215,33 +214,6 @@ export function VersionItem({
           </div>
         )}
 
-        {/* Delete confirm popup */}
-        {showDeleteConfirm && (
-          <div className="mt-2 p-2.5 rounded-[var(--radius-sm)] bg-[var(--color-danger-light)] border border-[var(--color-danger)]/20">
-            <p className="text-[11px] text-[var(--color-text)] mb-2">Delete this version?</p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="xs"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 text-[11px] h-6"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                size="xs"
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  void onDelete();
-                }}
-                className="flex-1 text-[11px] h-6 bg-[var(--color-danger)] hover:bg-[var(--color-danger-hover)]"
-              >
-                Delete
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
     </li>
   );

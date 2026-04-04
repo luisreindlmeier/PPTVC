@@ -43,7 +43,11 @@ export function HistoryPanel({
   const [restoreCandidate, setRestoreCandidate] = useState<{ id: string; name: string } | null>(
     null
   );
+  const [deleteCandidate, setDeleteCandidate] = useState<{ id: string; name: string } | null>(
+    null
+  );
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const isDirty = useRef(false);
 
@@ -85,6 +89,17 @@ export function HistoryPanel({
       setRestoreCandidate(null);
     } finally {
       setRestoringId(null);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteCandidate) return;
+    setDeletingId(deleteCandidate.id);
+    try {
+      await onDelete(deleteCandidate.id);
+      setDeleteCandidate(null);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -196,10 +211,14 @@ export function HistoryPanel({
                 isNewer={displayedIdx !== -1 && idx < displayedIdx}
                 authorLabel={getAuthorLabel(version)}
                 isRestoring={restoringId === version.id}
-                onRequestRestore={() =>
-                  setRestoreCandidate({ id: version.id, name: getVersionName(version) })
-                }
-                onDelete={() => onDelete(version.id)}
+                onRequestRestore={() => {
+                  setDeleteCandidate(null);
+                  setRestoreCandidate({ id: version.id, name: getVersionName(version) });
+                }}
+                onRequestDelete={() => {
+                  setRestoreCandidate(null);
+                  setDeleteCandidate({ id: version.id, name: getVersionName(version) });
+                }}
                 onUpdateMeta={(opts) => onUpdateMeta(version.id, opts)}
                 onViewDiff={() => onViewDiff(version.id)}
               />
@@ -245,6 +264,47 @@ export function HistoryPanel({
                 className="flex-1 text-[11px] h-7 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white cursor-pointer"
               >
                 {restoringId !== null ? <span className="btn-spinner" aria-hidden="true" /> : "Restore"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteCandidate && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/20 px-4">
+          <div className="relative w-full max-w-[320px] rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg)] p-3 shadow-[var(--shadow-elevated)]">
+            <button
+              type="button"
+              onClick={() => setDeleteCandidate(null)}
+              aria-label="Close delete dialog"
+              className="absolute right-2 top-2 h-6 w-6 rounded-[var(--radius-xs)] text-[var(--color-text-muted)] hover:bg-[var(--color-border)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
+            >
+              ×
+            </button>
+            <p className="text-[12px] text-[var(--color-text)] mb-2 leading-snug">
+              Delete this version?
+            </p>
+            <p className="text-[11px] text-[var(--color-text-muted)] mb-3 truncate">
+              {deleteCandidate.name}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => setDeleteCandidate(null)}
+                disabled={deletingId !== null}
+                className="flex-1 text-[11px] h-7 cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="xs"
+                onClick={() => void handleConfirmDelete()}
+                disabled={deletingId !== null}
+                className="flex-1 text-[11px] h-7 bg-[var(--color-danger)] hover:bg-[var(--color-danger-hover)] text-white cursor-pointer"
+              >
+                {deletingId !== null ? <span className="btn-spinner" aria-hidden="true" /> : "Delete"}
               </Button>
             </div>
           </div>
