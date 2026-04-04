@@ -275,22 +275,178 @@ async function copyChartSubResources(
 // ── Shape-level diff ──────────────────────────────────────────
 
 interface ShapeMap {
-  byId: Map<string, string>;
+  byId: Map<string, ShapeDescriptor>;
 }
 
-function parseShapeMap(spTreeContent: string): ShapeMap {
-  const byId = new Map<string, string>();
-  for (const pattern of [/<p:sp\b[\s\S]*?<\/p:sp>/g, /<p:pic\b[\s\S]*?<\/p:pic>/g]) {
-    for (const m of spTreeContent.matchAll(pattern)) {
-      const idMatch = m[0].match(/\bcNvPr[^>]*\bid="(\d+)"/);
-      if (idMatch) byId.set(idMatch[1], m[0]);
+type DrawingObjectKind = "sp" | "pic" | "graphicFrame" | "cxnSp" | "grpSp" | "contentPart";
+
+interface ShapeDescriptor {
+  id: string;
+  kind: DrawingObjectKind;
+  fingerprint: string;
+}
+
+interface ObjectPattern {
+  kind: DrawingObjectKind;
+  regex: RegExp;
+}
+
+interface TransformBounds {
+  x: string;
+  y: string;
+  cx: string;
+  cy: string;
+}
+
+const DIFF_OBJECT_PATTERNS: ObjectPattern[] = [
+  { kind: "sp", regex: /<p:sp\b[\s\S]*?<\/p:sp>/g },
+  { kind: "pic", regex: /<p:pic\b[\s\S]*?<\/p:pic>/g },
+  { kind: "graphicFrame", regex: /<p:graphicFrame\b[\s\S]*?<\/p:graphicFrame>/g },
+  { kind: "cxnSp", regex: /<p:cxnSp\b[\s\S]*?<\/p:cxnSp>/g },
+  { kind: "grpSp", regex: /<p:grpSp\b[\s\S]*?<\/p:grpSp>/g },
+  { kind: "contentPart", regex: /<p:contentPart\b[^>]*\/>/g },
+  { kind: "contentPart", regex: /<p:contentPart\b[\s\S]*?<\/p:contentPart>/g },
+];
+
+function hashString(value: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+function hashBytes(value: Uint8Array): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value[i];
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+function normalizeXml(xml: string): string {
+  return xml.replace(/\s+/g, " ").trim();
+}
+
+function extractObjectId(xml: string): string | null {
+  const idMatch = xml.match(/\bcNvPr[^>]*\bid="(\d+)"/);
+  return idMatch ? idMatch[1] : null;
+}
+
+async function loadRelationshipTargetMap(zip: JSZip, path: string): Promise<Map<string, string>> {
+  const relsPath = relsPathOf(path);
+  const relsFile = zip.file(relsPath);
+  if (!relsFile) {
+    return new Map<string, string>();
+  }
+
+  const relsXml = await relsFile.async("string");
+  const entries = parseRelsXml(relsXml);
+  const targetMap = new Map<string, string>();
+
+  for (const rel of entries) {
+    if (rel.targetMode === "External") {
+      continue;
+    }
+    targetMap.set(rel.id, resolveRelPath(path, rel.target));
+  }
+
+  return targetMap;
+}
+
+async function hashPartWithDependencies(
+  zip: JSZip,
+  partPath: string,
+  visited: Set<string>
+): Promise<string> {
+  if (visited.has(partPath)) {
+    return "";
+  }
+  visited.add(partPath);
+
+  const file = zip.file(partPath);
+  if (!file) {
+    return "";
+  }
+
+  let contentHash = "";
+  if (partPath.endsWith(".xml") || partPath.endsWith(".rels")) {
+    contentHash = hashString(normalizeXml(await file.async("string")));
+  } else {
+    contentHash = hashBytes(await file.async("uint8array"));
+  }
+
+  const relMap = await loadRelationshipTargetMap(zip, partPath);
+  const dependencyHashes: string[] = [];
+  for (const [, targetPath] of relMap) {
+    const dependencyHash = await hashPartWithDependencies(zip, targetPath, visited);
+    if (dependencyHash.length > 0) {
+      dependencyHashes.push(`${targetPath}:${dependencyHash}`);
     }
   }
-  return { byId };
+
+  dependencyHashes.sort((left, right) => left.localeCompare(right));
+  return hashString(`${partPath}|${contentHash}|${dependencyHashes.join("|")}`);
 }
 
-function getShapeTextContent(xml: string): string {
-  return [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => m[1]).join("\0");
+function collectLinkedRelationshipIds(xml: string): string[] {
+  const ids = new Set<string>();
+  for (const match of xml.matchAll(/\br:(?:id|embed|link)="([^"]+)"/g)) {
+    ids.add(match[1]);
+  }
+  return Array.from(ids).sort((left, right) => left.localeCompare(right));
+}
+
+async function buildObjectFingerprint(
+  objectXml: string,
+  kind: DrawingObjectKind,
+  relTargetMap: Map<string, string>,
+  zip: JSZip
+): Promise<string> {
+  const normalizedObject = normalizeXml(objectXml.replace(/\bcNvPr([^>]*)\bid="\d+"/g, "cNvPr$1"));
+  const textContent = [...objectXml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => m[1]).join("\0");
+
+  const relationshipHashes: string[] = [];
+  const relationshipIds = collectLinkedRelationshipIds(objectXml);
+  for (const relationshipId of relationshipIds) {
+    const targetPath = relTargetMap.get(relationshipId);
+    if (!targetPath) {
+      continue;
+    }
+    const hash = await hashPartWithDependencies(zip, targetPath, new Set<string>());
+    if (hash.length > 0) {
+      relationshipHashes.push(`${relationshipId}:${hash}`);
+    }
+  }
+
+  relationshipHashes.sort((left, right) => left.localeCompare(right));
+  return hashString(`${kind}|${normalizedObject}|${textContent}|${relationshipHashes.join("|")}`);
+}
+
+async function parseShapeMap(
+  spTreeContent: string,
+  zip: JSZip,
+  slidePath: string
+): Promise<ShapeMap> {
+  const byId = new Map<string, ShapeDescriptor>();
+  const relTargetMap = await loadRelationshipTargetMap(zip, slidePath);
+
+  for (const pattern of DIFF_OBJECT_PATTERNS) {
+    for (const match of spTreeContent.matchAll(pattern.regex)) {
+      const objectXml = match[0];
+      const id = extractObjectId(objectXml);
+      if (!id) {
+        continue;
+      }
+
+      const fingerprint = await buildObjectFingerprint(objectXml, pattern.kind, relTargetMap, zip);
+      byId.set(id, { id, kind: pattern.kind, fingerprint });
+    }
+  }
+
+  return { byId };
 }
 
 interface DiffResult {
@@ -306,20 +462,20 @@ function computeShapeDiff(fromMap: ShapeMap, toMap: ShapeMap): DiffResult {
   const changedInTo = new Set<string>();
   const addedInTo = new Set<string>();
 
-  for (const [id, fromXml] of fromMap.byId) {
-    const toXml = toMap.byId.get(id);
-    if (!toXml) {
+  for (const [id, fromShape] of fromMap.byId) {
+    const toShape = toMap.byId.get(id);
+    if (!toShape) {
       removedInFrom.add(id);
-    } else if (getShapeTextContent(fromXml) !== getShapeTextContent(toXml)) {
+    } else if (fromShape.fingerprint !== toShape.fingerprint) {
       changedInFrom.add(id);
     }
   }
 
-  for (const [id, toXml] of toMap.byId) {
-    const fromXml = fromMap.byId.get(id);
-    if (!fromXml) {
+  for (const [id, toShape] of toMap.byId) {
+    const fromShape = fromMap.byId.get(id);
+    if (!fromShape) {
       addedInTo.add(id);
-    } else if (getShapeTextContent(fromXml) !== getShapeTextContent(toXml)) {
+    } else if (fromShape.fingerprint !== toShape.fingerprint) {
       changedInTo.add(id);
     }
   }
@@ -336,26 +492,108 @@ function addBorderToShapeXml(shapeXml: string, colorHex: string): string {
   return shapeXml.replace("</p:spPr>", border + "</p:spPr>");
 }
 
+function extractTransformBounds(xml: string): TransformBounds | null {
+  const xfrmMatch = xml.match(/<(?:a|p):xfrm\b[\s\S]*?<\/?(?:a|p):xfrm>/);
+  if (!xfrmMatch) {
+    return null;
+  }
+
+  const offMatch = xfrmMatch[0].match(/<(?:a|p):off\b[^>]*\bx="(-?\d+)"[^>]*\by="(-?\d+)"/);
+  const extMatch = xfrmMatch[0].match(/<(?:a|p):ext\b[^>]*\bcx="(\d+)"[^>]*\bcy="(\d+)"/);
+
+  if (!offMatch || !extMatch) {
+    return null;
+  }
+
+  return {
+    x: offMatch[1],
+    y: offMatch[2],
+    cx: extMatch[1],
+    cy: extMatch[2],
+  };
+}
+
+function canApplyLineBorder(xml: string): boolean {
+  return /<p:spPr\b[\s\S]*?<\/p:spPr>/.test(xml);
+}
+
+function createOverlayBorderShape(bounds: TransformBounds, colorHex: string, idx: number): string {
+  return (
+    `<p:sp>` +
+    `<p:nvSpPr>` +
+    `<p:cNvPr id="${9700 + idx}" name="GEDONUS_DIFF_OVERLAY_${idx}"/>` +
+    `<p:cNvSpPr><a:spLocks noGrp="1" noRot="1"/></p:cNvSpPr>` +
+    `<p:nvPr/>` +
+    `</p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${bounds.x}" y="${bounds.y}"/><a:ext cx="${bounds.cx}" cy="${bounds.cy}"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+    `<a:noFill/>` +
+    `<a:ln w="38100"><a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill></a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>` +
+    `</p:sp>`
+  );
+}
+
+function getDiffColorHex(
+  id: string,
+  changedIds: Set<string>,
+  addedIds: Set<string>,
+  removedIds: Set<string>
+): string | null {
+  if (changedIds.has(id)) {
+    return "F59E0B";
+  }
+  if (addedIds.has(id)) {
+    return "22C55E";
+  }
+  if (removedIds.has(id)) {
+    return "EF4444";
+  }
+  return null;
+}
+
 function applyDiffBorders(
   spTreeContent: string,
   changedIds: Set<string>,
   addedIds: Set<string>,
   removedIds: Set<string>
 ): string {
-  const applyToShape = (xml: string): string => {
-    const idMatch = xml.match(/\bcNvPr[^>]*\bid="(\d+)"/);
-    if (!idMatch) return xml;
-    const id = idMatch[1];
-    // amber = changed, green = added, red = removed
-    if (changedIds.has(id)) return addBorderToShapeXml(xml, "F59E0B");
-    if (addedIds.has(id)) return addBorderToShapeXml(xml, "22C55E");
-    if (removedIds.has(id)) return addBorderToShapeXml(xml, "EF4444");
+  let overlayIndex = 0;
+  const overlays: string[] = [];
+
+  const applyToObject = (xml: string): string => {
+    const id = extractObjectId(xml);
+    if (!id) {
+      return xml;
+    }
+
+    const colorHex = getDiffColorHex(id, changedIds, addedIds, removedIds);
+    if (!colorHex) {
+      return xml;
+    }
+
+    if (canApplyLineBorder(xml)) {
+      return addBorderToShapeXml(xml, colorHex);
+    }
+
+    const bounds = extractTransformBounds(xml);
+    if (!bounds) {
+      return xml;
+    }
+
+    overlayIndex += 1;
+    overlays.push(createOverlayBorderShape(bounds, colorHex, overlayIndex));
     return xml;
   };
 
-  return spTreeContent
-    .replace(/<p:sp\b[\s\S]*?<\/p:sp>/g, applyToShape)
-    .replace(/<p:pic\b[\s\S]*?<\/p:pic>/g, applyToShape);
+  let updatedSpTree = spTreeContent;
+  for (const pattern of DIFF_OBJECT_PATTERNS) {
+    updatedSpTree = updatedSpTree.replace(pattern.regex, applyToObject);
+  }
+
+  return overlays.length > 0 ? `${updatedSpTree}${overlays.join("")}` : updatedSpTree;
 }
 
 function applyDiffBordersToSlideXml(
@@ -749,8 +987,8 @@ export async function buildComparisonSlide(
   const rawOldShapes = extractShapeContent(fromSlideXml);
 
   // ── Shape diff ────────────────────────────────────────────────
-  const fromShapeMap = parseShapeMap(rawOldShapes);
-  const toShapeMap = parseShapeMap(extractShapeContent(toSlideXml));
+  const fromShapeMap = await parseShapeMap(rawOldShapes, fromZip, fromSlidePath);
+  const toShapeMap = await parseShapeMap(extractShapeContent(toSlideXml), toZip, toSlidePath);
   const diff = computeShapeDiff(fromShapeMap, toShapeMap);
 
   // ── Copy FROM-slide content resources (images, charts, embeddings) into TO zip ──
