@@ -3,7 +3,7 @@
 import type { GitHubSyncConfig } from "../storage";
 import type { Version } from "../versions";
 
-const SYNC_ROOT = "pptvc-versions";
+const SYNC_ROOT = "gedonus-versions";
 const API_BASE = "https://api.github.com";
 const WORKER_BASE = "https://gedonus-token-relay.gedonus.workers.dev";
 

@@ -1,8 +1,8 @@
 /* global PowerPoint, btoa */
 
 import { createStorageAdapter } from "../storage";
+import { getVersionRootPath } from "./document-scope";
 
-const VERSION_ROOT_PATH = "versions";
 const SNAPSHOT_FILE_NAME = "snapshot.pptx";
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -18,13 +18,14 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 
 export async function restoreVersion(id: string): Promise<void> {
   const storage = createStorageAdapter();
+  const versionRootPath = await getVersionRootPath();
 
-  const existingVersionIds = await storage.listDirectory(VERSION_ROOT_PATH);
+  const existingVersionIds = await storage.listDirectory(versionRootPath);
   if (!existingVersionIds.includes(id)) {
     throw new Error(`Version "${id}" does not exist.`);
   }
 
-  const snapshotPath = `${VERSION_ROOT_PATH}/${id}/${SNAPSHOT_FILE_NAME}`;
+  const snapshotPath = `${versionRootPath}/${id}/${SNAPSHOT_FILE_NAME}`;
   const blob = await storage.readBlob(snapshotPath);
   const base64 = arrayBufferToBase64(await blob.arrayBuffer());
 

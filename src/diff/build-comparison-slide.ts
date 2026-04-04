@@ -196,7 +196,7 @@ async function copySlideResources(
     // Give the copied file a unique name to avoid colliding with TO zip's existing files
     const ext = srcContent.split(".").pop() ?? "bin";
     const stem = basenameOf(srcContent).split(".").slice(0, -1).join(".");
-    const destContent = dirOf(srcContent) + `pptvc_cmp_${stem}_${counter.n}.${ext}`;
+    const destContent = dirOf(srcContent) + `gedonus_cmp_${stem}_${counter.n}.${ext}`;
     counter.n++;
 
     destZip.file(destContent, await srcFile.async("uint8array"));
@@ -209,7 +209,7 @@ async function copySlideResources(
       await copyChartSubResources(srcZip, destZip, srcContent, destContent, counter, ctOverrides);
     }
 
-    const newRId = `pptvcR${counter.n++}`;
+    const newRId = `gedonusR${counter.n++}`;
     rIdMap.set(rel.id, newRId);
 
     const newTarget = relativePathTo(destSlidePath, destContent);
@@ -257,7 +257,7 @@ async function copyChartSubResources(
 
     const ext = srcSubPath.split(".").pop() ?? "bin";
     const stem = basenameOf(srcSubPath).split(".").slice(0, -1).join(".");
-    const destSubPath = dirOf(srcSubPath) + `pptvc_cmp_${stem}_${counter.n}.${ext}`;
+    const destSubPath = dirOf(srcSubPath) + `gedonus_cmp_${stem}_${counter.n}.${ext}`;
     counter.n++;
 
     destZip.file(destSubPath, await subFile.async("uint8array"));
@@ -275,22 +275,178 @@ async function copyChartSubResources(
 // ── Shape-level diff ──────────────────────────────────────────
 
 interface ShapeMap {
-  byId: Map<string, string>;
+  byId: Map<string, ShapeDescriptor>;
 }
 
-function parseShapeMap(spTreeContent: string): ShapeMap {
-  const byId = new Map<string, string>();
-  for (const pattern of [/<p:sp\b[\s\S]*?<\/p:sp>/g, /<p:pic\b[\s\S]*?<\/p:pic>/g]) {
-    for (const m of spTreeContent.matchAll(pattern)) {
-      const idMatch = m[0].match(/\bcNvPr[^>]*\bid="(\d+)"/);
-      if (idMatch) byId.set(idMatch[1], m[0]);
+type DrawingObjectKind = "sp" | "pic" | "graphicFrame" | "cxnSp" | "grpSp" | "contentPart";
+
+interface ShapeDescriptor {
+  id: string;
+  kind: DrawingObjectKind;
+  fingerprint: string;
+}
+
+interface ObjectPattern {
+  kind: DrawingObjectKind;
+  regex: RegExp;
+}
+
+interface TransformBounds {
+  x: string;
+  y: string;
+  cx: string;
+  cy: string;
+}
+
+const DIFF_OBJECT_PATTERNS: ObjectPattern[] = [
+  { kind: "sp", regex: /<p:sp\b[\s\S]*?<\/p:sp>/g },
+  { kind: "pic", regex: /<p:pic\b[\s\S]*?<\/p:pic>/g },
+  { kind: "graphicFrame", regex: /<p:graphicFrame\b[\s\S]*?<\/p:graphicFrame>/g },
+  { kind: "cxnSp", regex: /<p:cxnSp\b[\s\S]*?<\/p:cxnSp>/g },
+  { kind: "grpSp", regex: /<p:grpSp\b[\s\S]*?<\/p:grpSp>/g },
+  { kind: "contentPart", regex: /<p:contentPart\b[^>]*\/>/g },
+  { kind: "contentPart", regex: /<p:contentPart\b[\s\S]*?<\/p:contentPart>/g },
+];
+
+function hashString(value: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+function hashBytes(value: Uint8Array): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value[i];
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+function normalizeXml(xml: string): string {
+  return xml.replace(/\s+/g, " ").trim();
+}
+
+function extractObjectId(xml: string): string | null {
+  const idMatch = xml.match(/\bcNvPr[^>]*\bid="(\d+)"/);
+  return idMatch ? idMatch[1] : null;
+}
+
+async function loadRelationshipTargetMap(zip: JSZip, path: string): Promise<Map<string, string>> {
+  const relsPath = relsPathOf(path);
+  const relsFile = zip.file(relsPath);
+  if (!relsFile) {
+    return new Map<string, string>();
+  }
+
+  const relsXml = await relsFile.async("string");
+  const entries = parseRelsXml(relsXml);
+  const targetMap = new Map<string, string>();
+
+  for (const rel of entries) {
+    if (rel.targetMode === "External") {
+      continue;
+    }
+    targetMap.set(rel.id, resolveRelPath(path, rel.target));
+  }
+
+  return targetMap;
+}
+
+async function hashPartWithDependencies(
+  zip: JSZip,
+  partPath: string,
+  visited: Set<string>
+): Promise<string> {
+  if (visited.has(partPath)) {
+    return "";
+  }
+  visited.add(partPath);
+
+  const file = zip.file(partPath);
+  if (!file) {
+    return "";
+  }
+
+  let contentHash = "";
+  if (partPath.endsWith(".xml") || partPath.endsWith(".rels")) {
+    contentHash = hashString(normalizeXml(await file.async("string")));
+  } else {
+    contentHash = hashBytes(await file.async("uint8array"));
+  }
+
+  const relMap = await loadRelationshipTargetMap(zip, partPath);
+  const dependencyHashes: string[] = [];
+  for (const [, targetPath] of relMap) {
+    const dependencyHash = await hashPartWithDependencies(zip, targetPath, visited);
+    if (dependencyHash.length > 0) {
+      dependencyHashes.push(`${targetPath}:${dependencyHash}`);
     }
   }
-  return { byId };
+
+  dependencyHashes.sort((left, right) => left.localeCompare(right));
+  return hashString(`${partPath}|${contentHash}|${dependencyHashes.join("|")}`);
 }
 
-function getShapeTextContent(xml: string): string {
-  return [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => m[1]).join("\0");
+function collectLinkedRelationshipIds(xml: string): string[] {
+  const ids = new Set<string>();
+  for (const match of xml.matchAll(/\br:(?:id|embed|link)="([^"]+)"/g)) {
+    ids.add(match[1]);
+  }
+  return Array.from(ids).sort((left, right) => left.localeCompare(right));
+}
+
+async function buildObjectFingerprint(
+  objectXml: string,
+  kind: DrawingObjectKind,
+  relTargetMap: Map<string, string>,
+  zip: JSZip
+): Promise<string> {
+  const normalizedObject = normalizeXml(objectXml.replace(/\bcNvPr([^>]*)\bid="\d+"/g, "cNvPr$1"));
+  const textContent = [...objectXml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => m[1]).join("\0");
+
+  const relationshipHashes: string[] = [];
+  const relationshipIds = collectLinkedRelationshipIds(objectXml);
+  for (const relationshipId of relationshipIds) {
+    const targetPath = relTargetMap.get(relationshipId);
+    if (!targetPath) {
+      continue;
+    }
+    const hash = await hashPartWithDependencies(zip, targetPath, new Set<string>());
+    if (hash.length > 0) {
+      relationshipHashes.push(`${relationshipId}:${hash}`);
+    }
+  }
+
+  relationshipHashes.sort((left, right) => left.localeCompare(right));
+  return hashString(`${kind}|${normalizedObject}|${textContent}|${relationshipHashes.join("|")}`);
+}
+
+async function parseShapeMap(
+  spTreeContent: string,
+  zip: JSZip,
+  slidePath: string
+): Promise<ShapeMap> {
+  const byId = new Map<string, ShapeDescriptor>();
+  const relTargetMap = await loadRelationshipTargetMap(zip, slidePath);
+
+  for (const pattern of DIFF_OBJECT_PATTERNS) {
+    for (const match of spTreeContent.matchAll(pattern.regex)) {
+      const objectXml = match[0];
+      const id = extractObjectId(objectXml);
+      if (!id) {
+        continue;
+      }
+
+      const fingerprint = await buildObjectFingerprint(objectXml, pattern.kind, relTargetMap, zip);
+      byId.set(id, { id, kind: pattern.kind, fingerprint });
+    }
+  }
+
+  return { byId };
 }
 
 interface DiffResult {
@@ -306,20 +462,20 @@ function computeShapeDiff(fromMap: ShapeMap, toMap: ShapeMap): DiffResult {
   const changedInTo = new Set<string>();
   const addedInTo = new Set<string>();
 
-  for (const [id, fromXml] of fromMap.byId) {
-    const toXml = toMap.byId.get(id);
-    if (!toXml) {
+  for (const [id, fromShape] of fromMap.byId) {
+    const toShape = toMap.byId.get(id);
+    if (!toShape) {
       removedInFrom.add(id);
-    } else if (getShapeTextContent(fromXml) !== getShapeTextContent(toXml)) {
+    } else if (fromShape.fingerprint !== toShape.fingerprint) {
       changedInFrom.add(id);
     }
   }
 
-  for (const [id, toXml] of toMap.byId) {
-    const fromXml = fromMap.byId.get(id);
-    if (!fromXml) {
+  for (const [id, toShape] of toMap.byId) {
+    const fromShape = fromMap.byId.get(id);
+    if (!fromShape) {
       addedInTo.add(id);
-    } else if (getShapeTextContent(fromXml) !== getShapeTextContent(toXml)) {
+    } else if (fromShape.fingerprint !== toShape.fingerprint) {
       changedInTo.add(id);
     }
   }
@@ -327,44 +483,362 @@ function computeShapeDiff(fromMap: ShapeMap, toMap: ShapeMap): DiffResult {
   return { changedInFrom, removedInFrom, changedInTo, addedInTo };
 }
 
-// Border width 3pt (38100 EMU). Replaces any existing <a:ln> in <p:spPr>.
-function addBorderToShapeXml(shapeXml: string, colorHex: string): string {
-  const border = `<a:ln w="38100"><a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill></a:ln>`;
+function addBorderToShapeXmlWithAlpha(shapeXml: string, colorHex: string, alpha: number): string {
+  // 2pt border for less visual heaviness than the previous 3pt highlight.
+  const border =
+    `<a:ln w="25400">` +
+    `<a:solidFill><a:srgbClr val="${colorHex}"><a:alpha val="${alpha}"/></a:srgbClr></a:solidFill>` +
+    `<a:prstDash val="sysDash"/>` +
+    `</a:ln>`;
   if (/<a:ln[\s/>]/.test(shapeXml)) {
     return shapeXml.replace(/<a:ln(?:\s[^>]*)?\/>|<a:ln(?:[^>]*)?>[\s\S]*?<\/a:ln>/, border);
   }
   return shapeXml.replace("</p:spPr>", border + "</p:spPr>");
 }
 
+interface DiffVisual {
+  colorHex: string;
+  statusText: string;
+  textColorHex: string;
+}
+
+function getDiffVisual(
+  id: string,
+  changedIds: Set<string>,
+  addedIds: Set<string>,
+  removedIds: Set<string>
+): DiffVisual | null {
+  if (changedIds.has(id)) {
+    return {
+      colorHex: "F59E0B", // orange
+      statusText: "Modified",
+      textColorHex: "FFFFFF",
+    };
+  }
+
+  if (addedIds.has(id)) {
+    return {
+      colorHex: "4ADE80", // slightly darker light green
+      statusText: "Added",
+      textColorHex: "FFFFFF",
+    };
+  }
+
+  if (removedIds.has(id)) {
+    return {
+      colorHex: "EF4444", // red
+      statusText: "Deleted",
+      textColorHex: "FFFFFF",
+    };
+  }
+
+  return null;
+}
+
+function extractTransformBounds(xml: string): TransformBounds | null {
+  const xfrmMatch = xml.match(/<(?:a|p):xfrm\b[\s\S]*?<\/?(?:a|p):xfrm>/);
+  if (!xfrmMatch) {
+    return null;
+  }
+
+  const offMatch = xfrmMatch[0].match(/<(?:a|p):off\b[^>]*\bx="(-?\d+)"[^>]*\by="(-?\d+)"/);
+  const extMatch = xfrmMatch[0].match(/<(?:a|p):ext\b[^>]*\bcx="(\d+)"[^>]*\bcy="(\d+)"/);
+
+  if (!offMatch || !extMatch) {
+    return null;
+  }
+
+  return {
+    x: offMatch[1],
+    y: offMatch[2],
+    cx: extMatch[1],
+    cy: extMatch[2],
+  };
+}
+
+function canApplyLineBorder(xml: string): boolean {
+  return /<p:spPr\b[\s\S]*?<\/p:spPr>/.test(xml);
+}
+
+function createOverlayBorderShapeWithEmphasis(
+  bounds: TransformBounds,
+  colorHex: string,
+  idx: number,
+  emphasized: boolean
+): string {
+  const pad = 15240; // ~1.2pt outward offset to avoid covering the original border
+  const x = Math.max(0, toEmuNumber(bounds.x) - pad);
+  const y = Math.max(0, toEmuNumber(bounds.y) - pad);
+  const cx = Math.max(12700, toEmuNumber(bounds.cx) + pad * 2);
+  const cy = Math.max(12700, toEmuNumber(bounds.cy) + pad * 2);
+  const fillAlpha = emphasized ? 9000 : 1800;
+  const lineAlpha = emphasized ? 100000 : 25000;
+
+  return (
+    `<p:sp>` +
+    `<p:nvSpPr>` +
+    `<p:cNvPr id="${9700 + idx}" name="GEDONUS_DIFF_OVERLAY_${idx}"/>` +
+    `<p:cNvSpPr><a:spLocks noGrp="1" noRot="1"/></p:cNvSpPr>` +
+    `<p:nvPr/>` +
+    `</p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+    `<a:solidFill><a:srgbClr val="${colorHex}"><a:alpha val="${fillAlpha}"/></a:srgbClr></a:solidFill>` +
+    `<a:ln w="25400">` +
+    `<a:solidFill><a:srgbClr val="${colorHex}"><a:alpha val="${lineAlpha}"/></a:srgbClr></a:solidFill>` +
+    `<a:prstDash val="sysDash"/>` +
+    `</a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>` +
+    `</p:sp>`
+  );
+}
+
+function toEmuNumber(value: string): number {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function createDiffBadgeShapes(
+  bounds: TransformBounds,
+  colorHex: string,
+  textColorHex: string,
+  labelText: string,
+  idx: number,
+  emphasized: boolean
+): string {
+  const badgeHeight = 203200;
+  // Compact dimensions for short status-only labels.
+  const charWidth = 52000;
+  const inset = 50800;
+  const extraWidth = 25400;
+  const estimatedTextWidth = Math.max(228600, labelText.length * charWidth);
+  const badgeWidth = estimatedTextWidth + inset * 2 + extraWidth;
+  const badgeGap = 38100; // small but visible space between badge and highlight border
+  const x = toEmuNumber(bounds.x);
+  const y = toEmuNumber(bounds.y);
+  const badgeX = Math.max(0, x - 38100);
+  const badgeY = Math.max(0, y - badgeHeight - badgeGap);
+  const badgeAlpha = emphasized ? 100000 : 32000;
+  const textAlpha = emphasized ? 100000 : 45000;
+
+  const badge =
+    `<p:sp>` +
+    `<p:nvSpPr>` +
+    `<p:cNvPr id="${9800 + idx}" name="GEDONUS_DIFF_BADGE_${idx}"/>` +
+    `<p:cNvSpPr txBox="1"><a:spLocks noGrp="1" noRot="1"/></p:cNvSpPr>` +
+    `<p:nvPr/>` +
+    `</p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${badgeX}" y="${badgeY}"/><a:ext cx="${badgeWidth}" cy="${badgeHeight}"/></a:xfrm>` +
+    `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 10000"/></a:avLst></a:prstGeom>` +
+    `<a:solidFill><a:srgbClr val="${colorHex}"><a:alpha val="${badgeAlpha}"/></a:srgbClr></a:solidFill>` +
+    `<a:ln><a:noFill/></a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody>` +
+    `<a:bodyPr anchor="ctr" wrap="none" lIns="${inset}" rIns="${inset}" tIns="${inset}" bIns="${inset}" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:lstStyle/>` +
+    `<a:p><a:pPr algn="l"/>` +
+    `<a:r><a:rPr lang="en-US" sz="760" b="1" noProof="1" dirty="0">` +
+    `<a:solidFill><a:srgbClr val="${textColorHex}"><a:alpha val="${textAlpha}"/></a:srgbClr></a:solidFill>` +
+    `<a:latin typeface="Geist"/>` +
+    `<a:ea typeface="Geist"/>` +
+    `<a:cs typeface="Geist"/>` +
+    `</a:rPr><a:t>${escapeXml(labelText)}</a:t></a:r>` +
+    `</a:p>` +
+    `</p:txBody>` +
+    `</p:sp>`;
+
+  return badge;
+}
+
+function ensureNonEditableSpLocks(xml: string): string {
+  const withExpandedSelfClosing = xml.replace(
+    /<p:cNvSpPr\b([^>]*)\/>/g,
+    (_full, attrs: string) => `<p:cNvSpPr${attrs}></p:cNvSpPr>`
+  );
+
+  return withExpandedSelfClosing.replace(
+    /<p:cNvSpPr\b([^>]*)>([\s\S]*?)<\/p:cNvSpPr>/g,
+    (_full, attrs: string, inner: string) => {
+      const locks =
+        '<a:spLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1" noTextEdit="1"/>';
+
+      if (/<a:spLocks\b[^>]*\/>/.test(inner)) {
+        return `<p:cNvSpPr${attrs}>${inner.replace(/<a:spLocks\b[^>]*\/>/, locks)}</p:cNvSpPr>`;
+      }
+
+      return `<p:cNvSpPr${attrs}>${locks}${inner}</p:cNvSpPr>`;
+    }
+  );
+}
+
+function ensureNonEditablePicLocks(xml: string): string {
+  const withExpandedSelfClosing = xml.replace(
+    /<p:cNvPicPr\b([^>]*)\/>/g,
+    (_full, attrs: string) => `<p:cNvPicPr${attrs}></p:cNvPicPr>`
+  );
+
+  return withExpandedSelfClosing.replace(
+    /<p:cNvPicPr\b([^>]*)>([\s\S]*?)<\/p:cNvPicPr>/g,
+    (_full, attrs: string, inner: string) => {
+      const locks = '<a:picLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1"/>';
+
+      if (/<a:picLocks\b[^>]*\/>/.test(inner)) {
+        return `<p:cNvPicPr${attrs}>${inner.replace(/<a:picLocks\b[^>]*\/>/, locks)}</p:cNvPicPr>`;
+      }
+
+      return `<p:cNvPicPr${attrs}>${locks}${inner}</p:cNvPicPr>`;
+    }
+  );
+}
+
+function ensureNonEditableGraphicFrameLocks(xml: string): string {
+  const withExpandedSelfClosing = xml.replace(
+    /<p:cNvGraphicFramePr\b([^>]*)\/>/g,
+    (_full, attrs: string) => `<p:cNvGraphicFramePr${attrs}></p:cNvGraphicFramePr>`
+  );
+
+  return withExpandedSelfClosing.replace(
+    /<p:cNvGraphicFramePr\b([^>]*)>([\s\S]*?)<\/p:cNvGraphicFramePr>/g,
+    (_full, attrs: string, inner: string) => {
+      const locks =
+        '<a:graphicFrameLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1"/>';
+
+      if (/<a:graphicFrameLocks\b[^>]*\/>/.test(inner)) {
+        return `<p:cNvGraphicFramePr${attrs}>${inner.replace(/<a:graphicFrameLocks\b[^>]*\/>/, locks)}</p:cNvGraphicFramePr>`;
+      }
+
+      return `<p:cNvGraphicFramePr${attrs}>${locks}${inner}</p:cNvGraphicFramePr>`;
+    }
+  );
+}
+
+function ensureNonEditableCxnLocks(xml: string): string {
+  const withExpandedSelfClosing = xml.replace(
+    /<p:cNvCxnSpPr\b([^>]*)\/>/g,
+    (_full, attrs: string) => `<p:cNvCxnSpPr${attrs}></p:cNvCxnSpPr>`
+  );
+
+  return withExpandedSelfClosing.replace(
+    /<p:cNvCxnSpPr\b([^>]*)>([\s\S]*?)<\/p:cNvCxnSpPr>/g,
+    (_full, attrs: string, inner: string) => {
+      const locks = '<a:spLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1"/>';
+
+      if (/<a:spLocks\b[^>]*\/>/.test(inner)) {
+        return `<p:cNvCxnSpPr${attrs}>${inner.replace(/<a:spLocks\b[^>]*\/>/, locks)}</p:cNvCxnSpPr>`;
+      }
+
+      return `<p:cNvCxnSpPr${attrs}>${locks}${inner}</p:cNvCxnSpPr>`;
+    }
+  );
+}
+
+function ensureNonEditableGroupLocks(xml: string): string {
+  const withExpandedSelfClosing = xml.replace(
+    /<p:cNvGrpSpPr\b([^>]*)\/>/g,
+    (_full, attrs: string) => `<p:cNvGrpSpPr${attrs}></p:cNvGrpSpPr>`
+  );
+
+  return withExpandedSelfClosing.replace(
+    /<p:cNvGrpSpPr\b([^>]*)>([\s\S]*?)<\/p:cNvGrpSpPr>/g,
+    (_full, attrs: string, inner: string) => {
+      const locks = '<a:grpSpLocks noSelect="1" noMove="1" noResize="1" noRot="1"/>';
+
+      if (/<a:grpSpLocks\b[^>]*\/>/.test(inner)) {
+        return `<p:cNvGrpSpPr${attrs}>${inner.replace(/<a:grpSpLocks\b[^>]*\/>/, locks)}</p:cNvGrpSpPr>`;
+      }
+
+      return `<p:cNvGrpSpPr${attrs}>${locks}${inner}</p:cNvGrpSpPr>`;
+    }
+  );
+}
+
+function lockComparisonObjects(xml: string): string {
+  return [
+    ensureNonEditableSpLocks,
+    ensureNonEditablePicLocks,
+    ensureNonEditableGraphicFrameLocks,
+    ensureNonEditableCxnLocks,
+    ensureNonEditableGroupLocks,
+  ].reduce((acc, applyLock) => applyLock(acc), xml);
+}
+
 function applyDiffBorders(
   spTreeContent: string,
   changedIds: Set<string>,
   addedIds: Set<string>,
-  removedIds: Set<string>
+  removedIds: Set<string>,
+  idSeed = 0,
+  focusIds?: Set<string>
 ): string {
-  const applyToShape = (xml: string): string => {
-    const idMatch = xml.match(/\bcNvPr[^>]*\bid="(\d+)"/);
-    if (!idMatch) return xml;
-    const id = idMatch[1];
-    // amber = changed, green = added, red = removed
-    if (changedIds.has(id)) return addBorderToShapeXml(xml, "F59E0B");
-    if (addedIds.has(id)) return addBorderToShapeXml(xml, "22C55E");
-    if (removedIds.has(id)) return addBorderToShapeXml(xml, "EF4444");
+  let overlayIndex = 0;
+  const overlays: string[] = [];
+
+  const applyToObject = (xml: string): string => {
+    const id = extractObjectId(xml);
+    if (!id) {
+      return xml;
+    }
+
+    const visual = getDiffVisual(id, changedIds, addedIds, removedIds);
+    if (!visual) {
+      return xml;
+    }
+
+    const emphasized = !focusIds || focusIds.size === 0 || focusIds.has(id);
+
+    const badgeText = visual.statusText.toUpperCase();
+    const bounds = extractTransformBounds(xml);
+    if (bounds) {
+      overlayIndex += 1;
+      overlays.push(
+        createDiffBadgeShapes(
+          bounds,
+          visual.colorHex,
+          visual.textColorHex,
+          badgeText,
+          idSeed + overlayIndex,
+          emphasized
+        )
+      );
+
+      overlayIndex += 1;
+      overlays.push(
+        createOverlayBorderShapeWithEmphasis(
+          bounds,
+          visual.colorHex,
+          idSeed + overlayIndex,
+          emphasized
+        )
+      );
+      return xml;
+    }
+
+    if (canApplyLineBorder(xml)) {
+      return addBorderToShapeXmlWithAlpha(xml, visual.colorHex, emphasized ? 100000 : 28000);
+    }
+
     return xml;
   };
 
-  return spTreeContent
-    .replace(/<p:sp\b[\s\S]*?<\/p:sp>/g, applyToShape)
-    .replace(/<p:pic\b[\s\S]*?<\/p:pic>/g, applyToShape);
+  let updatedSpTree = spTreeContent;
+  for (const pattern of DIFF_OBJECT_PATTERNS) {
+    updatedSpTree = updatedSpTree.replace(pattern.regex, applyToObject);
+  }
+
+  return overlays.length > 0 ? `${updatedSpTree}${overlays.join("")}` : updatedSpTree;
 }
 
 function applyDiffBordersToSlideXml(
   slideXml: string,
   changedIds: Set<string>,
-  addedIds: Set<string>
+  addedIds: Set<string>,
+  focusIds?: Set<string>
 ): string {
   return slideXml.replace(/<p:spTree>([\s\S]*?)<\/p:spTree>/, (_, content: string) => {
-    const marked = applyDiffBorders(content, changedIds, addedIds, new Set());
+    const marked = applyDiffBorders(content, changedIds, addedIds, new Set(), 1000, focusIds);
     return `<p:spTree>${marked}</p:spTree>`;
   });
 }
@@ -386,7 +860,7 @@ function buildBgRect(size: SlideSize): string {
   return (
     `<p:sp>` +
     `<p:nvSpPr>` +
-    `<p:cNvPr id="9900" name="PPTVC_BG"/>` +
+    `<p:cNvPr id="9900" name="GEDONUS_BG"/>` +
     `<p:cNvSpPr><a:spLocks noGrp="1" noSelect="1" noMove="1" noResize="1" noRot="1"/></p:cNvSpPr>` +
     `<p:nvPr/>` +
     `</p:nvSpPr>` +
@@ -397,7 +871,7 @@ function buildBgRect(size: SlideSize): string {
     `<a:ln><a:noFill/></a:ln>` +
     `<a:effectLst>` +
     `<a:outerShdw blurRad="76200" dist="25400" dir="5400000" algn="ctr" rotWithShape="0">` +
-    `<a:srgbClr val="2C2820"><a:alpha val="10000"/></a:srgbClr>` +
+    `<a:srgbClr val="000000"><a:alpha val="8000"/></a:srgbClr>` +
     `</a:outerShdw>` +
     `</a:effectLst>` +
     `</p:spPr>` +
@@ -407,9 +881,9 @@ function buildBgRect(size: SlideSize): string {
 }
 
 /**
- * Full-width beige panel between the main slide and the comparison area.
+ * Full-width neutral panel between the main slide and the comparison area.
  * Contains a "Comparing" headline with a horizontal divider, then two version
- * chips (from = muted, to = highlighted brown) — read-only, all shapes locked.
+ * chips (from = muted, to = highlighted black) — read-only, all shapes locked.
  */
 function buildLabelShape(
   size: SlideSize,
@@ -449,16 +923,16 @@ function buildLabelShape(
 
   const spLocks = `<a:spLocks noSelect="1" noMove="1" noResize="1" noTextEdit="1"/>`;
 
-  // Background panel — beige fill, full slide width
+  // Background panel — soft neutral fill, full slide width
   const bg =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9910" name="PPTVC_PANEL_BG"/>` +
+    `<p:nvSpPr><p:cNvPr id="9910" name="GEDONUS_PANEL_BG"/>` +
     `<p:cNvSpPr>${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="0" y="${groupY}"/><a:ext cx="${size.cx}" cy="${LABEL_HEIGHT}"/></a:xfrm>` +
     `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
-    `<a:solidFill><a:srgbClr val="F3EDE2"/></a:solidFill>` +
-    `<a:ln><a:noFill/></a:ln>` +
+    `<a:solidFill><a:srgbClr val="F5F5F5"/></a:solidFill>` +
+    `<a:ln w="12700"><a:solidFill><a:srgbClr val="E5E5E5"/></a:solidFill></a:ln>` +
     `</p:spPr>` +
     `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>` +
     `</p:sp>`;
@@ -466,7 +940,7 @@ function buildLabelShape(
   // "Comparing" title text
   const title =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9911" name="PPTVC_TITLE"/>` +
+    `<p:nvSpPr><p:cNvPr id="9911" name="GEDONUS_TITLE"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${hPad}" y="${titleY}"/><a:ext cx="${titleLabelW}" cy="${PANEL_TITLE_H}"/></a:xfrm>` +
@@ -478,7 +952,7 @@ function buildLabelShape(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="1300" b="1" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="171717"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>Comparing</a:t></a:r>` +
     `</a:p></p:txBody>` +
@@ -487,34 +961,34 @@ function buildLabelShape(
   // Horizontal divider line after title
   const divider =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9912" name="PPTVC_DIVIDER"/>` +
+    `<p:nvSpPr><p:cNvPr id="9912" name="GEDONUS_DIVIDER"/>` +
     `<p:cNvSpPr>${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${dividerX}" y="${dividerY}"/><a:ext cx="${dividerW}" cy="${dividerH}"/></a:xfrm>` +
     `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
-    `<a:solidFill><a:srgbClr val="D4C9B8"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="D4D4D4"/></a:solidFill>` +
     `<a:ln><a:noFill/></a:ln>` +
     `</p:spPr>` +
     `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>` +
     `</p:sp>`;
 
-  // From-version chip — white with muted border, grey text
+  // From-version chip — white with neutral border, muted text
   const fromBox =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9913" name="PPTVC_FROM_BOX"/>` +
+    `<p:nvSpPr><p:cNvPr id="9913" name="GEDONUS_FROM_BOX"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${box1X}" y="${versionRowY}"/><a:ext cx="${boxW}" cy="${PANEL_VERSION_H}"/></a:xfrm>` +
     `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 12500"/></a:avLst></a:prstGeom>` +
     `<a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>` +
-    `<a:ln w="19050"><a:solidFill><a:srgbClr val="D4C9B8"/></a:solidFill></a:ln>` +
+    `<a:ln w="12700"><a:solidFill><a:srgbClr val="D4D4D4"/></a:solidFill></a:ln>` +
     `</p:spPr>` +
     `<p:txBody>` +
     `<a:bodyPr anchor="ctr" lIns="101600" rIns="101600" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="950" b="0" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="737373"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>${escapeXml(fromName)}</a:t></a:r>` +
     `</a:p></p:txBody>` +
@@ -523,7 +997,7 @@ function buildLabelShape(
   // Arrow "→" between chips
   const arrow =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9914" name="PPTVC_ARROW"/>` +
+    `<p:nvSpPr><p:cNvPr id="9914" name="GEDONUS_ARROW"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${arrowX}" y="${versionRowY}"/><a:ext cx="${arrowW}" cy="${PANEL_VERSION_H}"/></a:xfrm>` +
@@ -535,21 +1009,21 @@ function buildLabelShape(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="ctr"/>` +
     `<a:r><a:rPr lang="en-US" sz="1300" b="1" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="737373"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>&#x2192;</a:t></a:r>` +
     `</a:p></p:txBody>` +
     `</p:sp>`;
 
-  // To-version chip — brown fill, cream text (highlighted as current)
+  // To-version chip — black fill, white text (highlighted as current)
   const toBox =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9915" name="PPTVC_TO_BOX"/>` +
+    `<p:nvSpPr><p:cNvPr id="9915" name="GEDONUS_TO_BOX"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${box2X}" y="${versionRowY}"/><a:ext cx="${boxW}" cy="${PANEL_VERSION_H}"/></a:xfrm>` +
     `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 12500"/></a:avLst></a:prstGeom>` +
-    `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="171717"/></a:solidFill>` +
     `<a:ln><a:noFill/></a:ln>` +
     `</p:spPr>` +
     `<p:txBody>` +
@@ -557,7 +1031,7 @@ function buildLabelShape(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="950" b="0" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="F7F4EF"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>${escapeXml(toName)}</a:t></a:r>` +
     `</a:p></p:txBody>` +
@@ -565,7 +1039,7 @@ function buildLabelShape(
 
   const belowLabel =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9918" name="PPTVC_BELOW_LABEL"/>` +
+    `<p:nvSpPr><p:cNvPr id="9918" name="GEDONUS_BELOW_LABEL"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${box1X}" y="${fieldLabelY}"/><a:ext cx="${boxW}" cy="${PANEL_FIELD_LABEL_H}"/></a:xfrm>` +
@@ -577,7 +1051,7 @@ function buildLabelShape(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="950" b="1" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="525252"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>Below</a:t></a:r>` +
     `</a:p></p:txBody>` +
@@ -585,7 +1059,7 @@ function buildLabelShape(
 
   const aboveLabel =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9919" name="PPTVC_ABOVE_LABEL"/>` +
+    `<p:nvSpPr><p:cNvPr id="9919" name="GEDONUS_ABOVE_LABEL"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${box2X}" y="${fieldLabelY}"/><a:ext cx="${boxW}" cy="${PANEL_FIELD_LABEL_H}"/></a:xfrm>` +
@@ -597,7 +1071,7 @@ function buildLabelShape(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="950" b="1" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="5D4E37"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="525252"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>Above</a:t></a:r>` +
     `</a:p></p:txBody>` +
@@ -605,7 +1079,7 @@ function buildLabelShape(
 
   const timeMeta =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9916" name="PPTVC_META_TIME"/>` +
+    `<p:nvSpPr><p:cNvPr id="9916" name="GEDONUS_META_TIME"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${metaX}" y="${metaTimeY}"/><a:ext cx="${metaW}" cy="127000"/></a:xfrm>` +
@@ -617,7 +1091,7 @@ function buildLabelShape(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="r"/>` +
     `<a:r><a:rPr lang="en-US" sz="1000" b="0" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="737373"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>${escapeXml(toTimestamp)}</a:t></a:r>` +
     `</a:p></p:txBody>` +
@@ -625,7 +1099,7 @@ function buildLabelShape(
 
   const authorMeta =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9917" name="PPTVC_META_AUTHOR"/>` +
+    `<p:nvSpPr><p:cNvPr id="9917" name="GEDONUS_META_AUTHOR"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${metaX}" y="${metaAuthorY}"/><a:ext cx="${metaW}" cy="127000"/></a:xfrm>` +
@@ -637,7 +1111,7 @@ function buildLabelShape(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="r"/>` +
     `<a:r><a:rPr lang="en-US" sz="900" b="0" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="7A7060"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="737373"/></a:solidFill>` +
     `<a:latin typeface="+mj-lt"/>` +
     `</a:rPr><a:t>Author: ${escapeXml(toAuthor)}</a:t></a:r>` +
     `</a:p></p:txBody>` +
@@ -646,7 +1120,7 @@ function buildLabelShape(
   return (
     `<p:grpSp>` +
     `<p:nvGrpSpPr>` +
-    `<p:cNvPr id="9901" name="PPTVC_LABEL_GROUP"/>` +
+    `<p:cNvPr id="9901" name="GEDONUS_LABEL_GROUP"/>` +
     `<p:cNvGrpSpPr><a:grpSpLocks noSelect="1" noResize="1" noMove="1"/></p:cNvGrpSpPr>` +
     `<p:nvPr/>` +
     `</p:nvGrpSpPr>` +
@@ -680,7 +1154,7 @@ function buildCompareGroup(shapeContent: string, size: SlideSize): string {
   return (
     `<p:grpSp>` +
     `<p:nvGrpSpPr>` +
-    `<p:cNvPr id="9902" name="PPTVC_SHAPES"/>` +
+    `<p:cNvPr id="9902" name="GEDONUS_SHAPES"/>` +
     `<p:cNvGrpSpPr><a:grpSpLocks noSelect="1" noResize="1" noMove="1"/></p:cNvGrpSpPr>` +
     `<p:nvPr/>` +
     `</p:nvGrpSpPr>` +
@@ -718,7 +1192,9 @@ export async function buildComparisonSlide(
   toName = "New",
   fromName = "Old",
   toTimestamp = "",
-  toAuthor = "Unknown"
+  toAuthor = "Unknown",
+  highlightDiffs = true,
+  focusedObjectIds: string[] = []
 ): Promise<Blob> {
   const [toZip, fromZip] = await Promise.all([
     JSZip.loadAsync(await toBlob.arrayBuffer()),
@@ -749,8 +1225,8 @@ export async function buildComparisonSlide(
   const rawOldShapes = extractShapeContent(fromSlideXml);
 
   // ── Shape diff ────────────────────────────────────────────────
-  const fromShapeMap = parseShapeMap(rawOldShapes);
-  const toShapeMap = parseShapeMap(extractShapeContent(toSlideXml));
+  const fromShapeMap = await parseShapeMap(rawOldShapes, fromZip, fromSlidePath);
+  const toShapeMap = await parseShapeMap(extractShapeContent(toSlideXml), toZip, toSlidePath);
   const diff = computeShapeDiff(fromShapeMap, toShapeMap);
 
   // ── Copy FROM-slide content resources (images, charts, embeddings) into TO zip ──
@@ -789,19 +1265,28 @@ export async function buildComparisonSlide(
 
   // ── Apply diff borders ────────────────────────────────────────
   // Old shapes (below): amber = changed, red = removed
-  const markedOldShapes = applyDiffBorders(
-    oldShapes,
-    diff.changedInFrom,
-    new Set<string>(),
-    diff.removedInFrom
-  );
+  const focusIds = focusedObjectIds.length > 0 ? new Set<string>(focusedObjectIds) : undefined;
+  const markedOldShapes = highlightDiffs
+    ? applyDiffBorders(
+        oldShapes,
+        diff.changedInFrom,
+        new Set<string>(),
+        diff.removedInFrom,
+        3000,
+        focusIds
+      )
+    : oldShapes;
+  const lockedOldShapes = lockComparisonObjects(markedOldShapes);
   // Current slide (above): amber = changed, green = added
-  const markedToSlideXml = applyDiffBordersToSlideXml(toSlideXml, diff.changedInTo, diff.addedInTo);
+  const markedToSlideXml = highlightDiffs
+    ? applyDiffBordersToSlideXml(toSlideXml, diff.changedInTo, diff.addedInTo, focusIds)
+    : toSlideXml;
+  const lockedToSlideXml = lockComparisonObjects(markedToSlideXml);
 
   const bgRect = buildBgRect(slideSize);
   const label = buildLabelShape(slideSize, toName, fromName, toTimestamp, toAuthor);
-  const compareGroup = buildCompareGroup(markedOldShapes, slideSize);
-  const modifiedSlideXml = injectIntoSpTree(markedToSlideXml, bgRect, label, compareGroup);
+  const compareGroup = buildCompareGroup(lockedOldShapes, slideSize);
+  const modifiedSlideXml = injectIntoSpTree(lockedToSlideXml, bgRect, label, compareGroup);
 
   toZip.file(toSlidePath, modifiedSlideXml);
 

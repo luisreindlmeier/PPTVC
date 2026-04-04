@@ -2,9 +2,9 @@
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
   <Id>bd34c85e-30c8-4f10-ab03-9438eab853f1</Id>
   <Version>1.0.2.0</Version>
-  <ProviderName>PPTVC</ProviderName>
+  <ProviderName>Gedonus</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="PPTVC"/>
+  <DisplayName DefaultValue="Gedonus"/>
   <Description DefaultValue="Local-first version control for PowerPoint presentations."/>
   <IconUrl DefaultValue="https://localhost:3000/assets/logo-filled-32.png?v=2"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/logo-filled-80.png?v=2"/>
@@ -72,13 +72,13 @@
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="PPTVC is ready in PowerPoint"/>
-        <bt:String id="CommandsGroup.Label" DefaultValue="PPTVC"/>
-        <bt:String id="TaskpaneButton.Label" DefaultValue="PPTVC"/>
+        <bt:String id="GetStarted.Title" DefaultValue="Gedonus is ready in PowerPoint"/>
+        <bt:String id="CommandsGroup.Label" DefaultValue="Gedonus"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="Gedonus"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="GetStarted.Description" DefaultValue="Open PPTVC from the Home tab to save versions, compare slides, and restore snapshots locally."/>
-        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open PPTVC version control panel"/>
+        <bt:String id="GetStarted.Description" DefaultValue="Open Gedonus from the Home tab to save versions, compare slides, and restore snapshots locally."/>
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open Gedonus version control panel"/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

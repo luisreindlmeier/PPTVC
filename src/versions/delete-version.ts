@@ -1,14 +1,14 @@
 import { createStorageAdapter } from "../storage";
-
-const VERSION_ROOT_PATH = "versions";
+import { getVersionRootPath } from "./document-scope";
 
 export async function deleteVersion(id: string): Promise<void> {
   const storage = createStorageAdapter();
-  const existingVersionIds = await storage.listDirectory(VERSION_ROOT_PATH);
+  const versionRootPath = await getVersionRootPath();
+  const existingVersionIds = await storage.listDirectory(versionRootPath);
 
   if (!existingVersionIds.includes(id)) {
     throw new Error(`Version "${id}" does not exist.`);
   }
 
-  await storage.deleteDirectory(`${VERSION_ROOT_PATH}/${id}`);
+  await storage.deleteDirectory(`${versionRootPath}/${id}`);
 }

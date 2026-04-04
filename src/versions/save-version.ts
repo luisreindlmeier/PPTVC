@@ -2,9 +2,9 @@
 
 import JSZip from "jszip";
 import { createStorageAdapter, type StorageAdapter } from "../storage";
+import { getVersionRootPath } from "./document-scope";
 import type { Version, VersionSnapshotMetadata, SaveVersionOptions } from "./types";
 
-const VERSION_ROOT_PATH = "versions";
 const SNAPSHOT_FILE_NAME = "snapshot.pptx";
 const METADATA_FILE_NAME = "metadata.json";
 const DEFAULT_FILE_NAME = "Untitled.pptx";
@@ -145,27 +145,31 @@ function createVersionId(now: number): string {
   return `${now}-${randomSuffix}`;
 }
 
-async function createVersionName(storage: StorageAdapter): Promise<string> {
-  const existingEntries = await storage.listDirectory(VERSION_ROOT_PATH);
+async function createVersionName(
+  storage: StorageAdapter,
+  versionRootPath: string
+): Promise<string> {
+  const existingEntries = await storage.listDirectory(versionRootPath);
   const versionNumber = existingEntries.length + 1;
   return `Version ${versionNumber}`;
 }
 
 export async function saveVersion(options: SaveVersionOptions = {}): Promise<Version> {
   const storage = createStorageAdapter();
+  const versionRootPath = await getVersionRootPath();
   const { blob, filename } = await readCurrentPresentationAsBlob();
   const xmlFiles = await getXmlFileList(blob);
 
   const timestamp = Date.now();
   const id = createVersionId(timestamp);
-  const name = await createVersionName(storage);
+  const name = await createVersionName(storage, versionRootPath);
   const displayName = options.name?.trim() || undefined;
   const authorName = options.authorName?.trim() || undefined;
   const authorEmail = options.authorEmail?.trim() || undefined;
   const tags = options.tags ?? [];
 
-  const snapshotPath = `${VERSION_ROOT_PATH}/${id}/${SNAPSHOT_FILE_NAME}`;
-  const metadataPath = `${VERSION_ROOT_PATH}/${id}/${METADATA_FILE_NAME}`;
+  const snapshotPath = `${versionRootPath}/${id}/${SNAPSHOT_FILE_NAME}`;
+  const metadataPath = `${versionRootPath}/${id}/${METADATA_FILE_NAME}`;
 
   const metadata: VersionSnapshotMetadata = {
     id,
