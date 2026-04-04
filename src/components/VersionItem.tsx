@@ -102,10 +102,7 @@ export function VersionItem({
 
   return (
     <li
-      className={cn(
-        "relative pl-6 pb-3 group transition-transform duration-150 ease-out hover:translate-x-px",
-        isNewer && "opacity-60"
-      )}
+      className={cn("relative pl-6 pb-3 group", isNewer && "opacity-60")}
       data-version-id={version.id}
     >
       {/* Timeline dot */}
@@ -121,8 +118,9 @@ export function VersionItem({
         )}
       />
 
-      {/* Header row: name + actions */}
-      <div className="flex items-center gap-1 min-w-0">
+      <div className="transition-transform duration-150 ease-out group-hover:translate-x-0.5">
+        {/* Header row: name + actions */}
+        <div className="flex items-center gap-1 min-w-0">
         <input
           ref={nameRef}
           defaultValue={name}
@@ -159,101 +157,102 @@ export function VersionItem({
             <IconX className="w-3.5 h-3.5" />
           </button>
         </div>
-      </div>
-
-      {/* Meta row: timestamp + tag button */}
-      <div className="flex items-center gap-2 mt-0.5">
-        <span className="text-[11px] text-[var(--color-text-muted)]">
-          {formatTimestamp(version.timestamp)}
-        </span>
-        <button
-          type="button"
-          onClick={() => setTagPickerOpen((o) => !o)}
-          aria-expanded={tagPickerOpen}
-          className="flex items-center gap-0.5 text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
-        >
-          <IconTag className="w-3 h-3" />
-          <span>Tags</span>
-        </button>
-      </div>
-
-      {/* Author row */}
-      <div className="flex items-center gap-1.5 mt-1">
-        <div
-          className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] text-white shrink-0"
-          style={{ background: authorColor(authorLabel) }}
-          aria-hidden="true"
-        >
-          {authorInitials(authorLabel)}
         </div>
-        <span className="text-[11px] text-[var(--color-text-muted)]">{authorLabel}</span>
-      </div>
 
-      {/* Tags row */}
-      {(tags.length > 0 || tagPickerOpen) && (
-        <div className="flex flex-wrap gap-1 mt-1.5">
-          {tags.map((tag) => (
-            <Badge
-              key={tag}
-              variant="secondary"
-              className="h-5 text-[10px] px-1.5 gap-1 bg-[var(--color-tag-bg)] text-[var(--color-tag-text)] hover:bg-[var(--color-tag-bg)] border-0"
-            >
-              {tag}
-              <button
-                type="button"
-                onClick={() => removeTag(tag)}
-                aria-label={`Remove tag ${tag}`}
-                className="ml-0.5 hover:text-[var(--color-danger)] cursor-pointer"
-              >
-                ×
-              </button>
-            </Badge>
-          ))}
-          {tagPickerOpen && availableTags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {availableTags.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  disabled={tags.length >= MAX_TAGS}
-                  onClick={() => addTag(tag)}
-                  className="h-5 text-[10px] px-1.5 rounded-[3px] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-tag-bg)] hover:text-[var(--color-tag-text)] hover:border-[var(--color-tag-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          )}
+        {/* Meta row: timestamp + tag button */}
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-[11px] text-[var(--color-text-muted)]">
+            {formatTimestamp(version.timestamp)}
+          </span>
+          <button
+            type="button"
+            onClick={() => setTagPickerOpen((o) => !o)}
+            aria-expanded={tagPickerOpen}
+            className="flex items-center gap-0.5 text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
+          >
+            <IconTag className="w-3 h-3" />
+            <span>Tags</span>
+          </button>
         </div>
-      )}
 
-      {/* Delete confirm popup */}
-      {showDeleteConfirm && (
-        <div className="mt-2 p-2.5 rounded-[var(--radius-sm)] bg-[var(--color-danger-light)] border border-[var(--color-danger)]/20">
-          <p className="text-[11px] text-[var(--color-text)] mb-2">Delete this version?</p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="xs"
-              onClick={() => setShowDeleteConfirm(false)}
-              className="flex-1 text-[11px] h-6"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              size="xs"
-              onClick={() => {
-                setShowDeleteConfirm(false);
-                void onDelete();
-              }}
-              className="flex-1 text-[11px] h-6 bg-[var(--color-danger)] hover:bg-[var(--color-danger-hover)]"
-            >
-              Delete
-            </Button>
+        {/* Author row */}
+        <div className="flex items-center gap-1.5 mt-1">
+          <div
+            className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] text-white shrink-0"
+            style={{ background: authorColor(authorLabel) }}
+            aria-hidden="true"
+          >
+            {authorInitials(authorLabel)}
           </div>
+          <span className="text-[11px] text-[var(--color-text-muted)]">{authorLabel}</span>
         </div>
-      )}
+
+        {/* Tags row */}
+        {(tags.length > 0 || tagPickerOpen) && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {tags.map((tag) => (
+              <Badge
+                key={tag}
+                variant="secondary"
+                className="h-5 text-[10px] px-1.5 gap-1 bg-[var(--color-tag-bg)] text-[var(--color-tag-text)] hover:bg-[var(--color-tag-bg)] border-0"
+              >
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  aria-label={`Remove tag ${tag}`}
+                  className="ml-0.5 hover:text-[var(--color-danger)] cursor-pointer"
+                >
+                  ×
+                </button>
+              </Badge>
+            ))}
+            {tagPickerOpen && availableTags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {availableTags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    disabled={tags.length >= MAX_TAGS}
+                    onClick={() => addTag(tag)}
+                    className="h-5 text-[10px] px-1.5 rounded-[3px] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-tag-bg)] hover:text-[var(--color-tag-text)] hover:border-[var(--color-tag-bg)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Delete confirm popup */}
+        {showDeleteConfirm && (
+          <div className="mt-2 p-2.5 rounded-[var(--radius-sm)] bg-[var(--color-danger-light)] border border-[var(--color-danger)]/20">
+            <p className="text-[11px] text-[var(--color-text)] mb-2">Delete this version?</p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 text-[11px] h-6"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="xs"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  void onDelete();
+                }}
+                className="flex-1 text-[11px] h-6 bg-[var(--color-danger)] hover:bg-[var(--color-danger-hover)]"
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </li>
   );
 }
