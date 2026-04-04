@@ -634,6 +634,7 @@ function createDiffBadgeShapes(
   const badgeWidth = Math.max(1016000, Math.min(4572000, labelText.length * charWidth));
   const x = toEmuNumber(bounds.x);
   const y = toEmuNumber(bounds.y);
+  const badgeX = Math.max(0, x - 76200);
   const badgeY = Math.max(0, y - badgeHeight);
 
   const badge =
@@ -644,7 +645,7 @@ function createDiffBadgeShapes(
     `<p:nvPr/>` +
     `</p:nvSpPr>` +
     `<p:spPr>` +
-    `<a:xfrm><a:off x="${x}" y="${badgeY}"/><a:ext cx="${badgeWidth}" cy="${badgeHeight}"/></a:xfrm>` +
+    `<a:xfrm><a:off x="${badgeX}" y="${badgeY}"/><a:ext cx="${badgeWidth}" cy="${badgeHeight}"/></a:xfrm>` +
     `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 10000"/></a:avLst></a:prstGeom>` +
     `<a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill>` +
     `<a:ln><a:noFill/></a:ln>` +
@@ -653,7 +654,7 @@ function createDiffBadgeShapes(
     `<a:bodyPr anchor="ctr" wrap="none" lIns="63500" rIns="63500" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
-    `<a:r><a:rPr lang="en-US" sz="760" b="1" noProof="1" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="760" b="0" noProof="1" dirty="0">` +
     `<a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>` +
     `<a:latin typeface="+mn-lt"/>` +
     `</a:rPr><a:t>${escapeXml(labelText)}</a:t></a:r>` +
@@ -662,6 +663,81 @@ function createDiffBadgeShapes(
     `</p:sp>`;
 
   return badge;
+}
+
+function ensureNonEditableSpLocks(xml: string): string {
+  return xml.replace(/<p:cNvSpPr>([\s\S]*?)<\/p:cNvSpPr>/g, (_full, inner: string) => {
+    const locks =
+      '<a:spLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1" noTextEdit="1"/>';
+
+    if (/<a:spLocks\b[^>]*\/>/.test(inner)) {
+      return `<p:cNvSpPr>${inner.replace(/<a:spLocks\b[^>]*\/>/, locks)}</p:cNvSpPr>`;
+    }
+
+    return `<p:cNvSpPr>${locks}${inner}</p:cNvSpPr>`;
+  });
+}
+
+function ensureNonEditablePicLocks(xml: string): string {
+  return xml.replace(/<p:cNvPicPr>([\s\S]*?)<\/p:cNvPicPr>/g, (_full, inner: string) => {
+    const locks = '<a:picLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1"/>';
+
+    if (/<a:picLocks\b[^>]*\/>/.test(inner)) {
+      return `<p:cNvPicPr>${inner.replace(/<a:picLocks\b[^>]*\/>/, locks)}</p:cNvPicPr>`;
+    }
+
+    return `<p:cNvPicPr>${locks}${inner}</p:cNvPicPr>`;
+  });
+}
+
+function ensureNonEditableGraphicFrameLocks(xml: string): string {
+  return xml.replace(
+    /<p:cNvGraphicFramePr>([\s\S]*?)<\/p:cNvGraphicFramePr>/g,
+    (_full, inner: string) => {
+      const locks =
+        '<a:graphicFrameLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1"/>';
+
+      if (/<a:graphicFrameLocks\b[^>]*\/>/.test(inner)) {
+        return `<p:cNvGraphicFramePr>${inner.replace(/<a:graphicFrameLocks\b[^>]*\/>/, locks)}</p:cNvGraphicFramePr>`;
+      }
+
+      return `<p:cNvGraphicFramePr>${locks}${inner}</p:cNvGraphicFramePr>`;
+    }
+  );
+}
+
+function ensureNonEditableCxnLocks(xml: string): string {
+  return xml.replace(/<p:cNvCxnSpPr>([\s\S]*?)<\/p:cNvCxnSpPr>/g, (_full, inner: string) => {
+    const locks = '<a:spLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1"/>';
+
+    if (/<a:spLocks\b[^>]*\/>/.test(inner)) {
+      return `<p:cNvCxnSpPr>${inner.replace(/<a:spLocks\b[^>]*\/>/, locks)}</p:cNvCxnSpPr>`;
+    }
+
+    return `<p:cNvCxnSpPr>${locks}${inner}</p:cNvCxnSpPr>`;
+  });
+}
+
+function ensureNonEditableGroupLocks(xml: string): string {
+  return xml.replace(/<p:cNvGrpSpPr>([\s\S]*?)<\/p:cNvGrpSpPr>/g, (_full, inner: string) => {
+    const locks = '<a:grpSpLocks noSelect="1" noMove="1" noResize="1" noRot="1"/>';
+
+    if (/<a:grpSpLocks\b[^>]*\/>/.test(inner)) {
+      return `<p:cNvGrpSpPr>${inner.replace(/<a:grpSpLocks\b[^>]*\/>/, locks)}</p:cNvGrpSpPr>`;
+    }
+
+    return `<p:cNvGrpSpPr>${locks}${inner}</p:cNvGrpSpPr>`;
+  });
+}
+
+function lockComparisonObjects(xml: string): string {
+  return [
+    ensureNonEditableSpLocks,
+    ensureNonEditablePicLocks,
+    ensureNonEditableGraphicFrameLocks,
+    ensureNonEditableCxnLocks,
+    ensureNonEditableGroupLocks,
+  ].reduce((acc, applyLock) => applyLock(acc), xml);
 }
 
 function applyDiffBorders(
@@ -1154,13 +1230,15 @@ export async function buildComparisonSlide(
     diff.removedInFrom,
     3000
   );
+  const lockedOldShapes = lockComparisonObjects(markedOldShapes);
   // Current slide (above): amber = changed, green = added
   const markedToSlideXml = applyDiffBordersToSlideXml(toSlideXml, diff.changedInTo, diff.addedInTo);
+  const lockedToSlideXml = lockComparisonObjects(markedToSlideXml);
 
   const bgRect = buildBgRect(slideSize);
   const label = buildLabelShape(slideSize, toName, fromName, toTimestamp, toAuthor);
-  const compareGroup = buildCompareGroup(markedOldShapes, slideSize);
-  const modifiedSlideXml = injectIntoSpTree(markedToSlideXml, bgRect, label, compareGroup);
+  const compareGroup = buildCompareGroup(lockedOldShapes, slideSize);
+  const modifiedSlideXml = injectIntoSpTree(lockedToSlideXml, bgRect, label, compareGroup);
 
   toZip.file(toSlidePath, modifiedSlideXml);
 
