@@ -210,12 +210,23 @@ export function HistoryPanel({
 
       {restoreCandidate && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/20 px-4">
-          <div className="w-full max-w-[320px] rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg)] p-3 shadow-[var(--shadow-elevated)]">
+          <div className="relative w-full max-w-[320px] rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg)] p-3 shadow-[var(--shadow-elevated)]">
+            <button
+              type="button"
+              onClick={() => setRestoreCandidate(null)}
+              aria-label="Close restore dialog"
+              className="absolute right-2 top-2 h-6 w-6 rounded-[var(--radius-xs)] text-[var(--color-text-muted)] hover:bg-[var(--color-border)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
+            >
+              ×
+            </button>
             <p className="text-[12px] text-[var(--color-text)] mb-2 leading-snug">
               Version wirklich wiederherstellen?
             </p>
             <p className="text-[11px] text-[var(--color-text-muted)] mb-3 truncate">
               {restoreCandidate.name}
+            </p>
+            <p className="text-[11px] text-[var(--color-text-muted)] mb-3 leading-snug">
+              Spaetere Versionen bleiben erhalten und sind weiterhin zugaenglich.
             </p>
             <div className="flex gap-2">
               <Button
@@ -223,7 +234,7 @@ export function HistoryPanel({
                 size="xs"
                 onClick={() => setRestoreCandidate(null)}
                 disabled={restoringId !== null}
-                className="flex-1 text-[11px] h-7"
+                className="flex-1 text-[11px] h-7 cursor-pointer"
               >
                 Cancel
               </Button>
@@ -231,7 +242,7 @@ export function HistoryPanel({
                 size="xs"
                 onClick={() => void handleConfirmRestore()}
                 disabled={restoringId !== null}
-                className="flex-1 text-[11px] h-7 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white"
+                className="flex-1 text-[11px] h-7 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white cursor-pointer"
               >
                 {restoringId !== null ? <span className="btn-spinner" aria-hidden="true" /> : "Restore"}
               </Button>
