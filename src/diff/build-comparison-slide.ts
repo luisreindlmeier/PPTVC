@@ -562,6 +562,12 @@ function canApplyLineBorder(xml: string): boolean {
 }
 
 function createOverlayBorderShape(bounds: TransformBounds, colorHex: string, idx: number): string {
+  const pad = 15240; // ~1.2pt outward offset to avoid covering the original border
+  const x = Math.max(0, toEmuNumber(bounds.x) - pad);
+  const y = Math.max(0, toEmuNumber(bounds.y) - pad);
+  const cx = Math.max(12700, toEmuNumber(bounds.cx) + pad * 2);
+  const cy = Math.max(12700, toEmuNumber(bounds.cy) + pad * 2);
+
   return (
     `<p:sp>` +
     `<p:nvSpPr>` +
@@ -570,7 +576,7 @@ function createOverlayBorderShape(bounds: TransformBounds, colorHex: string, idx
     `<p:nvPr/>` +
     `</p:nvSpPr>` +
     `<p:spPr>` +
-    `<a:xfrm><a:off x="${bounds.x}" y="${bounds.y}"/><a:ext cx="${bounds.cx}" cy="${bounds.cy}"/></a:xfrm>` +
+    `<a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>` +
     `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
     `<a:solidFill><a:srgbClr val="${colorHex}"><a:alpha val="9000"/></a:srgbClr></a:solidFill>` +
     `<a:ln w="25400">` +
@@ -678,68 +684,80 @@ function createDiffBadgeShapes(
 }
 
 function ensureNonEditableSpLocks(xml: string): string {
-  return xml.replace(/<p:cNvSpPr>([\s\S]*?)<\/p:cNvSpPr>/g, (_full, inner: string) => {
-    const locks =
-      '<a:spLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1" noTextEdit="1"/>';
+  return xml.replace(
+    /<p:cNvSpPr\b([^>]*)>([\s\S]*?)<\/p:cNvSpPr>/g,
+    (_full, attrs: string, inner: string) => {
+      const locks =
+        '<a:spLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1" noTextEdit="1"/>';
 
-    if (/<a:spLocks\b[^>]*\/>/.test(inner)) {
-      return `<p:cNvSpPr>${inner.replace(/<a:spLocks\b[^>]*\/>/, locks)}</p:cNvSpPr>`;
+      if (/<a:spLocks\b[^>]*\/>/.test(inner)) {
+        return `<p:cNvSpPr${attrs}>${inner.replace(/<a:spLocks\b[^>]*\/>/, locks)}</p:cNvSpPr>`;
+      }
+
+      return `<p:cNvSpPr${attrs}>${locks}${inner}</p:cNvSpPr>`;
     }
-
-    return `<p:cNvSpPr>${locks}${inner}</p:cNvSpPr>`;
-  });
+  );
 }
 
 function ensureNonEditablePicLocks(xml: string): string {
-  return xml.replace(/<p:cNvPicPr>([\s\S]*?)<\/p:cNvPicPr>/g, (_full, inner: string) => {
-    const locks = '<a:picLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1"/>';
+  return xml.replace(
+    /<p:cNvPicPr\b([^>]*)>([\s\S]*?)<\/p:cNvPicPr>/g,
+    (_full, attrs: string, inner: string) => {
+      const locks = '<a:picLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1"/>';
 
-    if (/<a:picLocks\b[^>]*\/>/.test(inner)) {
-      return `<p:cNvPicPr>${inner.replace(/<a:picLocks\b[^>]*\/>/, locks)}</p:cNvPicPr>`;
+      if (/<a:picLocks\b[^>]*\/>/.test(inner)) {
+        return `<p:cNvPicPr${attrs}>${inner.replace(/<a:picLocks\b[^>]*\/>/, locks)}</p:cNvPicPr>`;
+      }
+
+      return `<p:cNvPicPr${attrs}>${locks}${inner}</p:cNvPicPr>`;
     }
-
-    return `<p:cNvPicPr>${locks}${inner}</p:cNvPicPr>`;
-  });
+  );
 }
 
 function ensureNonEditableGraphicFrameLocks(xml: string): string {
   return xml.replace(
-    /<p:cNvGraphicFramePr>([\s\S]*?)<\/p:cNvGraphicFramePr>/g,
-    (_full, inner: string) => {
+    /<p:cNvGraphicFramePr\b([^>]*)>([\s\S]*?)<\/p:cNvGraphicFramePr>/g,
+    (_full, attrs: string, inner: string) => {
       const locks =
         '<a:graphicFrameLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1"/>';
 
       if (/<a:graphicFrameLocks\b[^>]*\/>/.test(inner)) {
-        return `<p:cNvGraphicFramePr>${inner.replace(/<a:graphicFrameLocks\b[^>]*\/>/, locks)}</p:cNvGraphicFramePr>`;
+        return `<p:cNvGraphicFramePr${attrs}>${inner.replace(/<a:graphicFrameLocks\b[^>]*\/>/, locks)}</p:cNvGraphicFramePr>`;
       }
 
-      return `<p:cNvGraphicFramePr>${locks}${inner}</p:cNvGraphicFramePr>`;
+      return `<p:cNvGraphicFramePr${attrs}>${locks}${inner}</p:cNvGraphicFramePr>`;
     }
   );
 }
 
 function ensureNonEditableCxnLocks(xml: string): string {
-  return xml.replace(/<p:cNvCxnSpPr>([\s\S]*?)<\/p:cNvCxnSpPr>/g, (_full, inner: string) => {
-    const locks = '<a:spLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1"/>';
+  return xml.replace(
+    /<p:cNvCxnSpPr\b([^>]*)>([\s\S]*?)<\/p:cNvCxnSpPr>/g,
+    (_full, attrs: string, inner: string) => {
+      const locks = '<a:spLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1"/>';
 
-    if (/<a:spLocks\b[^>]*\/>/.test(inner)) {
-      return `<p:cNvCxnSpPr>${inner.replace(/<a:spLocks\b[^>]*\/>/, locks)}</p:cNvCxnSpPr>`;
+      if (/<a:spLocks\b[^>]*\/>/.test(inner)) {
+        return `<p:cNvCxnSpPr${attrs}>${inner.replace(/<a:spLocks\b[^>]*\/>/, locks)}</p:cNvCxnSpPr>`;
+      }
+
+      return `<p:cNvCxnSpPr${attrs}>${locks}${inner}</p:cNvCxnSpPr>`;
     }
-
-    return `<p:cNvCxnSpPr>${locks}${inner}</p:cNvCxnSpPr>`;
-  });
+  );
 }
 
 function ensureNonEditableGroupLocks(xml: string): string {
-  return xml.replace(/<p:cNvGrpSpPr>([\s\S]*?)<\/p:cNvGrpSpPr>/g, (_full, inner: string) => {
-    const locks = '<a:grpSpLocks noSelect="1" noMove="1" noResize="1" noRot="1"/>';
+  return xml.replace(
+    /<p:cNvGrpSpPr\b([^>]*)>([\s\S]*?)<\/p:cNvGrpSpPr>/g,
+    (_full, attrs: string, inner: string) => {
+      const locks = '<a:grpSpLocks noSelect="1" noMove="1" noResize="1" noRot="1"/>';
 
-    if (/<a:grpSpLocks\b[^>]*\/>/.test(inner)) {
-      return `<p:cNvGrpSpPr>${inner.replace(/<a:grpSpLocks\b[^>]*\/>/, locks)}</p:cNvGrpSpPr>`;
+      if (/<a:grpSpLocks\b[^>]*\/>/.test(inner)) {
+        return `<p:cNvGrpSpPr${attrs}>${inner.replace(/<a:grpSpLocks\b[^>]*\/>/, locks)}</p:cNvGrpSpPr>`;
+      }
+
+      return `<p:cNvGrpSpPr${attrs}>${locks}${inner}</p:cNvGrpSpPr>`;
     }
-
-    return `<p:cNvGrpSpPr>${locks}${inner}</p:cNvGrpSpPr>`;
-  });
+  );
 }
 
 function lockComparisonObjects(xml: string): string {
