@@ -112,37 +112,49 @@ export function DiffPanel({
     }
   };
 
-  const handleCompare = async () => {
-    if (!fromVersion || !toVersion || fromVersion.id === toVersion.id) return;
+  const runComparison = async (
+    from: Version,
+    to: Version,
+    enableHighlights: boolean
+  ): Promise<boolean> => {
     setComparing(true);
     try {
-      // Close any existing comparison first
       if (activeComparisonRef.current) {
         const closed = await closeActiveComparison();
-        if (!closed) return;
+        if (!closed) return false;
       }
+
       const [toBlob, fromBlob] = await Promise.all([
-        getVersionBlob(toVersion.snapshotPath),
-        getVersionBlob(fromVersion.snapshotPath),
+        getVersionBlob(to.snapshotPath),
+        getVersionBlob(from.snapshotPath),
       ]);
+
       const slideIdx = currentSlide.num - 1;
       const modifiedBlob = await buildComparisonSlide(
         toBlob,
         fromBlob,
         slideIdx,
-        getVersionName(toVersion),
-        getVersionName(fromVersion),
-        formatTimestamp(toVersion.timestamp),
-        getAuthorLabel(toVersion),
-        highlightDiffs
+        getVersionName(to),
+        getVersionName(from),
+        formatTimestamp(to.timestamp),
+        getAuthorLabel(to),
+        enableHighlights
       );
+
       await replacePresentationFromBase64(await blobToBase64(modifiedBlob));
-      setActiveComparison({ fromVersion, toVersion, slideNum: currentSlide.num });
+      setActiveComparison({ fromVersion: from, toVersion: to, slideNum: currentSlide.num });
+      return true;
     } catch (err) {
       showStatus(err instanceof Error ? err.message : "Failed to build comparison.", true);
+      return false;
     } finally {
       setComparing(false);
     }
+  };
+
+  const handleCompare = async () => {
+    if (!fromVersion || !toVersion || fromVersion.id === toVersion.id) return;
+    await runComparison(fromVersion, toVersion, highlightDiffs);
   };
 
   const handleClear = async () => {
@@ -243,7 +255,14 @@ export function DiffPanel({
             <input
               type="checkbox"
               checked={highlightDiffs}
-              onChange={(e) => setHighlightDiffs(e.target.checked)}
+              onChange={(e) => {
+                const nextValue = e.target.checked;
+                setHighlightDiffs(nextValue);
+                const current = activeComparisonRef.current;
+                if (current) {
+                  void runComparison(current.fromVersion, current.toVersion, nextValue);
+                }
+              }}
               className="h-4 w-4 cursor-pointer"
               aria-label="Toggle diff highlights"
             />
