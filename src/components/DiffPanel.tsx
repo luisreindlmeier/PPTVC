@@ -61,7 +61,7 @@ export function DiffPanel({
   const [clearing, setClearing] = useState(false);
   const [highlightDiffs, setHighlightDiffs] = useState(true);
   const [changeFilter, setChangeFilter] = useState<ChangeFilter>("all");
-  const [hoveredChangeId, setHoveredChangeId] = useState<string | null>(null);
+  const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null);
   const [activeComparison, setActiveComparison] = useState<ActiveComparison | null>(null);
   // Keep a ref so async callbacks can always read the latest value
   const activeComparisonRef = useRef<ActiveComparison | null>(null);
@@ -181,7 +181,7 @@ export function DiffPanel({
 
   const handleCompare = async () => {
     if (!fromVersion || !toVersion || fromVersion.id === toVersion.id) return;
-    setHoveredChangeId(null);
+    setSelectedChangeId(null);
     await runComparison(fromVersion, toVersion, highlightDiffs);
   };
 
@@ -202,32 +202,25 @@ export function DiffPanel({
         : activeComparison.summary.allChanges
     : [];
 
-  const onChangeHover = (changeId: string) => {
+  const onChangeClick = (changeId: string) => {
     const current = activeComparisonRef.current;
     if (!current || !highlightDiffs || changeId.startsWith("overflow-")) {
       return;
     }
 
-    if (hoveredChangeId === changeId) {
+    const nextSelected = selectedChangeId === changeId ? null : changeId;
+    setSelectedChangeId(nextSelected);
+
+    if (!nextSelected) {
+      void runComparison(current.fromVersion, current.toVersion, true, {
+        summaryOverride: current.summary,
+        silent: true,
+      });
       return;
     }
 
-    setHoveredChangeId(changeId);
     void runComparison(current.fromVersion, current.toVersion, true, {
-      focusedObjectIds: [changeId],
-      summaryOverride: current.summary,
-      silent: true,
-    });
-  };
-
-  const onChangeHoverLeave = () => {
-    const current = activeComparisonRef.current;
-    if (!current || !highlightDiffs || !hoveredChangeId) {
-      return;
-    }
-
-    setHoveredChangeId(null);
-    void runComparison(current.fromVersion, current.toVersion, true, {
+      focusedObjectIds: [nextSelected],
       summaryOverride: current.summary,
       silent: true,
     });
@@ -328,6 +321,7 @@ export function DiffPanel({
                 checked={highlightDiffs}
                 onCheckedChange={(nextValue) => {
                   setHighlightDiffs(nextValue);
+                  setSelectedChangeId(null);
                   const current = activeComparisonRef.current;
                   if (current) {
                     void runComparison(current.fromVersion, current.toVersion, nextValue);
@@ -369,15 +363,14 @@ export function DiffPanel({
               {displayedChanges.length > 0 ? (
                 <ul className="space-y-1">
                   {displayedChanges.map((change, index) => {
-                    const isFocused = hoveredChangeId === change.id;
+                    const isFocused = selectedChangeId === change.id;
                     return (
                       <li
                         key={`${change.category}-${change.id}-${index}`}
-                        onMouseEnter={() => onChangeHover(change.id)}
-                        onMouseLeave={onChangeHoverLeave}
+                        onClick={() => onChangeClick(change.id)}
                         className={[
                           "text-[10px] leading-snug px-2 py-1 rounded-[var(--radius-xs)] border transition-colors",
-                          "cursor-default",
+                          "cursor-pointer",
                           isFocused
                             ? "bg-[var(--color-primary)]/12 border-[var(--color-primary)]/35 text-[var(--color-text)]"
                             : "bg-[var(--color-surface-raised)] border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface)]",
