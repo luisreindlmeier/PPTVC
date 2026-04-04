@@ -519,7 +519,7 @@ function getDiffVisual(
 
   if (addedIds.has(id)) {
     return {
-      colorHex: "86EFAC", // light green
+      colorHex: "4ADE80", // slightly darker light green
       statusText: "Added",
       textColorHex: "14532D",
     };
@@ -650,10 +650,11 @@ function createDiffBadgeShapes(
   const badgeHeight = 203200;
   const charWidth = 69000;
   const badgeWidth = Math.max(1016000, Math.min(4572000, labelText.length * charWidth));
+  const badgeGap = 25400; // small space between badge and highlight border
   const x = toEmuNumber(bounds.x);
   const y = toEmuNumber(bounds.y);
   const badgeX = Math.max(0, x - 76200);
-  const badgeY = Math.max(0, y - badgeHeight);
+  const badgeY = Math.max(0, y - badgeHeight - badgeGap);
 
   const badge =
     `<p:sp>` +
@@ -669,7 +670,7 @@ function createDiffBadgeShapes(
     `<a:ln><a:noFill/></a:ln>` +
     `</p:spPr>` +
     `<p:txBody>` +
-    `<a:bodyPr anchor="ctr" wrap="none" lIns="63500" rIns="63500" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:bodyPr anchor="ctr" wrap="none" lIns="38100" rIns="38100" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="760" b="0" noProof="1" dirty="0">` +
