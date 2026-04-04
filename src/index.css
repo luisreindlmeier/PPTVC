@@ -105,12 +105,12 @@ ul {
 }
 
 /* ── Sideload message ────────────────────────────────────────── */
-.pptvc-sideload {
+.gedonus-sideload {
   padding: 20px;
   color: var(--color-text-muted);
 }
 
-.pptvc-sideload a {
+.gedonus-sideload a {
   color: var(--color-primary);
 }
 

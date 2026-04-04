@@ -213,7 +213,7 @@ export function App() {
     const url = URL.createObjectURL(zipBlob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `pptvc-backup-${stamp}.zip`;
+    a.download = `gedonus-backup-${stamp}.zip`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -291,7 +291,7 @@ export function App() {
 
   return (
     <TooltipProvider>
-      <div className="relative flex flex-col min-h-screen app-root">
+      <div className="relative flex flex-col h-screen app-root">
         <Header currentSlide={currentSlide} />
 
         <TabBar currentTab={currentTab} onTabChange={switchTab} />

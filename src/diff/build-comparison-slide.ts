@@ -196,7 +196,7 @@ async function copySlideResources(
     // Give the copied file a unique name to avoid colliding with TO zip's existing files
     const ext = srcContent.split(".").pop() ?? "bin";
     const stem = basenameOf(srcContent).split(".").slice(0, -1).join(".");
-    const destContent = dirOf(srcContent) + `pptvc_cmp_${stem}_${counter.n}.${ext}`;
+    const destContent = dirOf(srcContent) + `gedonus_cmp_${stem}_${counter.n}.${ext}`;
     counter.n++;
 
     destZip.file(destContent, await srcFile.async("uint8array"));
@@ -209,7 +209,7 @@ async function copySlideResources(
       await copyChartSubResources(srcZip, destZip, srcContent, destContent, counter, ctOverrides);
     }
 
-    const newRId = `pptvcR${counter.n++}`;
+    const newRId = `gedonusR${counter.n++}`;
     rIdMap.set(rel.id, newRId);
 
     const newTarget = relativePathTo(destSlidePath, destContent);
@@ -257,7 +257,7 @@ async function copyChartSubResources(
 
     const ext = srcSubPath.split(".").pop() ?? "bin";
     const stem = basenameOf(srcSubPath).split(".").slice(0, -1).join(".");
-    const destSubPath = dirOf(srcSubPath) + `pptvc_cmp_${stem}_${counter.n}.${ext}`;
+    const destSubPath = dirOf(srcSubPath) + `gedonus_cmp_${stem}_${counter.n}.${ext}`;
     counter.n++;
 
     destZip.file(destSubPath, await subFile.async("uint8array"));
@@ -386,7 +386,7 @@ function buildBgRect(size: SlideSize): string {
   return (
     `<p:sp>` +
     `<p:nvSpPr>` +
-    `<p:cNvPr id="9900" name="PPTVC_BG"/>` +
+    `<p:cNvPr id="9900" name="GEDONUS_BG"/>` +
     `<p:cNvSpPr><a:spLocks noGrp="1" noSelect="1" noMove="1" noResize="1" noRot="1"/></p:cNvSpPr>` +
     `<p:nvPr/>` +
     `</p:nvSpPr>` +
@@ -452,7 +452,7 @@ function buildLabelShape(
   // Background panel — beige fill, full slide width
   const bg =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9910" name="PPTVC_PANEL_BG"/>` +
+    `<p:nvSpPr><p:cNvPr id="9910" name="GEDONUS_PANEL_BG"/>` +
     `<p:cNvSpPr>${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="0" y="${groupY}"/><a:ext cx="${size.cx}" cy="${LABEL_HEIGHT}"/></a:xfrm>` +
@@ -466,7 +466,7 @@ function buildLabelShape(
   // "Comparing" title text
   const title =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9911" name="PPTVC_TITLE"/>` +
+    `<p:nvSpPr><p:cNvPr id="9911" name="GEDONUS_TITLE"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${hPad}" y="${titleY}"/><a:ext cx="${titleLabelW}" cy="${PANEL_TITLE_H}"/></a:xfrm>` +
@@ -487,7 +487,7 @@ function buildLabelShape(
   // Horizontal divider line after title
   const divider =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9912" name="PPTVC_DIVIDER"/>` +
+    `<p:nvSpPr><p:cNvPr id="9912" name="GEDONUS_DIVIDER"/>` +
     `<p:cNvSpPr>${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${dividerX}" y="${dividerY}"/><a:ext cx="${dividerW}" cy="${dividerH}"/></a:xfrm>` +
@@ -501,7 +501,7 @@ function buildLabelShape(
   // From-version chip — white with muted border, grey text
   const fromBox =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9913" name="PPTVC_FROM_BOX"/>` +
+    `<p:nvSpPr><p:cNvPr id="9913" name="GEDONUS_FROM_BOX"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${box1X}" y="${versionRowY}"/><a:ext cx="${boxW}" cy="${PANEL_VERSION_H}"/></a:xfrm>` +
@@ -523,7 +523,7 @@ function buildLabelShape(
   // Arrow "→" between chips
   const arrow =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9914" name="PPTVC_ARROW"/>` +
+    `<p:nvSpPr><p:cNvPr id="9914" name="GEDONUS_ARROW"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${arrowX}" y="${versionRowY}"/><a:ext cx="${arrowW}" cy="${PANEL_VERSION_H}"/></a:xfrm>` +
@@ -544,7 +544,7 @@ function buildLabelShape(
   // To-version chip — brown fill, cream text (highlighted as current)
   const toBox =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9915" name="PPTVC_TO_BOX"/>` +
+    `<p:nvSpPr><p:cNvPr id="9915" name="GEDONUS_TO_BOX"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${box2X}" y="${versionRowY}"/><a:ext cx="${boxW}" cy="${PANEL_VERSION_H}"/></a:xfrm>` +
@@ -565,7 +565,7 @@ function buildLabelShape(
 
   const belowLabel =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9918" name="PPTVC_BELOW_LABEL"/>` +
+    `<p:nvSpPr><p:cNvPr id="9918" name="GEDONUS_BELOW_LABEL"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${box1X}" y="${fieldLabelY}"/><a:ext cx="${boxW}" cy="${PANEL_FIELD_LABEL_H}"/></a:xfrm>` +
@@ -585,7 +585,7 @@ function buildLabelShape(
 
   const aboveLabel =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9919" name="PPTVC_ABOVE_LABEL"/>` +
+    `<p:nvSpPr><p:cNvPr id="9919" name="GEDONUS_ABOVE_LABEL"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${box2X}" y="${fieldLabelY}"/><a:ext cx="${boxW}" cy="${PANEL_FIELD_LABEL_H}"/></a:xfrm>` +
@@ -605,7 +605,7 @@ function buildLabelShape(
 
   const timeMeta =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9916" name="PPTVC_META_TIME"/>` +
+    `<p:nvSpPr><p:cNvPr id="9916" name="GEDONUS_META_TIME"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${metaX}" y="${metaTimeY}"/><a:ext cx="${metaW}" cy="127000"/></a:xfrm>` +
@@ -625,7 +625,7 @@ function buildLabelShape(
 
   const authorMeta =
     `<p:sp>` +
-    `<p:nvSpPr><p:cNvPr id="9917" name="PPTVC_META_AUTHOR"/>` +
+    `<p:nvSpPr><p:cNvPr id="9917" name="GEDONUS_META_AUTHOR"/>` +
     `<p:cNvSpPr txBox="1">${spLocks}</p:cNvSpPr><p:nvPr/></p:nvSpPr>` +
     `<p:spPr>` +
     `<a:xfrm><a:off x="${metaX}" y="${metaAuthorY}"/><a:ext cx="${metaW}" cy="127000"/></a:xfrm>` +
@@ -646,7 +646,7 @@ function buildLabelShape(
   return (
     `<p:grpSp>` +
     `<p:nvGrpSpPr>` +
-    `<p:cNvPr id="9901" name="PPTVC_LABEL_GROUP"/>` +
+    `<p:cNvPr id="9901" name="GEDONUS_LABEL_GROUP"/>` +
     `<p:cNvGrpSpPr><a:grpSpLocks noSelect="1" noResize="1" noMove="1"/></p:cNvGrpSpPr>` +
     `<p:nvPr/>` +
     `</p:nvGrpSpPr>` +
@@ -680,7 +680,7 @@ function buildCompareGroup(shapeContent: string, size: SlideSize): string {
   return (
     `<p:grpSp>` +
     `<p:nvGrpSpPr>` +
-    `<p:cNvPr id="9902" name="PPTVC_SHAPES"/>` +
+    `<p:cNvPr id="9902" name="GEDONUS_SHAPES"/>` +
     `<p:cNvGrpSpPr><a:grpSpLocks noSelect="1" noResize="1" noMove="1"/></p:cNvGrpSpPr>` +
     `<p:nvPr/>` +
     `</p:nvGrpSpPr>` +

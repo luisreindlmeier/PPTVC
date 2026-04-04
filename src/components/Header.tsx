@@ -10,12 +10,12 @@ export function Header({ currentSlide }: HeaderProps) {
       <div className="flex items-center gap-2 min-w-0">
         <img
           src="/assets/icon.png"
-          alt="PPTVC"
+          alt="Gedonus"
           className="w-7 h-7 rounded-[6px] shrink-0 object-contain"
         />
         <div>
           <h1 className="m-0 text-[13px] font-semibold tracking-widest uppercase text-[var(--color-text)]">
-            PPTVC
+            Gedonus
           </h1>
           <p className="m-0 text-[10px] text-[var(--color-text-muted)] tracking-[0.01em]">
             Advanced Version Control for PowerPoint
