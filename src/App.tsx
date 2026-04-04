@@ -339,33 +339,33 @@ export function App() {
           </div>
         )}
 
-        {/* ── Status toast ─────────────────────────────────────── */}
-        {status && (
+        {/* ── Footer ───────────────────────────────────────────── */}
+        <footer className="flex items-center gap-2 px-3 py-2 border-t border-[var(--color-border)] bg-[var(--color-surface)] mt-auto shrink-0">
+          <div className="flex items-center gap-1.5">
+            <span className="ready-dot" aria-hidden="true" />
+            <span className="text-[11px] text-[var(--color-text-muted)]">Ready</span>
+          </div>
+
           <div
-            key={status.key}
+            key={status?.key ?? 0}
             role="status"
             aria-live="polite"
             className={[
-              "mx-3 mb-2 px-3 py-2 rounded-[var(--radius-sm)] text-xs",
-              status.isError
-                ? "bg-[var(--color-danger-light)] text-[var(--color-danger)]"
-                : "bg-[var(--color-primary-light)] text-[var(--color-primary)]",
+              "flex-1 min-w-0 text-center text-[11px] truncate",
+              status
+                ? status.isError
+                  ? "text-[var(--color-danger)]"
+                  : "text-[var(--color-text-muted)]"
+                : "text-transparent",
             ].join(" ")}
           >
-            {status.text}
+            {status?.text ?? "_"}
           </div>
-        )}
 
-        {/* ── Footer ───────────────────────────────────────────── */}
-        <footer className="flex items-center justify-between px-3 py-2 border-t border-[var(--color-border)] bg-[var(--color-surface)] mt-auto shrink-0">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[var(--color-primary)] opacity-70" />
-            <span className="text-[11px] text-[var(--color-text-muted)]">Ready</span>
-          </div>
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}
-            className="p-1 rounded hover:bg-[var(--color-border)] transition-colors cursor-pointer"
+            className="ml-auto p-1 rounded hover:bg-[var(--color-border)] transition-colors cursor-pointer"
             aria-label="Settings"
           >
             <svg
