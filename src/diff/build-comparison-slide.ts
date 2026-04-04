@@ -630,33 +630,16 @@ function createDiffBadgeShapes(
   idx: number
 ): string {
   const badgeHeight = 203200;
-  const charWidth = 62000;
-  const badgeWidth = Math.max(914400, Math.min(3200400, labelText.length * charWidth));
+  const charWidth = 69000;
+  const badgeWidth = Math.max(1016000, Math.min(4572000, labelText.length * charWidth));
   const x = toEmuNumber(bounds.x);
   const y = toEmuNumber(bounds.y);
   const badgeY = Math.max(0, y - badgeHeight);
-  const capWidth = 101600;
-
-  const cap =
-    `<p:sp>` +
-    `<p:nvSpPr>` +
-    `<p:cNvPr id="${9800 + idx * 2}" name="GEDONUS_DIFF_BADGE_CAP_${idx}"/>` +
-    `<p:cNvSpPr><a:spLocks noGrp="1" noRot="1"/></p:cNvSpPr>` +
-    `<p:nvPr/>` +
-    `</p:nvSpPr>` +
-    `<p:spPr>` +
-    `<a:xfrm><a:off x="${Math.max(0, x - capWidth)}" y="${badgeY}"/><a:ext cx="${capWidth}" cy="${badgeHeight}"/></a:xfrm>` +
-    `<a:prstGeom prst="rtTriangle"><a:avLst/></a:prstGeom>` +
-    `<a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill>` +
-    `<a:ln><a:noFill/></a:ln>` +
-    `</p:spPr>` +
-    `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>` +
-    `</p:sp>`;
 
   const badge =
     `<p:sp>` +
     `<p:nvSpPr>` +
-    `<p:cNvPr id="${9801 + idx * 2}" name="GEDONUS_DIFF_BADGE_${idx}"/>` +
+    `<p:cNvPr id="${9800 + idx}" name="GEDONUS_DIFF_BADGE_${idx}"/>` +
     `<p:cNvSpPr txBox="1"><a:spLocks noGrp="1" noRot="1"/></p:cNvSpPr>` +
     `<p:nvPr/>` +
     `</p:nvSpPr>` +
@@ -667,10 +650,10 @@ function createDiffBadgeShapes(
     `<a:ln><a:noFill/></a:ln>` +
     `</p:spPr>` +
     `<p:txBody>` +
-    `<a:bodyPr anchor="ctr" lIns="76200" rIns="76200" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:bodyPr anchor="ctr" wrap="none" lIns="63500" rIns="63500" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
-    `<a:r><a:rPr lang="en-US" sz="850" b="1" noProof="1" dirty="0">` +
+    `<a:r><a:rPr lang="en-US" sz="760" b="1" noProof="1" dirty="0">` +
     `<a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>` +
     `<a:latin typeface="+mn-lt"/>` +
     `</a:rPr><a:t>${escapeXml(labelText)}</a:t></a:r>` +
@@ -678,7 +661,7 @@ function createDiffBadgeShapes(
     `</p:txBody>` +
     `</p:sp>`;
 
-  return cap + badge;
+  return badge;
 }
 
 function applyDiffBorders(
