@@ -201,7 +201,7 @@ export function DiffPanel({
                 value={fromId}
                 onChange={(e) => setFromId(e.target.value)}
                 aria-label="From version"
-                className="w-full h-7 text-[12px] px-2 rounded-[var(--radius-xs)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)] appearance-none pr-7 cursor-pointer"
+                className="w-full h-7 text-[12px] px-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)] appearance-none pr-7 cursor-pointer transition-[color,box-shadow] outline-none hover:border-[var(--color-border)] focus-visible:border-[var(--color-border-focus)] focus-visible:ring-1 focus-visible:ring-[var(--color-border-focus)]/30"
               >
                 {versions.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -223,7 +223,7 @@ export function DiffPanel({
                 value={toId}
                 onChange={(e) => setToId(e.target.value)}
                 aria-label="To version"
-                className="w-full h-7 text-[12px] px-2 rounded-[var(--radius-xs)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)] appearance-none pr-7 cursor-pointer"
+                className="w-full h-7 text-[12px] px-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)] appearance-none pr-7 cursor-pointer transition-[color,box-shadow] outline-none hover:border-[var(--color-border)] focus-visible:border-[var(--color-border-focus)] focus-visible:ring-1 focus-visible:ring-[var(--color-border-focus)]/30"
               >
                 {versions.map((v) => (
                   <option key={v.id} value={v.id}>
