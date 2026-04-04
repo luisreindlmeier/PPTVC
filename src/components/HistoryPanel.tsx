@@ -78,8 +78,8 @@ export function HistoryPanel({
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* ── Save panel ────────────────────────────────────────── */}
-      <section className="px-3.5 pt-3 pb-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] shrink-0">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">
+      <section className="px-3.5 pt-3 pb-3 border-b border-[var(--color-border)] bg-[var(--color-bg)] shrink-0">
+        <h2 className="text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] mb-2">
           Save New Version
           {versions.length > 0 && (
             <span className="ml-1 font-normal normal-case tracking-normal">
@@ -157,9 +157,9 @@ export function HistoryPanel({
       </section>
 
       {/* ── Version list ──────────────────────────────────────── */}
-      <section className="flex-1 overflow-y-auto">
-        <div className="flex items-center gap-2 px-3.5 pt-3 pb-2 sticky top-0 bg-[var(--color-bg)] z-10">
-          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] flex items-center gap-1">
+      <section className="flex-1 overflow-y-auto px-5">
+        <div className="flex items-center gap-2 pt-3 pb-2 sticky top-0 bg-[var(--color-bg)] z-10">
+          <h2 className="text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] flex items-center gap-1">
             <IconVersions className="w-3.5 h-3.5" />
             History
           </h2>
@@ -171,11 +171,9 @@ export function HistoryPanel({
         </div>
 
         {versions.length === 0 ? (
-          <p className="px-3.5 py-4 text-[12px] text-[var(--color-text-muted)]">
-            No versions saved yet.
-          </p>
+          <p className="py-4 text-[12px] text-[var(--color-text-muted)]">No versions saved yet.</p>
         ) : (
-          <ul role="list" className="versions-timeline relative px-3.5 pt-1">
+          <ul role="list" className="versions-timeline relative pl-7 pr-4 pt-1">
             {versions.map((version, idx) => (
               <VersionItem
                 key={version.id}
