@@ -648,9 +648,10 @@ function createDiffBadgeShapes(
   idx: number
 ): string {
   const badgeHeight = 203200;
-  const charWidth = 47000;
+  // Use a conservative glyph-width estimate for bold text so right padding doesn't collapse.
+  const charWidth = 56000;
   const inset = 38100;
-  const extraWidth = 25400;
+  const extraWidth = 76200;
   const estimatedTextWidth = Math.max(228600, labelText.length * charWidth);
   const badgeWidth = estimatedTextWidth + inset * 2 + extraWidth;
   const badgeGap = 38100; // small but visible space between badge and highlight border
