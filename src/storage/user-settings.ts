@@ -1,6 +1,6 @@
 /* global DOMException */
 
-import { OpfsStorageAdapter } from "./opfs-storage";
+import { createStorageAdapter } from "./create-storage-adapter";
 
 const USER_SETTINGS_PATH = "settings/user-settings.json";
 
@@ -16,17 +16,9 @@ export interface UserSettings {
   email?: string;
   maxVersions?: number;
   autoSaveOnDocumentSave?: boolean;
-  namingScheme?: NamingScheme;
+  namingTemplate?: string;
   customTags?: string[];
   githubSync?: GitHubSyncConfig;
-}
-
-export type NamingSchemeMode = "version" | "date" | "prefix";
-
-export interface NamingScheme {
-  mode: NamingSchemeMode;
-  prefix?: string;
-  dateFormat?: "iso" | "short" | "long";
 }
 
 function isNotFoundError(error: unknown): boolean {
@@ -34,7 +26,7 @@ function isNotFoundError(error: unknown): boolean {
 }
 
 export async function readUserSettings(): Promise<UserSettings> {
-  const storage = new OpfsStorageAdapter();
+  const storage = createStorageAdapter();
 
   try {
     return await storage.readJson<UserSettings>(USER_SETTINGS_PATH);
@@ -47,6 +39,6 @@ export async function readUserSettings(): Promise<UserSettings> {
 }
 
 export async function writeUserSettings(settings: UserSettings): Promise<void> {
-  const storage = new OpfsStorageAdapter();
+  const storage = createStorageAdapter();
   await storage.writeJson(USER_SETTINGS_PATH, settings);
 }

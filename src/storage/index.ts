@@ -1,16 +1,11 @@
-import { OpfsStorageAdapter } from "./opfs-storage";
+import { createStorageAdapter } from "./create-storage-adapter";
 
-export { OpfsStorageAdapter };
+export { createStorageAdapter };
+export { OpfsStorageAdapter } from "./opfs-storage";
 export type { StorageAdapter } from "./types";
 export {
   readUserSettings,
   writeUserSettings,
   type UserSettings,
-  type NamingScheme,
-  type NamingSchemeMode,
   type GitHubSyncConfig,
 } from "./user-settings";
-
-export function createStorageAdapter(): OpfsStorageAdapter {
-  return new OpfsStorageAdapter();
-}
