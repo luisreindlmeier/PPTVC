@@ -511,7 +511,7 @@ function getDiffVisual(
 ): DiffVisual | null {
   if (changedIds.has(id)) {
     return {
-      colorHex: "F59E0B", // orange
+      colorHex: "FDBA74", // light orange
       statusText: "Modified",
       textColorHex: "7C2D12",
     };
@@ -519,7 +519,7 @@ function getDiffVisual(
 
   if (addedIds.has(id)) {
     return {
-      colorHex: "4ADE80", // slightly darker light green
+      colorHex: "86EFAC", // light green
       statusText: "Added",
       textColorHex: "14532D",
     };
@@ -527,7 +527,7 @@ function getDiffVisual(
 
   if (removedIds.has(id)) {
     return {
-      colorHex: "EF4444", // red
+      colorHex: "FCA5A5", // light red
       statusText: "Deleted",
       textColorHex: "7F1D1D",
     };
