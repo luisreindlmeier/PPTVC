@@ -486,7 +486,11 @@ function computeShapeDiff(fromMap: ShapeMap, toMap: ShapeMap): DiffResult {
 // Border width 3pt (38100 EMU). Replaces any existing <a:ln> in <p:spPr>.
 function addBorderToShapeXml(shapeXml: string, colorHex: string): string {
   // 2pt border for less visual heaviness than the previous 3pt highlight.
-  const border = `<a:ln w="25400"><a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill></a:ln>`;
+  const border =
+    `<a:ln w="25400">` +
+    `<a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill>` +
+    `<a:prstDash val="sysDash"/>` +
+    `</a:ln>`;
   if (/<a:ln[\s/>]/.test(shapeXml)) {
     return shapeXml.replace(/<a:ln(?:\s[^>]*)?\/>|<a:ln(?:[^>]*)?>[\s\S]*?<\/a:ln>/, border);
   }
@@ -496,6 +500,7 @@ function addBorderToShapeXml(shapeXml: string, colorHex: string): string {
 interface DiffVisual {
   colorHex: string;
   statusText: string;
+  textColorHex: string;
 }
 
 function getDiffVisual(
@@ -506,15 +511,17 @@ function getDiffVisual(
 ): DiffVisual | null {
   if (changedIds.has(id)) {
     return {
-      colorHex: "86EFAC", // light green
-      statusText: "Changed",
+      colorHex: "F59E0B", // orange
+      statusText: "Modified",
+      textColorHex: "FFFFFF",
     };
   }
 
   if (addedIds.has(id)) {
     return {
-      colorHex: "15803D", // dark green
-      statusText: "Added new",
+      colorHex: "86EFAC", // light green
+      statusText: "Added",
+      textColorHex: "14532D",
     };
   }
 
@@ -522,6 +529,7 @@ function getDiffVisual(
     return {
       colorHex: "EF4444", // red
       statusText: "Deleted",
+      textColorHex: "FFFFFF",
     };
   }
 
@@ -564,8 +572,11 @@ function createOverlayBorderShape(bounds: TransformBounds, colorHex: string, idx
     `<p:spPr>` +
     `<a:xfrm><a:off x="${bounds.x}" y="${bounds.y}"/><a:ext cx="${bounds.cx}" cy="${bounds.cy}"/></a:xfrm>` +
     `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
-    `<a:noFill/>` +
-    `<a:ln w="25400"><a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill></a:ln>` +
+    `<a:solidFill><a:srgbClr val="${colorHex}"><a:alpha val="9000"/></a:srgbClr></a:solidFill>` +
+    `<a:ln w="25400">` +
+    `<a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill>` +
+    `<a:prstDash val="sysDash"/>` +
+    `</a:ln>` +
     `</p:spPr>` +
     `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>` +
     `</p:sp>`
@@ -626,6 +637,7 @@ function toEmuNumber(value: string): number {
 function createDiffBadgeShapes(
   bounds: TransformBounds,
   colorHex: string,
+  textColorHex: string,
   labelText: string,
   idx: number
 ): string {
@@ -655,7 +667,7 @@ function createDiffBadgeShapes(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="760" b="0" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="${textColorHex}"/></a:solidFill>` +
     `<a:latin typeface="+mn-lt"/>` +
     `</a:rPr><a:t>${escapeXml(labelText)}</a:t></a:r>` +
     `</a:p>` +
@@ -767,20 +779,24 @@ function applyDiffBorders(
     if (bounds) {
       overlayIndex += 1;
       overlays.push(
-        createDiffBadgeShapes(bounds, visual.colorHex, badgeText, idSeed + overlayIndex)
+        createDiffBadgeShapes(
+          bounds,
+          visual.colorHex,
+          visual.textColorHex,
+          badgeText,
+          idSeed + overlayIndex
+        )
       );
+
+      overlayIndex += 1;
+      overlays.push(createOverlayBorderShape(bounds, visual.colorHex, idSeed + overlayIndex));
+      return xml;
     }
 
     if (canApplyLineBorder(xml)) {
       return addBorderToShapeXml(xml, visual.colorHex);
     }
 
-    if (!bounds) {
-      return xml;
-    }
-
-    overlayIndex += 1;
-    overlays.push(createOverlayBorderShape(bounds, visual.colorHex, idSeed + overlayIndex));
     return xml;
   };
 
