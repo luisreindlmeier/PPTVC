@@ -485,11 +485,47 @@ function computeShapeDiff(fromMap: ShapeMap, toMap: ShapeMap): DiffResult {
 
 // Border width 3pt (38100 EMU). Replaces any existing <a:ln> in <p:spPr>.
 function addBorderToShapeXml(shapeXml: string, colorHex: string): string {
-  const border = `<a:ln w="38100"><a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill></a:ln>`;
+  // 2pt border for less visual heaviness than the previous 3pt highlight.
+  const border = `<a:ln w="25400"><a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill></a:ln>`;
   if (/<a:ln[\s/>]/.test(shapeXml)) {
     return shapeXml.replace(/<a:ln(?:\s[^>]*)?\/>|<a:ln(?:[^>]*)?>[\s\S]*?<\/a:ln>/, border);
   }
   return shapeXml.replace("</p:spPr>", border + "</p:spPr>");
+}
+
+interface DiffVisual {
+  colorHex: string;
+  statusText: string;
+}
+
+function getDiffVisual(
+  id: string,
+  changedIds: Set<string>,
+  addedIds: Set<string>,
+  removedIds: Set<string>
+): DiffVisual | null {
+  if (changedIds.has(id)) {
+    return {
+      colorHex: "86EFAC", // light green
+      statusText: "Changed",
+    };
+  }
+
+  if (addedIds.has(id)) {
+    return {
+      colorHex: "15803D", // dark green
+      statusText: "Added new",
+    };
+  }
+
+  if (removedIds.has(id)) {
+    return {
+      colorHex: "EF4444", // red
+      statusText: "Deleted",
+    };
+  }
+
+  return null;
 }
 
 function extractTransformBounds(xml: string): TransformBounds | null {
@@ -529,68 +565,169 @@ function createOverlayBorderShape(bounds: TransformBounds, colorHex: string, idx
     `<a:xfrm><a:off x="${bounds.x}" y="${bounds.y}"/><a:ext cx="${bounds.cx}" cy="${bounds.cy}"/></a:xfrm>` +
     `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
     `<a:noFill/>` +
-    `<a:ln w="38100"><a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill></a:ln>` +
+    `<a:ln w="25400"><a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill></a:ln>` +
     `</p:spPr>` +
     `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>` +
     `</p:sp>`
   );
 }
 
-function getDiffColorHex(
-  id: string,
-  changedIds: Set<string>,
-  addedIds: Set<string>,
-  removedIds: Set<string>
-): string | null {
-  if (changedIds.has(id)) {
-    return "F59E0B";
+function getObjectNoun(kind: DrawingObjectKind, xml: string): string {
+  if (kind === "graphicFrame") {
+    if (/drawingml\/2006\/table/.test(xml)) {
+      return "table";
+    }
+    if (/drawingml\/2006\/chart/.test(xml)) {
+      return "chart";
+    }
+    if (/drawingml\/2006\/diagram/.test(xml)) {
+      return "diagram";
+    }
+    return "object";
   }
-  if (addedIds.has(id)) {
-    return "22C55E";
+
+  if (kind === "pic") {
+    if (/videoFile|\/relationships\/video|\/media\//.test(xml)) {
+      return "video";
+    }
+    if (/audioFile|\/relationships\/audio/.test(xml)) {
+      return "audio";
+    }
+    if (/svgBlip|icon/i.test(xml)) {
+      return "icon";
+    }
+    return "image";
   }
-  if (removedIds.has(id)) {
-    return "EF4444";
+
+  if (kind === "cxnSp") {
+    return "connector";
   }
-  return null;
+
+  if (kind === "grpSp") {
+    return "group";
+  }
+
+  if (kind === "contentPart") {
+    return "embedded object";
+  }
+
+  if (/<a:t>[^<]*<\/a:t>/.test(xml)) {
+    return "text shape";
+  }
+
+  return "shape";
+}
+
+function toEmuNumber(value: string): number {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function createDiffBadgeShapes(
+  bounds: TransformBounds,
+  colorHex: string,
+  labelText: string,
+  idx: number
+): string {
+  const badgeHeight = 203200;
+  const charWidth = 62000;
+  const badgeWidth = Math.max(914400, Math.min(3200400, labelText.length * charWidth));
+  const x = toEmuNumber(bounds.x);
+  const y = toEmuNumber(bounds.y);
+  const badgeY = Math.max(0, y - badgeHeight);
+  const capWidth = 101600;
+
+  const cap =
+    `<p:sp>` +
+    `<p:nvSpPr>` +
+    `<p:cNvPr id="${9800 + idx * 2}" name="GEDONUS_DIFF_BADGE_CAP_${idx}"/>` +
+    `<p:cNvSpPr><a:spLocks noGrp="1" noRot="1"/></p:cNvSpPr>` +
+    `<p:nvPr/>` +
+    `</p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${Math.max(0, x - capWidth)}" y="${badgeY}"/><a:ext cx="${capWidth}" cy="${badgeHeight}"/></a:xfrm>` +
+    `<a:prstGeom prst="rtTriangle"><a:avLst/></a:prstGeom>` +
+    `<a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill>` +
+    `<a:ln><a:noFill/></a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>` +
+    `</p:sp>`;
+
+  const badge =
+    `<p:sp>` +
+    `<p:nvSpPr>` +
+    `<p:cNvPr id="${9801 + idx * 2}" name="GEDONUS_DIFF_BADGE_${idx}"/>` +
+    `<p:cNvSpPr txBox="1"><a:spLocks noGrp="1" noRot="1"/></p:cNvSpPr>` +
+    `<p:nvPr/>` +
+    `</p:nvSpPr>` +
+    `<p:spPr>` +
+    `<a:xfrm><a:off x="${x}" y="${badgeY}"/><a:ext cx="${badgeWidth}" cy="${badgeHeight}"/></a:xfrm>` +
+    `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 10000"/></a:avLst></a:prstGeom>` +
+    `<a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill>` +
+    `<a:ln><a:noFill/></a:ln>` +
+    `</p:spPr>` +
+    `<p:txBody>` +
+    `<a:bodyPr anchor="ctr" lIns="76200" rIns="76200" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:lstStyle/>` +
+    `<a:p><a:pPr algn="l"/>` +
+    `<a:r><a:rPr lang="en-US" sz="850" b="1" noProof="1" dirty="0">` +
+    `<a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>` +
+    `<a:latin typeface="+mn-lt"/>` +
+    `</a:rPr><a:t>${escapeXml(labelText)}</a:t></a:r>` +
+    `</a:p>` +
+    `</p:txBody>` +
+    `</p:sp>`;
+
+  return cap + badge;
 }
 
 function applyDiffBorders(
   spTreeContent: string,
   changedIds: Set<string>,
   addedIds: Set<string>,
-  removedIds: Set<string>
+  removedIds: Set<string>,
+  idSeed = 0
 ): string {
   let overlayIndex = 0;
   const overlays: string[] = [];
 
-  const applyToObject = (xml: string): string => {
+  const applyToObject = (xml: string, kind: DrawingObjectKind): string => {
     const id = extractObjectId(xml);
     if (!id) {
       return xml;
     }
 
-    const colorHex = getDiffColorHex(id, changedIds, addedIds, removedIds);
-    if (!colorHex) {
+    const visual = getDiffVisual(id, changedIds, addedIds, removedIds);
+    if (!visual) {
       return xml;
     }
 
-    if (canApplyLineBorder(xml)) {
-      return addBorderToShapeXml(xml, colorHex);
+    const noun = getObjectNoun(kind, xml);
+    const badgeText = `${visual.statusText} ${noun}`;
+    const bounds = extractTransformBounds(xml);
+    if (bounds) {
+      overlayIndex += 1;
+      overlays.push(
+        createDiffBadgeShapes(bounds, visual.colorHex, badgeText, idSeed + overlayIndex)
+      );
     }
 
-    const bounds = extractTransformBounds(xml);
+    if (canApplyLineBorder(xml)) {
+      return addBorderToShapeXml(xml, visual.colorHex);
+    }
+
     if (!bounds) {
       return xml;
     }
 
     overlayIndex += 1;
-    overlays.push(createOverlayBorderShape(bounds, colorHex, overlayIndex));
+    overlays.push(createOverlayBorderShape(bounds, visual.colorHex, idSeed + overlayIndex));
     return xml;
   };
 
   let updatedSpTree = spTreeContent;
   for (const pattern of DIFF_OBJECT_PATTERNS) {
-    updatedSpTree = updatedSpTree.replace(pattern.regex, applyToObject);
+    updatedSpTree = updatedSpTree.replace(pattern.regex, (xml) => applyToObject(xml, pattern.kind));
   }
 
   return overlays.length > 0 ? `${updatedSpTree}${overlays.join("")}` : updatedSpTree;
@@ -602,7 +739,7 @@ function applyDiffBordersToSlideXml(
   addedIds: Set<string>
 ): string {
   return slideXml.replace(/<p:spTree>([\s\S]*?)<\/p:spTree>/, (_, content: string) => {
-    const marked = applyDiffBorders(content, changedIds, addedIds, new Set());
+    const marked = applyDiffBorders(content, changedIds, addedIds, new Set(), 1000);
     return `<p:spTree>${marked}</p:spTree>`;
   });
 }
@@ -1031,7 +1168,8 @@ export async function buildComparisonSlide(
     oldShapes,
     diff.changedInFrom,
     new Set<string>(),
-    diff.removedInFrom
+    diff.removedInFrom,
+    3000
   );
   // Current slide (above): amber = changed, green = added
   const markedToSlideXml = applyDiffBordersToSlideXml(toSlideXml, diff.changedInTo, diff.addedInTo);
