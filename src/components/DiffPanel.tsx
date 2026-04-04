@@ -405,7 +405,7 @@ export function DiffPanel({
               </div>
 
               {displayedChanges.length > 0 ? (
-                <ul className="versions-timeline relative pl-6 pr-1 pt-0.5">
+                <ul className="space-y-1">
                   {displayedChanges.map((change, index) => {
                     const isFocused = selectedChangeId === change.id;
                     const categoryBadge = getChangeBadge(change.category);
@@ -415,20 +415,18 @@ export function DiffPanel({
                         key={`${change.category}-${change.id}-${index}`}
                         onClick={() => onChangeClick(change.id)}
                         className={cn(
-                          "relative pb-2 pl-5 pr-1 transition-colors cursor-pointer",
-                          isFocused && "rounded-[var(--radius-xs)] bg-[var(--color-primary)]/10"
+                          "flex items-center gap-2 rounded-[var(--radius-xs)] px-1.5 py-1 transition-colors cursor-pointer",
+                          isFocused ? "bg-[var(--color-primary)]/10" : "hover:bg-[var(--color-bg)]"
                         )}
                       >
                         <span
                           className={cn(
-                            "absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 bg-[var(--color-surface)] flex items-center justify-center",
-                            isFocused
-                              ? "border-[var(--color-primary)] text-[var(--color-primary)]"
-                              : "border-[var(--color-border)] text-[var(--color-text-muted)]"
+                            "h-4 w-4 shrink-0 text-[var(--color-text-muted)]",
+                            isFocused && "text-[var(--color-primary)]"
                           )}
                           aria-hidden="true"
                         >
-                          <CategoryIcon className="h-2 w-2" />
+                          <CategoryIcon className="h-4 w-4" />
                         </span>
 
                         <p
