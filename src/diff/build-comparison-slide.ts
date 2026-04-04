@@ -483,12 +483,11 @@ function computeShapeDiff(fromMap: ShapeMap, toMap: ShapeMap): DiffResult {
   return { changedInFrom, removedInFrom, changedInTo, addedInTo };
 }
 
-// Border width 3pt (38100 EMU). Replaces any existing <a:ln> in <p:spPr>.
-function addBorderToShapeXml(shapeXml: string, colorHex: string): string {
+function addBorderToShapeXmlWithAlpha(shapeXml: string, colorHex: string, alpha: number): string {
   // 2pt border for less visual heaviness than the previous 3pt highlight.
   const border =
     `<a:ln w="25400">` +
-    `<a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="${colorHex}"><a:alpha val="${alpha}"/></a:srgbClr></a:solidFill>` +
     `<a:prstDash val="sysDash"/>` +
     `</a:ln>`;
   if (/<a:ln[\s/>]/.test(shapeXml)) {
@@ -561,12 +560,19 @@ function canApplyLineBorder(xml: string): boolean {
   return /<p:spPr\b[\s\S]*?<\/p:spPr>/.test(xml);
 }
 
-function createOverlayBorderShape(bounds: TransformBounds, colorHex: string, idx: number): string {
+function createOverlayBorderShapeWithEmphasis(
+  bounds: TransformBounds,
+  colorHex: string,
+  idx: number,
+  emphasized: boolean
+): string {
   const pad = 15240; // ~1.2pt outward offset to avoid covering the original border
   const x = Math.max(0, toEmuNumber(bounds.x) - pad);
   const y = Math.max(0, toEmuNumber(bounds.y) - pad);
   const cx = Math.max(12700, toEmuNumber(bounds.cx) + pad * 2);
   const cy = Math.max(12700, toEmuNumber(bounds.cy) + pad * 2);
+  const fillAlpha = emphasized ? 9000 : 1800;
+  const lineAlpha = emphasized ? 100000 : 25000;
 
   return (
     `<p:sp>` +
@@ -578,9 +584,9 @@ function createOverlayBorderShape(bounds: TransformBounds, colorHex: string, idx
     `<p:spPr>` +
     `<a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>` +
     `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
-    `<a:solidFill><a:srgbClr val="${colorHex}"><a:alpha val="9000"/></a:srgbClr></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="${colorHex}"><a:alpha val="${fillAlpha}"/></a:srgbClr></a:solidFill>` +
     `<a:ln w="25400">` +
-    `<a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="${colorHex}"><a:alpha val="${lineAlpha}"/></a:srgbClr></a:solidFill>` +
     `<a:prstDash val="sysDash"/>` +
     `</a:ln>` +
     `</p:spPr>` +
@@ -599,7 +605,8 @@ function createDiffBadgeShapes(
   colorHex: string,
   textColorHex: string,
   labelText: string,
-  idx: number
+  idx: number,
+  emphasized: boolean
 ): string {
   const badgeHeight = 203200;
   // Compact dimensions for short status-only labels.
@@ -613,6 +620,8 @@ function createDiffBadgeShapes(
   const y = toEmuNumber(bounds.y);
   const badgeX = Math.max(0, x - 38100);
   const badgeY = Math.max(0, y - badgeHeight - badgeGap);
+  const badgeAlpha = emphasized ? 100000 : 32000;
+  const textAlpha = emphasized ? 100000 : 45000;
 
   const badge =
     `<p:sp>` +
@@ -624,7 +633,7 @@ function createDiffBadgeShapes(
     `<p:spPr>` +
     `<a:xfrm><a:off x="${badgeX}" y="${badgeY}"/><a:ext cx="${badgeWidth}" cy="${badgeHeight}"/></a:xfrm>` +
     `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 10000"/></a:avLst></a:prstGeom>` +
-    `<a:solidFill><a:srgbClr val="${colorHex}"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="${colorHex}"><a:alpha val="${badgeAlpha}"/></a:srgbClr></a:solidFill>` +
     `<a:ln><a:noFill/></a:ln>` +
     `</p:spPr>` +
     `<p:txBody>` +
@@ -632,7 +641,7 @@ function createDiffBadgeShapes(
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="760" b="1" noProof="1" dirty="0">` +
-    `<a:solidFill><a:srgbClr val="${textColorHex}"/></a:solidFill>` +
+    `<a:solidFill><a:srgbClr val="${textColorHex}"><a:alpha val="${textAlpha}"/></a:srgbClr></a:solidFill>` +
     `<a:latin typeface="Geist"/>` +
     `<a:ea typeface="Geist"/>` +
     `<a:cs typeface="Geist"/>` +
@@ -761,7 +770,8 @@ function applyDiffBorders(
   changedIds: Set<string>,
   addedIds: Set<string>,
   removedIds: Set<string>,
-  idSeed = 0
+  idSeed = 0,
+  focusIds?: Set<string>
 ): string {
   let overlayIndex = 0;
   const overlays: string[] = [];
@@ -777,6 +787,8 @@ function applyDiffBorders(
       return xml;
     }
 
+    const emphasized = !focusIds || focusIds.size === 0 || focusIds.has(id);
+
     const badgeText = visual.statusText.toUpperCase();
     const bounds = extractTransformBounds(xml);
     if (bounds) {
@@ -787,17 +799,25 @@ function applyDiffBorders(
           visual.colorHex,
           visual.textColorHex,
           badgeText,
-          idSeed + overlayIndex
+          idSeed + overlayIndex,
+          emphasized
         )
       );
 
       overlayIndex += 1;
-      overlays.push(createOverlayBorderShape(bounds, visual.colorHex, idSeed + overlayIndex));
+      overlays.push(
+        createOverlayBorderShapeWithEmphasis(
+          bounds,
+          visual.colorHex,
+          idSeed + overlayIndex,
+          emphasized
+        )
+      );
       return xml;
     }
 
     if (canApplyLineBorder(xml)) {
-      return addBorderToShapeXml(xml, visual.colorHex);
+      return addBorderToShapeXmlWithAlpha(xml, visual.colorHex, emphasized ? 100000 : 28000);
     }
 
     return xml;
@@ -814,10 +834,11 @@ function applyDiffBorders(
 function applyDiffBordersToSlideXml(
   slideXml: string,
   changedIds: Set<string>,
-  addedIds: Set<string>
+  addedIds: Set<string>,
+  focusIds?: Set<string>
 ): string {
   return slideXml.replace(/<p:spTree>([\s\S]*?)<\/p:spTree>/, (_, content: string) => {
-    const marked = applyDiffBorders(content, changedIds, addedIds, new Set(), 1000);
+    const marked = applyDiffBorders(content, changedIds, addedIds, new Set(), 1000, focusIds);
     return `<p:spTree>${marked}</p:spTree>`;
   });
 }
@@ -1172,7 +1193,8 @@ export async function buildComparisonSlide(
   fromName = "Old",
   toTimestamp = "",
   toAuthor = "Unknown",
-  highlightDiffs = true
+  highlightDiffs = true,
+  focusedObjectIds: string[] = []
 ): Promise<Blob> {
   const [toZip, fromZip] = await Promise.all([
     JSZip.loadAsync(await toBlob.arrayBuffer()),
@@ -1243,13 +1265,21 @@ export async function buildComparisonSlide(
 
   // ── Apply diff borders ────────────────────────────────────────
   // Old shapes (below): amber = changed, red = removed
+  const focusIds = focusedObjectIds.length > 0 ? new Set<string>(focusedObjectIds) : undefined;
   const markedOldShapes = highlightDiffs
-    ? applyDiffBorders(oldShapes, diff.changedInFrom, new Set<string>(), diff.removedInFrom, 3000)
+    ? applyDiffBorders(
+        oldShapes,
+        diff.changedInFrom,
+        new Set<string>(),
+        diff.removedInFrom,
+        3000,
+        focusIds
+      )
     : oldShapes;
   const lockedOldShapes = lockComparisonObjects(markedOldShapes);
   // Current slide (above): amber = changed, green = added
   const markedToSlideXml = highlightDiffs
-    ? applyDiffBordersToSlideXml(toSlideXml, diff.changedInTo, diff.addedInTo)
+    ? applyDiffBordersToSlideXml(toSlideXml, diff.changedInTo, diff.addedInTo, focusIds)
     : toSlideXml;
   const lockedToSlideXml = lockComparisonObjects(markedToSlideXml);
 

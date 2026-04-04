@@ -3,7 +3,7 @@ import type { Version } from "../versions";
 import type { SlideInfo } from "../App";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
-import type { SlideDiffSummary } from "../diff/analyze-slide-diff";
+import type { DiffChange, SlideDiffSummary } from "../diff/analyze-slide-diff";
 
 interface ActiveComparison {
   fromVersion: Version;
@@ -26,7 +26,8 @@ interface DiffPanelProps {
     fromName: string,
     toTimestamp: string,
     toAuthor: string,
-    highlightDiffs?: boolean
+    highlightDiffs?: boolean,
+    focusedObjectIds?: string[]
   ) => Promise<Blob>;
   analyzeSlideDiff: (toBlob: Blob, fromBlob: Blob, slideIndex: number) => Promise<SlideDiffSummary>;
   blobToBase64: (blob: Blob) => Promise<string>;
@@ -36,6 +37,8 @@ interface DiffPanelProps {
   getAuthorLabel: (v: Version) => string;
   showStatus: (msg: string, isError: boolean) => void;
 }
+
+type ChangeFilter = "all" | "style" | "content";
 
 export function DiffPanel({
   versions,
@@ -57,6 +60,8 @@ export function DiffPanel({
   const [comparing, setComparing] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [highlightDiffs, setHighlightDiffs] = useState(true);
+  const [changeFilter, setChangeFilter] = useState<ChangeFilter>("all");
+  const [hoveredChangeId, setHoveredChangeId] = useState<string | null>(null);
   const [activeComparison, setActiveComparison] = useState<ActiveComparison | null>(null);
   // Keep a ref so async callbacks can always read the latest value
   const activeComparisonRef = useRef<ActiveComparison | null>(null);
@@ -120,9 +125,16 @@ export function DiffPanel({
   const runComparison = async (
     from: Version,
     to: Version,
-    enableHighlights: boolean
+    enableHighlights: boolean,
+    options: {
+      focusedObjectIds?: string[];
+      summaryOverride?: SlideDiffSummary;
+      silent?: boolean;
+    } = {}
   ): Promise<boolean> => {
-    setComparing(true);
+    if (!options.silent) {
+      setComparing(true);
+    }
     try {
       if (activeComparisonRef.current) {
         const closed = await closeActiveComparison();
@@ -144,24 +156,32 @@ export function DiffPanel({
           getVersionName(from),
           formatTimestamp(to.timestamp),
           getAuthorLabel(to),
-          enableHighlights
+          enableHighlights,
+          options.focusedObjectIds
         ),
-        analyzeSlideDiff(toBlob, fromBlob, slideIdx),
+        options.summaryOverride
+          ? Promise.resolve(options.summaryOverride)
+          : analyzeSlideDiff(toBlob, fromBlob, slideIdx),
       ]);
 
       await replacePresentationFromBase64(await blobToBase64(modifiedBlob));
       setActiveComparison({ fromVersion: from, toVersion: to, slideNum: currentSlide.num, summary });
       return true;
     } catch (err) {
-      showStatus(err instanceof Error ? err.message : "Failed to build comparison.", true);
+      if (!options.silent) {
+        showStatus(err instanceof Error ? err.message : "Failed to build comparison.", true);
+      }
       return false;
     } finally {
-      setComparing(false);
+      if (!options.silent) {
+        setComparing(false);
+      }
     }
   };
 
   const handleCompare = async () => {
     if (!fromVersion || !toVersion || fromVersion.id === toVersion.id) return;
+    setHoveredChangeId(null);
     await runComparison(fromVersion, toVersion, highlightDiffs);
   };
 
@@ -172,6 +192,45 @@ export function DiffPanel({
     } finally {
       setClearing(false);
     }
+  };
+
+  const displayedChanges: DiffChange[] = activeComparison
+    ? changeFilter === "style"
+      ? activeComparison.summary.styleChanges
+      : changeFilter === "content"
+        ? activeComparison.summary.contentChanges
+        : activeComparison.summary.allChanges
+    : [];
+
+  const onChangeHover = (changeId: string) => {
+    const current = activeComparisonRef.current;
+    if (!current || !highlightDiffs || changeId.startsWith("overflow-")) {
+      return;
+    }
+
+    if (hoveredChangeId === changeId) {
+      return;
+    }
+
+    setHoveredChangeId(changeId);
+    void runComparison(current.fromVersion, current.toVersion, true, {
+      focusedObjectIds: [changeId],
+      summaryOverride: current.summary,
+      silent: true,
+    });
+  };
+
+  const onChangeHoverLeave = () => {
+    const current = activeComparisonRef.current;
+    if (!current || !highlightDiffs || !hoveredChangeId) {
+      return;
+    }
+
+    setHoveredChangeId(null);
+    void runComparison(current.fromVersion, current.toVersion, true, {
+      summaryOverride: current.summary,
+      silent: true,
+    });
   };
 
   return (
@@ -281,42 +340,57 @@ export function DiffPanel({
             <p className="text-[var(--color-text-muted)] text-[10px] leading-snug mt-0.5">
               Scroll down on slide {activeComparison.slideNum} to see the diff below it.
             </p>
-            <div className="grid grid-cols-1 gap-2 mt-1">
-              <div>
-                <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)] mb-1">
-                  Style changes
-                </p>
-                {activeComparison.summary.styleChanges.length > 0 ? (
-                  <ul className="space-y-0.5">
-                    {activeComparison.summary.styleChanges.map((entry, index) => (
-                      <li key={`style-${index}`} className="text-[10px] text-[var(--color-text)] leading-snug">
-                        • {entry}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-[10px] text-[var(--color-text-muted)]">No style changes detected.</p>
-                )}
+            <div className="mt-1 border border-[var(--color-border)] rounded-[var(--radius-sm)] p-2">
+              <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)] mb-1">
+                Changes
+              </p>
+              <div className="flex items-center gap-1 mb-2">
+                {([
+                  ["all", "All changes"],
+                  ["style", "Style"],
+                  ["content", "Content"],
+                ] as Array<[ChangeFilter, string]>).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setChangeFilter(value)}
+                    className={[
+                      "h-6 px-2 rounded-[var(--radius-xs)] text-[10px] border cursor-pointer",
+                      changeFilter === value
+                        ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
+                        : "bg-[var(--color-surface-raised)] text-[var(--color-text)] border-[var(--color-border)]",
+                    ].join(" ")}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)] mb-1">
-                  Content changes
-                </p>
-                {activeComparison.summary.contentChanges.length > 0 ? (
-                  <ul className="space-y-0.5">
-                    {activeComparison.summary.contentChanges.map((entry, index) => (
+
+              {displayedChanges.length > 0 ? (
+                <ul className="space-y-1">
+                  {displayedChanges.map((change, index) => {
+                    const isFocused = hoveredChangeId === change.id;
+                    return (
                       <li
-                        key={`content-${index}`}
-                        className="text-[10px] text-[var(--color-text)] leading-snug"
+                        key={`${change.category}-${change.id}-${index}`}
+                        onMouseEnter={() => onChangeHover(change.id)}
+                        onMouseLeave={onChangeHoverLeave}
+                        className={[
+                          "text-[10px] leading-snug px-2 py-1 rounded-[var(--radius-xs)] border transition-colors",
+                          "cursor-default",
+                          isFocused
+                            ? "bg-[var(--color-primary)]/12 border-[var(--color-primary)]/35 text-[var(--color-text)]"
+                            : "bg-[var(--color-surface-raised)] border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface)]",
+                        ].join(" ")}
                       >
-                        • {entry}
+                        {change.description}
                       </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-[10px] text-[var(--color-text-muted)]">No content changes detected.</p>
-                )}
-              </div>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="text-[10px] text-[var(--color-text-muted)]">No changes in this category.</p>
+              )}
             </div>
             <Button
               type="button"

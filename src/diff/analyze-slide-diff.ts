@@ -18,8 +18,17 @@ interface SlideRef {
 }
 
 export interface SlideDiffSummary {
-  styleChanges: string[];
-  contentChanges: string[];
+  styleChanges: DiffChange[];
+  contentChanges: DiffChange[];
+  allChanges: DiffChange[];
+}
+
+export type DiffChangeCategory = "style" | "content";
+
+export interface DiffChange {
+  id: string;
+  category: DiffChangeCategory;
+  description: string;
 }
 
 const OBJECT_PATTERNS: RegExp[] = [
@@ -192,13 +201,20 @@ function kindLabel(kind: DiffObjectKind): string {
   return "object";
 }
 
-function limit(items: string[], max: number): string[] {
+function limit(items: DiffChange[], max: number, category: DiffChangeCategory): DiffChange[] {
   if (items.length <= max) {
     return items;
   }
 
   const remaining = items.length - max;
-  return [...items.slice(0, max), `+${remaining} more changes`];
+  return [
+    ...items.slice(0, max),
+    {
+      id: `overflow-${category}`,
+      category,
+      description: `+${remaining} more changes`,
+    },
+  ];
 }
 
 export async function analyzeSlideDiff(
@@ -237,8 +253,8 @@ export async function analyzeSlideDiff(
   const toObjects = collectObjects(extractSpTree(toSlideXml));
   const fromObjects = collectObjects(extractSpTree(fromSlideXml));
 
-  const styleChanges: string[] = [];
-  const contentChanges: string[] = [];
+  const styleChanges: DiffChange[] = [];
+  const contentChanges: DiffChange[] = [];
   const allIds = new Set<string>([...toObjects.keys(), ...fromObjects.keys()]);
 
   for (const id of allIds) {
@@ -246,12 +262,20 @@ export async function analyzeSlideDiff(
     const toObj = toObjects.get(id);
 
     if (!fromObj && toObj) {
-      contentChanges.push(`Added ${kindLabel(toObj.kind)}: ${toObj.name}`);
+      contentChanges.push({
+        id,
+        category: "content",
+        description: `Added ${kindLabel(toObj.kind)}: ${toObj.name}`,
+      });
       continue;
     }
 
     if (fromObj && !toObj) {
-      contentChanges.push(`Deleted ${kindLabel(fromObj.kind)}: ${fromObj.name}`);
+      contentChanges.push({
+        id,
+        category: "content",
+        description: `Deleted ${kindLabel(fromObj.kind)}: ${fromObj.name}`,
+      });
       continue;
     }
 
@@ -260,16 +284,28 @@ export async function analyzeSlideDiff(
     }
 
     if (fromObj.styleSignature !== toObj.styleSignature) {
-      styleChanges.push(`${toObj.name}: position/appearance changed`);
+      styleChanges.push({
+        id,
+        category: "style",
+        description: `${toObj.name}: position/appearance changed`,
+      });
     }
 
     if (fromObj.contentSignature !== toObj.contentSignature) {
-      contentChanges.push(`${toObj.name}: content changed`);
+      contentChanges.push({
+        id,
+        category: "content",
+        description: `${toObj.name}: content changed`,
+      });
     }
   }
 
+  const limitedStyleChanges = limit(styleChanges, 5, "style");
+  const limitedContentChanges = limit(contentChanges, 5, "content");
+
   return {
-    styleChanges: limit(styleChanges, 5),
-    contentChanges: limit(contentChanges, 5),
+    styleChanges: limitedStyleChanges,
+    contentChanges: limitedContentChanges,
+    allChanges: [...limitedStyleChanges, ...limitedContentChanges],
   };
 }
