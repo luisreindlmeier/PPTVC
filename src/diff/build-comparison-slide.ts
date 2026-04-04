@@ -688,7 +688,12 @@ function createDiffBadgeShapes(
 }
 
 function ensureNonEditableSpLocks(xml: string): string {
-  return xml.replace(
+  const withExpandedSelfClosing = xml.replace(
+    /<p:cNvSpPr\b([^>]*)\/>/g,
+    (_full, attrs: string) => `<p:cNvSpPr${attrs}></p:cNvSpPr>`
+  );
+
+  return withExpandedSelfClosing.replace(
     /<p:cNvSpPr\b([^>]*)>([\s\S]*?)<\/p:cNvSpPr>/g,
     (_full, attrs: string, inner: string) => {
       const locks =
@@ -704,7 +709,12 @@ function ensureNonEditableSpLocks(xml: string): string {
 }
 
 function ensureNonEditablePicLocks(xml: string): string {
-  return xml.replace(
+  const withExpandedSelfClosing = xml.replace(
+    /<p:cNvPicPr\b([^>]*)\/>/g,
+    (_full, attrs: string) => `<p:cNvPicPr${attrs}></p:cNvPicPr>`
+  );
+
+  return withExpandedSelfClosing.replace(
     /<p:cNvPicPr\b([^>]*)>([\s\S]*?)<\/p:cNvPicPr>/g,
     (_full, attrs: string, inner: string) => {
       const locks = '<a:picLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1"/>';
@@ -719,7 +729,12 @@ function ensureNonEditablePicLocks(xml: string): string {
 }
 
 function ensureNonEditableGraphicFrameLocks(xml: string): string {
-  return xml.replace(
+  const withExpandedSelfClosing = xml.replace(
+    /<p:cNvGraphicFramePr\b([^>]*)\/>/g,
+    (_full, attrs: string) => `<p:cNvGraphicFramePr${attrs}></p:cNvGraphicFramePr>`
+  );
+
+  return withExpandedSelfClosing.replace(
     /<p:cNvGraphicFramePr\b([^>]*)>([\s\S]*?)<\/p:cNvGraphicFramePr>/g,
     (_full, attrs: string, inner: string) => {
       const locks =
@@ -735,7 +750,12 @@ function ensureNonEditableGraphicFrameLocks(xml: string): string {
 }
 
 function ensureNonEditableCxnLocks(xml: string): string {
-  return xml.replace(
+  const withExpandedSelfClosing = xml.replace(
+    /<p:cNvCxnSpPr\b([^>]*)\/>/g,
+    (_full, attrs: string) => `<p:cNvCxnSpPr${attrs}></p:cNvCxnSpPr>`
+  );
+
+  return withExpandedSelfClosing.replace(
     /<p:cNvCxnSpPr\b([^>]*)>([\s\S]*?)<\/p:cNvCxnSpPr>/g,
     (_full, attrs: string, inner: string) => {
       const locks = '<a:spLocks noSelect="1" noMove="1" noResize="1" noRot="1" noGrp="1"/>';
@@ -750,7 +770,12 @@ function ensureNonEditableCxnLocks(xml: string): string {
 }
 
 function ensureNonEditableGroupLocks(xml: string): string {
-  return xml.replace(
+  const withExpandedSelfClosing = xml.replace(
+    /<p:cNvGrpSpPr\b([^>]*)\/>/g,
+    (_full, attrs: string) => `<p:cNvGrpSpPr${attrs}></p:cNvGrpSpPr>`
+  );
+
+  return withExpandedSelfClosing.replace(
     /<p:cNvGrpSpPr\b([^>]*)>([\s\S]*?)<\/p:cNvGrpSpPr>/g,
     (_full, attrs: string, inner: string) => {
       const locks = '<a:grpSpLocks noSelect="1" noMove="1" noResize="1" noRot="1"/>';
