@@ -234,32 +234,35 @@ export function DiffPanel({
           </Button>
         </div>
 
-        {/* Active comparison indicator (below comparing controls) */}
-        {activeComparison && (
-          <div className="flex flex-col gap-1.5 px-3 py-2.5 mt-2 rounded-[var(--radius-sm)] bg-[var(--color-primary)] text-white text-[11px]">
+      </section>
+
+      {/* Active comparison indicator (below divider) */}
+      {activeComparison && (
+        <section className="px-3.5 pt-2.5 pb-3 border-b border-[var(--color-border)] bg-[var(--color-bg)] shrink-0">
+          <div className="flex flex-col gap-1.5 px-3 py-2.5 rounded-[var(--radius-sm)] border border-[#d4d4d8] bg-[#f5f5f5] text-[#171717] text-[11px]">
             <div className="flex items-center justify-between gap-2">
-              <span className="uppercase tracking-wide text-[10px] opacity-70">
+              <span className="uppercase tracking-wide text-[10px] text-[#52525b]">
                 Active comparison — slide {activeComparison.slideNum}
               </span>
               <Button
                 type="button"
                 onClick={() => void handleClear()}
                 disabled={clearing}
-                className="h-6 px-2 text-[10px] bg-white/20 hover:bg-white/30 text-white border border-white/30 cursor-pointer"
+                className="h-6 px-2 text-[10px] bg-[#ffffff] hover:bg-[#f4f4f5] text-[#18181b] border border-[#a1a1aa] cursor-pointer"
               >
                 {clearing ? "Exiting..." : "Exit Comparison Mode"}
               </Button>
             </div>
-            <div className="flex items-center gap-1.5 opacity-90">
+            <div className="flex items-center gap-1.5 text-[#27272a]">
               <span className="truncate max-w-[100px]">
                 {getVersionName(activeComparison.fromVersion)}
               </span>
-              <span className="opacity-60">→</span>
+              <span className="text-[#71717a]">→</span>
               <span className="truncate max-w-[100px]">
                 {getVersionName(activeComparison.toVersion)}
               </span>
             </div>
-            <label className="flex items-center justify-between gap-2 text-[11px] text-white/90 mt-0.5">
+            <label className="flex items-center justify-between gap-2 text-[11px] text-[#3f3f46] mt-0.5">
               <span>Highlight diffs</span>
               <input
                 type="checkbox"
@@ -276,12 +279,12 @@ export function DiffPanel({
                 aria-label="Toggle diff highlights"
               />
             </label>
-            <p className="opacity-60 text-[10px] leading-snug mt-0.5">
+            <p className="text-[#71717a] text-[10px] leading-snug mt-0.5">
               Scroll down on slide {activeComparison.slideNum} to see the diff below it.
             </p>
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       <div className="flex-1 overflow-y-auto" />
     </div>
