@@ -3,11 +3,13 @@ import type { Version } from "../versions";
 import type { SlideInfo } from "../App";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
+import type { SlideDiffSummary } from "../diff/analyze-slide-diff";
 
 interface ActiveComparison {
   fromVersion: Version;
   toVersion: Version;
   slideNum: number;
+  summary: SlideDiffSummary;
 }
 
 interface DiffPanelProps {
@@ -26,6 +28,7 @@ interface DiffPanelProps {
     toAuthor: string,
     highlightDiffs?: boolean
   ) => Promise<Blob>;
+  analyzeSlideDiff: (toBlob: Blob, fromBlob: Blob, slideIndex: number) => Promise<SlideDiffSummary>;
   blobToBase64: (blob: Blob) => Promise<string>;
   replacePresentationFromBase64: (base64: string) => Promise<void>;
   restoreVersionById: (id: string) => Promise<void>;
@@ -41,6 +44,7 @@ export function DiffPanel({
   getVersionName,
   getVersionBlob,
   buildComparisonSlide,
+  analyzeSlideDiff,
   blobToBase64,
   replacePresentationFromBase64,
   restoreVersionById,
@@ -131,19 +135,22 @@ export function DiffPanel({
       ]);
 
       const slideIdx = currentSlide.num - 1;
-      const modifiedBlob = await buildComparisonSlide(
-        toBlob,
-        fromBlob,
-        slideIdx,
-        getVersionName(to),
-        getVersionName(from),
-        formatTimestamp(to.timestamp),
-        getAuthorLabel(to),
-        enableHighlights
-      );
+      const [modifiedBlob, summary] = await Promise.all([
+        buildComparisonSlide(
+          toBlob,
+          fromBlob,
+          slideIdx,
+          getVersionName(to),
+          getVersionName(from),
+          formatTimestamp(to.timestamp),
+          getAuthorLabel(to),
+          enableHighlights
+        ),
+        analyzeSlideDiff(toBlob, fromBlob, slideIdx),
+      ]);
 
       await replacePresentationFromBase64(await blobToBase64(modifiedBlob));
-      setActiveComparison({ fromVersion: from, toVersion: to, slideNum: currentSlide.num });
+      setActiveComparison({ fromVersion: from, toVersion: to, slideNum: currentSlide.num, summary });
       return true;
     } catch (err) {
       showStatus(err instanceof Error ? err.message : "Failed to build comparison.", true);
@@ -274,6 +281,43 @@ export function DiffPanel({
             <p className="text-[var(--color-text-muted)] text-[10px] leading-snug mt-0.5">
               Scroll down on slide {activeComparison.slideNum} to see the diff below it.
             </p>
+            <div className="grid grid-cols-1 gap-2 mt-1">
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)] mb-1">
+                  Style changes
+                </p>
+                {activeComparison.summary.styleChanges.length > 0 ? (
+                  <ul className="space-y-0.5">
+                    {activeComparison.summary.styleChanges.map((entry, index) => (
+                      <li key={`style-${index}`} className="text-[10px] text-[var(--color-text)] leading-snug">
+                        • {entry}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[10px] text-[var(--color-text-muted)]">No style changes detected.</p>
+                )}
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)] mb-1">
+                  Content changes
+                </p>
+                {activeComparison.summary.contentChanges.length > 0 ? (
+                  <ul className="space-y-0.5">
+                    {activeComparison.summary.contentChanges.map((entry, index) => (
+                      <li
+                        key={`content-${index}`}
+                        className="text-[10px] text-[var(--color-text)] leading-snug"
+                      >
+                        • {entry}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[10px] text-[var(--color-text-muted)]">No content changes detected.</p>
+                )}
+              </div>
+            </div>
             <Button
               type="button"
               variant="secondary"

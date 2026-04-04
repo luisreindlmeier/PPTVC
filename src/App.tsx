@@ -10,6 +10,7 @@ import {
   type Version,
 } from "./versions";
 import { buildComparisonSlide } from "./diff/build-comparison-slide";
+import { analyzeSlideDiff } from "./diff/analyze-slide-diff";
 import {
   createStorageAdapter,
   readUserSettings,
@@ -323,6 +324,7 @@ export function App() {
             getVersionName={getVersionName}
             getVersionBlob={getVersionBlob}
             buildComparisonSlide={buildComparisonSlide}
+            analyzeSlideDiff={analyzeSlideDiff}
             blobToBase64={blobToBase64}
             replacePresentationFromBase64={replacePresentationFromBase64}
             restoreVersionById={restoreVersion}
