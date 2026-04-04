@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import type { Version } from "../versions";
 import type { SlideInfo } from "../App";
 import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import { Switch } from "./ui/switch";
 import type { DiffChange, SlideDiffSummary } from "../diff/analyze-slide-diff";
 
@@ -226,6 +227,16 @@ export function DiffPanel({
     });
   };
 
+  const getChangeBadge = (category: DiffChange["category"]): { label: string; variant: "outline" | "secondary" } => {
+    if (category === "style") {
+      return { label: "Style", variant: "outline" };
+    }
+    if (category === "content") {
+      return { label: "Content", variant: "secondary" };
+    }
+    return { label: "Change", variant: "outline" };
+  };
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       <section className="px-3.5 pt-3 pb-3 border-b border-[var(--color-border)] bg-[var(--color-bg)] shrink-0">
@@ -334,29 +345,32 @@ export function DiffPanel({
             <p className="text-[var(--color-text-muted)] text-[10px] leading-snug mt-0.5">
               Scroll down on slide {activeComparison.slideNum} to see the diff below it.
             </p>
-            <div className="mt-1 border border-[var(--color-border)] rounded-[var(--radius-sm)] p-2">
-              <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)] mb-1">
-                Changes
-              </p>
-              <div className="flex items-center gap-1 mb-2">
+            <div className="mt-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] p-2">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">
+                  Changes
+                </p>
+                <Badge variant="outline" className="h-4 px-1.5 text-[9px] text-[var(--color-text-muted)]">
+                  {displayedChanges.length}
+                </Badge>
+              </div>
+
+              <div className="mb-2 flex items-center gap-1">
                 {([
                   ["all", "All changes"],
                   ["style", "Style"],
                   ["content", "Content"],
                 ] as Array<[ChangeFilter, string]>).map(([value, label]) => (
-                  <button
+                  <Button
                     key={value}
                     type="button"
+                    size="xs"
+                    variant={changeFilter === value ? "default" : "secondary"}
                     onClick={() => setChangeFilter(value)}
-                    className={[
-                      "h-6 px-2 rounded-[var(--radius-xs)] text-[10px] border cursor-pointer",
-                      changeFilter === value
-                        ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
-                        : "bg-[var(--color-surface-raised)] text-[var(--color-text)] border-[var(--color-border)]",
-                    ].join(" ")}
+                    className="h-7 rounded-[var(--radius-xs)] px-2 text-[11px] cursor-pointer"
                   >
                     {label}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
@@ -364,19 +378,30 @@ export function DiffPanel({
                 <ul className="space-y-1">
                   {displayedChanges.map((change, index) => {
                     const isFocused = selectedChangeId === change.id;
+                    const categoryBadge = getChangeBadge(change.category);
                     return (
                       <li
                         key={`${change.category}-${change.id}-${index}`}
                         onClick={() => onChangeClick(change.id)}
                         className={[
-                          "text-[10px] leading-snug px-2 py-1 rounded-[var(--radius-xs)] border transition-colors",
+                          "rounded-[var(--radius-xs)] border px-2 py-1.5 transition-colors",
                           "cursor-pointer",
                           isFocused
-                            ? "bg-[var(--color-primary)]/12 border-[var(--color-primary)]/35 text-[var(--color-text)]"
-                            : "bg-[var(--color-surface-raised)] border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface)]",
+                            ? "bg-[var(--color-primary)]/12 border-[var(--color-primary)]/35"
+                            : "bg-[var(--color-surface-raised)] border-[var(--color-border)] hover:bg-[var(--color-bg)]",
                         ].join(" ")}
                       >
-                        {change.description}
+                        <div className="flex items-start gap-2">
+                          <Badge
+                            variant={categoryBadge.variant}
+                            className="mt-0.5 min-w-[54px] justify-center px-1.5 py-0 text-[9px] uppercase tracking-wide"
+                          >
+                            {categoryBadge.label}
+                          </Badge>
+                          <span className="text-[10px] leading-snug text-[var(--color-text)]">
+                            {change.description}
+                          </span>
+                        </div>
                       </li>
                     );
                   })}
