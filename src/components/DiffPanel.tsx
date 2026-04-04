@@ -222,8 +222,9 @@ export function DiffPanel({
 
           <Button
             onClick={() => void handleCompare()}
+            size="sm"
             disabled={comparing || !fromVersion || !toVersion || fromId === toId}
-            className="w-full h-7 text-[12px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white border-0 cursor-pointer"
+            className="w-full h-8 px-3 rounded-[var(--radius-sm)] text-[12px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white border-0 cursor-pointer"
           >
             {comparing ? (
               <span className="btn-spinner" aria-hidden="true" />
@@ -279,8 +280,7 @@ export function DiffPanel({
               size="sm"
               onClick={() => void handleClear()}
               disabled={clearing}
-              className="w-full mt-1 cursor-pointer border border-black"
-              style={{ borderColor: "#000000", borderWidth: 1 }}
+              className="w-full mt-1 h-8 px-3 rounded-[var(--radius-sm)] text-[12px] bg-[var(--color-surface-raised)] hover:bg-[var(--color-surface)] text-[var(--color-text)] border-0 cursor-pointer"
             >
               {clearing ? "Exiting..." : "Exit Comparison Mode"}
             </Button>
