@@ -649,10 +649,10 @@ function createDiffBadgeShapes(
 ): string {
   const badgeHeight = 203200;
   const charWidth = 47000;
-  const horizontalInset = 38100;
+  const inset = 38100;
   const extraWidth = 25400;
   const estimatedTextWidth = Math.max(228600, labelText.length * charWidth);
-  const badgeWidth = estimatedTextWidth + horizontalInset * 2 + extraWidth;
+  const badgeWidth = estimatedTextWidth + inset * 2 + extraWidth;
   const badgeGap = 38100; // small but visible space between badge and highlight border
   const x = toEmuNumber(bounds.x);
   const y = toEmuNumber(bounds.y);
@@ -673,7 +673,7 @@ function createDiffBadgeShapes(
     `<a:ln><a:noFill/></a:ln>` +
     `</p:spPr>` +
     `<p:txBody>` +
-    `<a:bodyPr anchor="ctr" wrap="none" lIns="${horizontalInset}" rIns="${horizontalInset}" tIns="0" bIns="0" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
+    `<a:bodyPr anchor="ctr" wrap="none" lIns="${inset}" rIns="${inset}" tIns="${inset}" bIns="${inset}" rtlCol="0"><a:noAutofit/></a:bodyPr>` +
     `<a:lstStyle/>` +
     `<a:p><a:pPr algn="l"/>` +
     `<a:r><a:rPr lang="en-US" sz="760" b="1" noProof="1" dirty="0">` +
