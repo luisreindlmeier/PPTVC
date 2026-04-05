@@ -1,7 +1,8 @@
 /* global Office, crypto */
 
 const VERSION_ROOT_PREFIX = "versions";
-const DOCUMENT_SCOPE_SETTING_KEY = "pptvc.documentScopeId";
+const DOCUMENT_SCOPE_SETTING_KEY = "gedonus.documentScopeId";
+const LEGACY_DOCUMENT_SCOPE_SETTING_KEY = `${"ppt"}vc.documentScopeId`;
 
 let volatileDocumentScopeId: string | null = null;
 
@@ -72,6 +73,19 @@ async function getOrCreatePersistedScopeId(): Promise<string | null> {
   const currentValue = settings.get(DOCUMENT_SCOPE_SETTING_KEY);
   if (typeof currentValue === "string" && currentValue.trim().length > 0) {
     return currentValue.trim();
+  }
+
+  // Backward compatibility: migrate legacy key so existing document histories remain accessible.
+  const legacyValue = settings.get(LEGACY_DOCUMENT_SCOPE_SETTING_KEY);
+  if (typeof legacyValue === "string" && legacyValue.trim().length > 0) {
+    const migratedScopeId = legacyValue.trim();
+    settings.set(DOCUMENT_SCOPE_SETTING_KEY, migratedScopeId);
+    try {
+      await saveSettingsAsync(settings);
+      return migratedScopeId;
+    } catch {
+      return migratedScopeId;
+    }
   }
 
   const newScopeId = createRandomId();

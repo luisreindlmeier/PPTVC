@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
   <Id>bd34c85e-30c8-4f10-ab03-9438eab853f1</Id>
-  <Version>1.0.2.0</Version>
+  <Version>1.0.3.0</Version>
   <ProviderName>Gedonus</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Gedonus"/>
   <Description DefaultValue="Local-first version control for PowerPoint presentations."/>
   <IconUrl DefaultValue="https://localhost:3000/assets/logo-filled-32.png?v=2"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/logo-filled-80.png?v=2"/>
-  <SupportUrl DefaultValue="https://github.com/luisreindlmeier/PPTVC"/>
+  <SupportUrl DefaultValue="https://github.com/luisreindlmeier/gedonus"/>
   <AppDomains>
     <AppDomain>https://github.com</AppDomain>
   </AppDomains>
@@ -67,7 +67,7 @@
         <bt:Image id="Icon.80x80" DefaultValue="https://localhost:3000/assets/logo-filled-80.png?v=2"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://github.com/luisreindlmeier/PPTVC"/>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://github.com/luisreindlmeier/gedonus"/>
         <bt:Url id="Commands.Url" DefaultValue="https://localhost:3000/commands.html"/>
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
       </bt:Urls>
