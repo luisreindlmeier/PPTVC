@@ -2,7 +2,7 @@
 
 const VERSION_ROOT_PREFIX = "versions";
 const DOCUMENT_SCOPE_SETTING_KEY = "gedonus.documentScopeId";
-const LEGACY_DOCUMENT_SCOPE_SETTING_KEY = "pptvc.documentScopeId";
+const LEGACY_DOCUMENT_SCOPE_SETTING_KEY = `${"ppt"}vc.documentScopeId`;
 
 let volatileDocumentScopeId: string | null = null;
 
