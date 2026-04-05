@@ -1,45 +1,44 @@
 # Gedonus
 
-Local-first version control for PowerPoint.
+**Version control for the AI presentation era.**
 
-Gedonus is a PowerPoint task pane add-in that brings Git-style workflows to slide decks: save versions, compare slide changes, and restore snapshots quickly. Everything runs in the client by default.
+AI tools like Claude for PowerPoint and Microsoft Copilot are rewriting finance decks in minutes. Nobody has built the governance layer that sits on top. Gedonus is that layer — tracking every change, every number, every approval, directly inside PowerPoint.
 
 ![Gedonus task pane overview](assets/readme.png)
 
-## Why Gedonus
+## The Problem
 
-- Built for fast iteration in presentations, not generic file storage
-- Version history is scoped per document
-- Slide comparison highlights visual and content changes
-- No backend required for core usage
+Every developer has Git. Every codebase has an audit trail. The analysts, associates, and portfolio managers who spend half their careers in PowerPoint have nothing comparable — and AI just made that gap a compliance problem.
 
-## Current Product Status
+Gedonus is building the infrastructure layer that makes AI-assisted presentation workflows trustworthy. Starting with version control and diff. Expanding to approval workflows, multi-user collaboration, and enterprise compliance exports.
 
-Gedonus is early-stage and actively evolving. Core workflows are stable, while UX and advanced collaboration features are still being refined.
+The long-term position: the governance standard for AI-generated presentation documents.
 
 ## Tech Stack
 
 - Office JS API
 - React + TypeScript (strict)
 - Vite + Tailwind
-- JSZip for PPTX processing
-- OPFS (Origin Private File System) for local persistence
+- JSZip + fast-xml-parser for PPTX/DrawingML processing
+- OPFS (Origin Private File System) for local-first persistence
+- GitHub App integration via Cloudflare Worker for team sync
 
 ## Quick Start
-
 ```bash
 npm install
 npm start
 ```
 
-This starts the local dev server and sideload flow for PowerPoint.
+Starts the local dev server and sideload flow for PowerPoint.
 
 ## Scripts
 
-- `npm start` -> run add-in in debug/sideload mode
-- `npm run build` -> production build
-- `npm run lint` -> lint checks
+- `npm start` — dev server + sideload
+- `npm run build` — production build
+- `npm run lint` — lint checks
 
-## Vision
+## Status
 
-PowerPoint should have the same confidence and traceability that developers have in code workflows. Gedonus is building that layer for modern presentation teams.
+Early-stage, actively developed. Version control and visual diff workflows are stable, GitHub sync enabled. Approval workflows, and compliance export are in progress.
+
+---
