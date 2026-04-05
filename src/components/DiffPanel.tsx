@@ -78,6 +78,11 @@ export function DiffPanel({
   const activeComparisonRef = useRef<ActiveComparison | null>(null);
   activeComparisonRef.current = activeComparison;
   const latestSlideNumRef = useRef<number>(currentSlide.num);
+  const skipAutoExitSlideChangesRef = useRef(0);
+
+  const armAutoExitSlideChangeSkip = (count = 3) => {
+    skipAutoExitSlideChangesRef.current = Math.max(skipAutoExitSlideChangesRef.current, count);
+  };
 
   // Initialise selectors when versions load or preselection changes
   useEffect(() => {
@@ -98,6 +103,10 @@ export function DiffPanel({
     latestSlideNumRef.current = currentSlide.num;
     if (!activeComparisonRef.current) return;
     if (previousSlideNum === currentSlide.num) return;
+    if (skipAutoExitSlideChangesRef.current > 0) {
+      skipAutoExitSlideChangesRef.current -= 1;
+      return;
+    }
 
     void (async () => {
       const closed = await closeActiveComparison();
@@ -128,6 +137,8 @@ export function DiffPanel({
     const current = activeComparisonRef.current;
     if (!current) return true;
     try {
+      // Restoring a snapshot can fire selection-changed events; don't treat them as user navigation.
+      armAutoExitSlideChangeSkip();
       await restoreVersionById(current.toVersion.id);
       setActiveComparison(null);
       return true;
@@ -152,6 +163,7 @@ export function DiffPanel({
     }
     try {
       if (activeComparisonRef.current) {
+        armAutoExitSlideChangeSkip();
         const closed = await closeActiveComparison();
         if (!closed) return false;
       }
@@ -179,6 +191,8 @@ export function DiffPanel({
           : analyzeSlideDiff(toBlob, fromBlob, slideIdx),
       ]);
 
+      // Comparing by replacing the full presentation can trigger internal slide-change events.
+      armAutoExitSlideChangeSkip();
       await replacePresentationFromBase64(await blobToBase64(modifiedBlob));
       setActiveComparison({ fromVersion: from, toVersion: to, slideNum: currentSlide.num, summary });
       return true;
