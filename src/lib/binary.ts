@@ -1,3 +1,5 @@
+/* global Blob, btoa */
+
 /** Converts a Blob to a base64-encoded string. Used for Office insertSlidesFromBase64. */
 export async function blobToBase64(blob: Blob): Promise<string> {
   const buffer = await blob.arrayBuffer();
