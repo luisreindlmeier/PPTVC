@@ -1,31 +1,22 @@
-import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import logoIcon from "../../assets/icon.png";
 
 interface GitHubWelcomeGateProps {
+  phase: "loading" | "welcome";
   onConnectGitHub: () => void;
   onContinueWithoutGitHub: () => void;
 }
 
 export function GitHubWelcomeGate({
+  phase,
   onConnectGitHub,
   onContinueWithoutGitHub,
 }: GitHubWelcomeGateProps) {
-  const [showChoice, setShowChoice] = useState(false);
-
-  useEffect(() => {
-    const tid = window.setTimeout(() => {
-      setShowChoice(true);
-    }, 1100);
-
-    return () => window.clearTimeout(tid);
-  }, []);
-
   return (
     <div className="absolute inset-0 z-40 bg-[var(--color-bg)] overflow-y-auto">
       <div className="mx-auto flex min-h-full w-full max-w-[460px] flex-col items-center px-3.5 py-5 text-center">
         <div className="flex flex-1 flex-col items-center justify-center w-full">
-          {!showChoice ? (
+          {phase === "loading" ? (
             <div className="flex flex-col items-center justify-center gap-3">
               <img
                 src={logoIcon}

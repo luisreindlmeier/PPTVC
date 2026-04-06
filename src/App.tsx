@@ -36,8 +36,9 @@ export function App() {
   const { status, showStatus } = useStatusMessages();
   const { settings, setSettings, onSettingsChange } = useSettings();
   const [documentScopeKey, setDocumentScopeKey] = useState<string | null>(null);
+  const [documentScopeReady, setDocumentScopeReady] = useState(false);
   const [appInitialized, setAppInitialized] = useState(false);
-  const [bootstrapping, setBootstrapping] = useState(true);
+  const [initialVersionsLoaded, setInitialVersionsLoaded] = useState(false);
   const [githubGateDismissed, setGithubGateDismissed] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState<"welcome" | "connect">("welcome");
 
@@ -107,6 +108,14 @@ export function App() {
     onUpdateMeta,
   } = useVersionManagement(effectiveSettings, showStatus);
 
+  const loadVersionsWithReadyFlag = useCallback(async () => {
+    try {
+      return await loadVersions();
+    } finally {
+      setInitialVersionsLoaded(true);
+    }
+  }, [loadVersions]);
+
   const [currentTab, setCurrentTab] = useState<ScopeTab>("history");
   const [currentSlide, setCurrentSlide] = useState<SlideInfo>({ num: 1, name: "Slide 1" });
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -123,14 +132,14 @@ export function App() {
           setDocumentScopeKey(scopeKey);
           setGithubGateDismissed(false);
           setOnboardingStep("welcome");
-          setBootstrapping(false);
+          setDocumentScopeReady(true);
         }
       } catch {
         if (!cancelled) {
           setDocumentScopeKey("versions/by-session-fallback");
           setGithubGateDismissed(false);
           setOnboardingStep("welcome");
-          setBootstrapping(false);
+          setDocumentScopeReady(true);
         }
       }
     })();
@@ -139,17 +148,6 @@ export function App() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    // Ensure gate shows after app initialization (delayed to avoid race condition)
-    if (!appInitialized || !documentScopeKey) return;
-    const tid = window.setTimeout(() => {
-      if (!githubGateDismissed && !hasDocumentRepo) {
-        setOnboardingStep("welcome");
-      }
-    }, 50);
-    return () => window.clearTimeout(tid);
-  }, [appInitialized, documentScopeKey]);
 
   useEffect(() => {
     if (!appInitialized) return;
@@ -164,6 +162,7 @@ export function App() {
           // New presentation detected: rerun onboarding decision flow.
           setGithubGateDismissed(false);
           setOnboardingStep("welcome");
+          void loadVersionsWithReadyFlag();
           return nextScope;
         });
       } catch {
@@ -200,13 +199,16 @@ export function App() {
   }, [documentScopeKey, onSettingsChange, settings]);
 
   const hasDocumentRepo = Boolean(activeGitHubSync?.repo.trim());
-  const onboardingVisible =
-    !bootstrapping &&
-    documentScopeKey !== null &&
+  const startupReady = appInitialized && documentScopeReady && initialVersionsLoaded;
+  const hasExistingLocalVersioning = versions.length > 0;
+  const shouldShowGitHubGate =
+    startupReady &&
     !settingsOpen &&
     !hasDocumentRepo &&
-    !githubGateDismissed;
-  const shouldShowGitHubGate = onboardingVisible;
+    !githubGateDismissed &&
+    !hasExistingLocalVersioning;
+  const shouldShowBootLoading = !startupReady;
+  const shouldShowMainView = startupReady && !shouldShowGitHubGate;
 
   const handleGitHubGateConnected = useCallback(
     async (config: GitHubSyncConfig, accountConnected: boolean) => {
@@ -240,7 +242,7 @@ export function App() {
   useOfficeEventHandlers({
     settings: effectiveSettings,
     setSettings,
-    loadVersions,
+    loadVersions: loadVersionsWithReadyFlag,
     enforceMaxVersions,
     showStatus,
     setCurrentSlide,
@@ -314,120 +316,123 @@ export function App() {
   return (
     <TooltipProvider>
       <div className="relative flex flex-col h-screen app-root">
-        <Header currentSlide={currentSlide} />
+        {shouldShowMainView && (
+          <>
+            <Header currentSlide={currentSlide} />
 
-        <TabBar currentTab={currentTab} onTabChange={switchTab} />
+            <TabBar currentTab={currentTab} onTabChange={switchTab} />
 
-        {/* ── History ─────────────────────────────────────────── */}
-        {currentTab === "history" && (
-          <HistoryPanel
-            versions={versions}
-            settings={effectiveSettings}
-            displayedVersionId={displayedVersionId}
-            pendingTags={pendingTags}
-            onPendingTagsChange={setPendingTags}
-            onSave={onSave}
-            onRestore={onRestore}
-            onDelete={onDelete}
-            onUpdateMeta={onUpdateMeta}
-            onViewDiff={(id) => switchTab("diff", id)}
-            getVersionName={getVersionName}
-            getAuthorLabel={getAuthorLabel}
+            {/* ── History ─────────────────────────────────────────── */}
+            {currentTab === "history" && (
+              <HistoryPanel
+                versions={versions}
+                settings={effectiveSettings}
+                displayedVersionId={displayedVersionId}
+                pendingTags={pendingTags}
+                onPendingTagsChange={setPendingTags}
+                onSave={onSave}
+                onRestore={onRestore}
+                onDelete={onDelete}
+                onUpdateMeta={onUpdateMeta}
+                onViewDiff={(id) => switchTab("diff", id)}
+                getVersionName={getVersionName}
+                getAuthorLabel={getAuthorLabel}
+              />
+            )}
+
+            {/* ── Diff ─────────────────────────────────────────────── */}
+            {(currentTab === "diff" || hasActiveDiffComparison) && (
+              <div className={currentTab === "diff" ? "flex-1 min-h-0" : "hidden"}>
+                <DiffPanel
+                  versions={versions}
+                  currentSlide={currentSlide}
+                  preselectedId={diffPreselectedId}
+                  getVersionName={getVersionName}
+                  getVersionBlob={getVersionBlob}
+                  buildComparisonSlide={buildComparisonSlide}
+                  analyzeSlideDiff={analyzeSlideDiff}
+                  blobToBase64={blobToBase64}
+                  replacePresentationFromBase64={replacePresentationFromBase64}
+                  restoreVersionById={restoreVersion}
+                  formatTimestamp={formatTimestamp}
+                  getAuthorLabel={getAuthorLabel}
+                  showStatus={showStatus}
+                  onComparisonActiveChange={setHasActiveDiffComparison}
+                />
+              </div>
+            )}
+
+            {/* ── Workflow ─────────────────────────────────────────── */}
+            {currentTab === "workflow" && (
+              <div className="flex-1 flex items-center justify-center p-4">
+                <p className="text-[var(--color-text-muted)] text-sm">Workflow tools coming soon.</p>
+              </div>
+            )}
+
+            {/* ── Footer ───────────────────────────────────────────── */}
+            <footer className="flex items-center gap-2 px-3 py-2 border-t border-[var(--color-border)] bg-[var(--color-surface)] mt-auto shrink-0">
+              <div className="flex items-center gap-1.5">
+                <span className="ready-dot" aria-hidden="true" />
+                <span className="text-[11px] text-[var(--color-text-muted)]">Ready</span>
+              </div>
+
+              <div
+                key={status?.key ?? 0}
+                role="status"
+                aria-live="polite"
+                className={[
+                  "flex-1 min-w-0 text-center text-[11px] truncate",
+                  status
+                    ? status.isError
+                      ? "text-[var(--color-danger)]"
+                      : "text-[var(--color-text-muted)]"
+                    : "text-transparent",
+                ].join(" ")}
+              >
+                {status?.text ?? "_"}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                className="ml-auto p-1 rounded hover:bg-[var(--color-border)] transition-colors cursor-pointer"
+                aria-label="Settings"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                  className="w-4 h-4 text-[var(--color-text-muted)]"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.43l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                  />
+                </svg>
+              </button>
+            </footer>
+          </>
+        )}
+
+        {shouldShowBootLoading && (
+          <GitHubWelcomeGate
+            phase="loading"
+            onConnectGitHub={handleStartGitHubConnect}
+            onContinueWithoutGitHub={handleContinueWithoutGitHub}
           />
         )}
 
-        {/* ── Diff ─────────────────────────────────────────────── */}
-        {(currentTab === "diff" || hasActiveDiffComparison) && (
-          <div className={currentTab === "diff" ? "flex-1 min-h-0" : "hidden"}>
-            <DiffPanel
-              versions={versions}
-              currentSlide={currentSlide}
-              preselectedId={diffPreselectedId}
-              getVersionName={getVersionName}
-              getVersionBlob={getVersionBlob}
-              buildComparisonSlide={buildComparisonSlide}
-              analyzeSlideDiff={analyzeSlideDiff}
-              blobToBase64={blobToBase64}
-              replacePresentationFromBase64={replacePresentationFromBase64}
-              restoreVersionById={restoreVersion}
-              formatTimestamp={formatTimestamp}
-              getAuthorLabel={getAuthorLabel}
-              showStatus={showStatus}
-              onComparisonActiveChange={setHasActiveDiffComparison}
-            />
-          </div>
-        )}
-
-        {/* ── Workflow ─────────────────────────────────────────── */}
-        {currentTab === "workflow" && (
-          <div className="flex-1 flex items-center justify-center p-4">
-            <p className="text-[var(--color-text-muted)] text-sm">Workflow tools coming soon.</p>
-          </div>
-        )}
-
-        {bootstrapping && (
-          <div className="absolute inset-0 z-30 bg-[var(--color-bg)]">
-            <GitHubWelcomeGate
-              onConnectGitHub={handleStartGitHubConnect}
-              onContinueWithoutGitHub={handleContinueWithoutGitHub}
-            />
-          </div>
-        )}
-
-        {/* ── Footer ───────────────────────────────────────────── */}
-        <footer className="flex items-center gap-2 px-3 py-2 border-t border-[var(--color-border)] bg-[var(--color-surface)] mt-auto shrink-0">
-          <div className="flex items-center gap-1.5">
-            <span className="ready-dot" aria-hidden="true" />
-            <span className="text-[11px] text-[var(--color-text-muted)]">Ready</span>
-          </div>
-
-          <div
-            key={status?.key ?? 0}
-            role="status"
-            aria-live="polite"
-            className={[
-              "flex-1 min-w-0 text-center text-[11px] truncate",
-              status
-                ? status.isError
-                  ? "text-[var(--color-danger)]"
-                  : "text-[var(--color-text-muted)]"
-                : "text-transparent",
-            ].join(" ")}
-          >
-            {status?.text ?? "_"}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            className="ml-auto p-1 rounded hover:bg-[var(--color-border)] transition-colors cursor-pointer"
-            aria-label="Settings"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              className="w-4 h-4 text-[var(--color-text-muted)]"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.43l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-              />
-            </svg>
-          </button>
-        </footer>
-
         {/* ── Settings overlay ─────────────────────────────────── */}
-        {settingsOpen && (
+        {settingsOpen && shouldShowMainView && (
           <SettingsPage
             settings={effectiveSettings}
             onSettingsChange={onSettingsChangeForDocument}
@@ -443,6 +448,7 @@ export function App() {
 
         {shouldShowGitHubGate && onboardingStep === "welcome" && (
           <GitHubWelcomeGate
+            phase="welcome"
             onConnectGitHub={handleStartGitHubConnect}
             onContinueWithoutGitHub={handleContinueWithoutGitHub}
           />
