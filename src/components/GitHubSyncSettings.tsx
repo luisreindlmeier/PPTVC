@@ -391,7 +391,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
             Connect your GitHub account to enable repository sync.
           </p>
           <Button
-            variant={checkingAccount ? "default" : "outline"}
+            variant={isShowingAccountCheck ? "default" : "outline"}
             size="sm"
             onClick={() => void handleConnect()}
             disabled={connecting || isShowingAccountCheck}

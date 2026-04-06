@@ -74,6 +74,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   authorName: "",
   email: "",
   autoSyncOnVersionSave: false,
+  githubAccountAutoCheckDisabled: true,
   namingTemplate: "Version {version_number}",
   customTags: [],
 };

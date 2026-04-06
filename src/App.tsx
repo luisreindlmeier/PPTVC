@@ -280,20 +280,28 @@ export function App() {
   );
 
   const handleGitHubGateSkip = useCallback(() => {
+    void onSettingsChangeForDocument({
+      ...effectiveSettings,
+      githubAccountAutoCheckDisabled: true,
+    });
     setGithubGateDismissed(true);
     setOnboardingStep("welcome");
     showStatus("GitHub setup skipped. Local versioning stays available.", false);
-  }, [showStatus]);
+  }, [effectiveSettings, onSettingsChangeForDocument, showStatus]);
 
   const handleStartGitHubConnect = useCallback(() => {
     setOnboardingStep("connect");
   }, []);
 
   const handleContinueWithoutGitHub = useCallback(() => {
+    void onSettingsChangeForDocument({
+      ...effectiveSettings,
+      githubAccountAutoCheckDisabled: true,
+    });
     setGithubGateDismissed(true);
     setOnboardingStep("welcome");
     showStatus("Continuing without GitHub. You can connect later in Settings.", false);
-  }, [showStatus]);
+  }, [effectiveSettings, onSettingsChangeForDocument, showStatus]);
 
   useOfficeEventHandlers({
     setSettings,
