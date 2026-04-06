@@ -110,6 +110,8 @@ export function useOfficeEventHandlers({
 
       if (disposed) return;
 
+      onInitialized?.();
+
       try {
         await loadVersions();
       } catch (error: unknown) {
@@ -121,7 +123,6 @@ export function useOfficeEventHandlers({
 
       unregisterAutoSave = registerAutoSave();
       unregisterSlideTracking = initSlideTracking();
-      onInitialized?.();
     })();
 
     return () => {

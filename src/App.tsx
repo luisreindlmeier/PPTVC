@@ -22,7 +22,11 @@ import {
   useVersionManagement,
   useOfficeEventHandlers,
 } from "./hooks";
-import { getDocumentScopeKey } from "./versions/document-scope";
+import {
+  getDocumentScopeKey,
+  hasLocalVersioningHint,
+  setLocalVersioningHint,
+} from "./versions/document-scope";
 import type { ScopeTab, SlideInfo } from "./app-types";
 
 export type { ScopeTab, SlideInfo };
@@ -37,6 +41,7 @@ export function App() {
   const { settings, setSettings, onSettingsChange } = useSettings();
   const [documentScopeKey, setDocumentScopeKey] = useState<string | null>(null);
   const [documentScopeReady, setDocumentScopeReady] = useState(false);
+  const [documentHasLocalVersioningHint, setDocumentHasLocalVersioningHint] = useState(false);
   const [appInitialized, setAppInitialized] = useState(false);
   const [initialVersionsLoaded, setInitialVersionsLoaded] = useState(false);
   const [githubGateDismissed, setGithubGateDismissed] = useState(false);
@@ -110,7 +115,15 @@ export function App() {
 
   const loadVersionsWithReadyFlag = useCallback(async () => {
     try {
-      return await loadVersions();
+      const loaded = await loadVersions();
+      if (loaded.length > 0) {
+        setDocumentHasLocalVersioningHint(true);
+        void setLocalVersioningHint(true);
+      } else {
+        setDocumentHasLocalVersioningHint(false);
+        void setLocalVersioningHint(false);
+      }
+      return loaded;
     } finally {
       setInitialVersionsLoaded(true);
     }
@@ -130,6 +143,7 @@ export function App() {
         const scopeKey = await getDocumentScopeKey();
         if (!cancelled) {
           setDocumentScopeKey(scopeKey);
+          setDocumentHasLocalVersioningHint(hasLocalVersioningHint());
           setGithubGateDismissed(false);
           setOnboardingStep("welcome");
           setDocumentScopeReady(true);
@@ -137,6 +151,7 @@ export function App() {
       } catch {
         if (!cancelled) {
           setDocumentScopeKey("versions/by-session-fallback");
+          setDocumentHasLocalVersioningHint(hasLocalVersioningHint());
           setGithubGateDismissed(false);
           setOnboardingStep("welcome");
           setDocumentScopeReady(true);
@@ -199,8 +214,8 @@ export function App() {
   }, [documentScopeKey, onSettingsChange, settings]);
 
   const hasDocumentRepo = Boolean(activeGitHubSync?.repo.trim());
-  const startupReady = appInitialized && documentScopeReady && initialVersionsLoaded;
-  const hasExistingLocalVersioning = versions.length > 0;
+  const hasExistingLocalVersioning = documentHasLocalVersioningHint || versions.length > 0;
+  const startupReady = appInitialized && documentScopeReady && (documentHasLocalVersioningHint || initialVersionsLoaded);
   const shouldShowGitHubGate =
     startupReady &&
     !settingsOpen &&

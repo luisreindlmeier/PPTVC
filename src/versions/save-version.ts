@@ -2,7 +2,7 @@
 
 import JSZip from "jszip";
 import { createStorageAdapter, type StorageAdapter } from "../storage";
-import { getVersionRootPath } from "./document-scope";
+import { getVersionRootPath, setLocalVersioningHint } from "./document-scope";
 import type { Version, VersionSnapshotMetadata, SaveVersionOptions } from "./types";
 import { concatByteChunks, getFileNameFromUrl, normalizeSliceData } from "./utils";
 
@@ -149,6 +149,7 @@ export async function saveVersion(options: SaveVersionOptions = {}): Promise<Ver
 
   await storage.writeBlob(snapshotPath, blob);
   await storage.writeJson(metadataPath, metadata);
+  await setLocalVersioningHint(true);
 
   return {
     id,
