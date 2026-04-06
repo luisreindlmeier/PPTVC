@@ -36,7 +36,8 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   const [confirming, setConfirming] = useState(false);
   const [testCommitting, setTestCommitting] = useState(false);
 
-  const isConnected = installationId !== undefined;
+  const isRepoConnected = installationId !== undefined;
+  const isAccountConnected = settings.githubAccountConnected === true;
 
   const getSyncConfig = (): GitHubSyncConfig => ({
     repo: repo.trim(),
@@ -79,8 +80,21 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     try {
       const id = await findInstallation(repo.trim());
       if (id === null) {
+        const [owner, repository] = repo.trim().split("/");
+        let repoMissing = false;
+        if (owner && repository) {
+          try {
+            const res = await fetch(`https://api.github.com/repos/${owner}/${repository}`);
+            repoMissing = res.status === 404;
+          } catch {
+            repoMissing = false;
+          }
+        }
+
         setSyncStatus({
-          message: "App not found on this repo. Install it via 'Connect Gedonus' first.",
+          message: repoMissing
+            ? `Repository \"${repo.trim()}\" not found. Check owner/repo and access.`
+            : `Gedonus app is not installed for \"${repo.trim()}\". Install the app for this repository, then confirm again.`,
           isError: true,
         });
         return;
@@ -192,27 +206,49 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
       </div>
 
       {/* Gedonus connection */}
-      {!isConnected ? (
+      {!isRepoConnected ? (
         <div className="space-y-1.5">
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void handleConnect()}
-              disabled={connecting}
-              className="flex-1 h-7 text-[11px] border-[var(--color-border)] cursor-pointer"
-            >
-              {connecting ? "Opening…" : "Connect Gedonus"}
-            </Button>
-          </div>
-          <button
-            type="button"
-            onClick={() => void handleConfirm()}
-            disabled={confirming}
-            className="text-[11px] text-[var(--color-text-muted)] underline hover:no-underline cursor-pointer disabled:opacity-50"
-          >
-            {confirming ? "Checking…" : "I've already installed it"}
-          </button>
+          {isAccountConnected ? (
+            <div className="rounded-[var(--radius-xs)] border border-[#bbf7d0] bg-[#f0fdf4] px-2 py-1.5 text-[11px] text-[#166534]">
+              Gedonus connected. Select a repository and confirm access.
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleConnect()}
+                  disabled={connecting}
+                  className="flex-1 h-7 text-[11px] border-[var(--color-border)] cursor-pointer"
+                >
+                  {connecting ? "Opening…" : "Connect Gedonus"}
+                </Button>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleConfirm()}
+                disabled={confirming}
+                className="text-[11px] text-[var(--color-text-muted)] underline hover:no-underline cursor-pointer disabled:opacity-50"
+              >
+                {confirming ? "Checking…" : "I've already installed it"}
+              </button>
+            </>
+          )}
+
+          {isAccountConnected && (
+            <div className="pt-2 border-t border-[var(--color-border)] space-y-1">
+              <p className="text-[11px] text-[var(--color-text-muted)]">Repository connection</p>
+              <Button
+                size="sm"
+                onClick={() => void handleConfirm()}
+                disabled={confirming}
+                className="w-full h-7 text-[11px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white border-0 cursor-pointer"
+              >
+                {confirming ? "Checking…" : "Connect this repository"}
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex items-center justify-between text-[11px]">
@@ -238,7 +274,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
       )}
 
       {/* Actions */}
-      {isConnected ? (
+      {isRepoConnected ? (
         <div className="flex gap-2">
           <Button
             size="sm"
