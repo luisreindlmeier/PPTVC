@@ -138,6 +138,36 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (!appInitialized) return;
+
+    let cancelled = false;
+    const refreshScope = async () => {
+      try {
+        const nextScope = await getDocumentScopeKey();
+        if (cancelled) return;
+        setDocumentScopeKey((prev) => {
+          if (prev === nextScope) return prev;
+          // New presentation detected: rerun onboarding decision flow.
+          setGithubGateDismissed(false);
+          setOnboardingStep("welcome");
+          return nextScope;
+        });
+      } catch {
+        // Ignore transient Office API errors while switching documents.
+      }
+    };
+
+    const tid = window.setInterval(() => {
+      void refreshScope();
+    }, 1200);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(tid);
+    };
+  }, [appInitialized]);
+
+  useEffect(() => {
     if (!documentScopeKey) return;
     if (!settings.githubSync) return;
     if (settings.githubSyncByDocument !== undefined) return;
