@@ -41,7 +41,7 @@ export function GitHubWelcomeGate({
                   GEDONUS
                 </p>
                 <h2 className="header-slogan m-0 text-[20px] leading-[1.08] text-[var(--color-text)]">
-                  Welcome to Gedonus
+                  Start your <span className="italic">workflow</span>
                 </h2>
                 <p className="mx-auto max-w-[34ch] text-[12px] leading-[1.5] text-[var(--color-text-muted)]">
                   Track PowerPoint versions locally, compare changes slide by slide, and optionally
@@ -49,7 +49,7 @@ export function GitHubWelcomeGate({
                 </p>
               </div>
 
-              <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="mx-auto grid w-full max-w-[340px] grid-cols-1 gap-2 sm:grid-cols-2">
                 <Button
                   size="sm"
                   onClick={onConnectGitHub}
