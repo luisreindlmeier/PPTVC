@@ -132,29 +132,17 @@ export function SettingsPage({
 
       {/* Tab bar */}
       <div className="px-3 pt-2 shrink-0">
-        <div
-          role="tablist"
-          className="relative flex rounded-[var(--radius-sm)] bg-[var(--color-surface)] p-0.5"
-        >
-          <div
-            className="absolute top-0.5 bottom-0.5 rounded-[var(--radius-xs)] bg-[var(--color-surface-raised)] shadow-[var(--shadow-subtle)] transition-transform duration-200"
-            style={{
-              width: `calc(${100 / TABS.length}% - 2px)`,
-              left: "2px",
-              transform: `translateX(calc(${tabIdx * 100}% + ${tabIdx}px))`,
-            }}
-          />
+        <div role="tablist" className="flex rounded-[var(--radius-sm)] bg-[var(--color-surface)] p-0.5">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
               role="tab"
-              aria-selected={activeTab === tab.id}
               onClick={() => void handleTabClick(tab.id)}
               className={cn(
-                "relative flex-1 z-10 px-1 py-1 text-[10px] rounded-[var(--radius-xs)] transition-colors cursor-pointer",
+                "flex-1 px-1 py-1 text-[10px] rounded-[var(--radius-xs)] transition-colors cursor-pointer",
                 activeTab === tab.id
-                  ? "text-[var(--color-text)]"
+                  ? "bg-[var(--color-surface-raised)] text-[var(--color-text)] shadow-[var(--shadow-subtle)]"
                   : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
               )}
             >

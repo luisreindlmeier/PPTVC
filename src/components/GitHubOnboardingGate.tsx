@@ -80,7 +80,7 @@ export function GitHubOnboardingGate({
       const config: GitHubSyncConfig = {
         repo: trimmedRepo,
         branch: branch.trim() || "main",
-        installationId,
+        installationId: installation.installationId,
       };
 
       await testGitHubConnection(config);
