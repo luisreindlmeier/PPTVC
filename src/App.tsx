@@ -1,6 +1,6 @@
 /* global PowerPoint, DOMException, URL, document */
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { Component, useState, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { getVersionBlob, exportVersionsZip, restoreVersion, type Version } from "./versions";
 import { buildComparisonSlide } from "./diff/build-comparison-slide";
 import { analyzeSlideDiff } from "./diff/analyze-slide-diff";
@@ -31,6 +31,34 @@ import type { ScopeTab, SlideInfo } from "./app-types";
 
 export type { ScopeTab, SlideInfo };
 export type { StatusMessage } from "./app-types";
+
+class SettingsPageBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  override render() {
+    if (this.state.hasError) {
+      return (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[var(--color-bg)] px-4 text-center">
+          <p className="text-[12px] text-[var(--color-text-muted)]">
+            Settings could not be loaded. Please reopen the pane.
+          </p>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 function isNotFoundError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "NotFoundError";
@@ -447,18 +475,20 @@ export function App() {
         )}
 
         {/* ── Settings overlay ─────────────────────────────────── */}
-        {settingsOpen && shouldShowMainView && (
-          <SettingsPage
-            settings={effectiveSettings}
-            onSettingsChange={onSettingsChangeForDocument}
-            onClose={() => setSettingsOpen(false)}
-            calculateStorageUsage={calculateStorageUsage}
-            formatBytes={formatBytes}
-            onExportZip={onExportZip}
-            showStatus={showStatus}
-            onVersionsReload={() => loadVersions().then(() => undefined)}
-            enforceMaxVersions={enforceMaxVersions}
-          />
+        {settingsOpen && (
+          <SettingsPageBoundary>
+            <SettingsPage
+              settings={effectiveSettings}
+              onSettingsChange={onSettingsChangeForDocument}
+              onClose={() => setSettingsOpen(false)}
+              calculateStorageUsage={calculateStorageUsage}
+              formatBytes={formatBytes}
+              onExportZip={onExportZip}
+              showStatus={showStatus}
+              onVersionsReload={() => loadVersions().then(() => undefined)}
+              enforceMaxVersions={enforceMaxVersions}
+            />
+          </SettingsPageBoundary>
         )}
 
         {shouldShowGitHubGate && onboardingStep === "welcome" && (
