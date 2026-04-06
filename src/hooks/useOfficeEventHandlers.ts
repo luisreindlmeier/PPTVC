@@ -108,7 +108,13 @@ export function useOfficeEventHandlers({
 
       if (disposed) return;
 
-      await loadVersions();
+      try {
+        await loadVersions();
+      } catch (error: unknown) {
+        if (!disposed) {
+          showStatus(error instanceof Error ? error.message : "Failed to load versions.", true);
+        }
+      }
       if (disposed) return;
 
       unregisterAutoSave = registerAutoSave();
