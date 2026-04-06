@@ -1,6 +1,7 @@
 /* global Blob */
 
 import JSZip from "jszip";
+import { requireZipText } from "./zip-utils";
 
 type DiffObjectKind = "shape" | "image" | "table" | "chart" | "group" | "connector" | "object";
 
@@ -233,12 +234,12 @@ export async function analyzeSlideDiff(
   ]);
 
   const [toPresentationXml, toRelsXml] = await Promise.all([
-    toZip.file("ppt/presentation.xml")!.async("string"),
-    toZip.file("ppt/_rels/presentation.xml.rels")!.async("string"),
+    requireZipText(toZip, "ppt/presentation.xml"),
+    requireZipText(toZip, "ppt/_rels/presentation.xml.rels"),
   ]);
   const [fromPresentationXml, fromRelsXml] = await Promise.all([
-    fromZip.file("ppt/presentation.xml")!.async("string"),
-    fromZip.file("ppt/_rels/presentation.xml.rels")!.async("string"),
+    requireZipText(fromZip, "ppt/presentation.xml"),
+    requireZipText(fromZip, "ppt/_rels/presentation.xml.rels"),
   ]);
 
   const toSlides = extractSlideRefs(toPresentationXml, toRelsXml);
@@ -251,8 +252,8 @@ export async function analyzeSlideDiff(
   }
 
   const [toSlideXml, fromSlideXml] = await Promise.all([
-    toZip.file(toSlide.path)!.async("string"),
-    fromZip.file(fromSlide.path)!.async("string"),
+    requireZipText(toZip, toSlide.path),
+    requireZipText(fromZip, fromSlide.path),
   ]);
 
   const toObjects = collectObjects(extractSpTree(toSlideXml));

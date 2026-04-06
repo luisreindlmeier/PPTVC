@@ -53,6 +53,10 @@ export interface AppState {
   diffPreselectedId?: string;
 }
 
+function isNotFoundError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "NotFoundError";
+}
+
 export function App() {
   const [versions, setVersions] = useState<Version[]>([]);
   const [settings, setSettings] = useState<UserSettings>({ ...DEFAULT_SETTINGS });
@@ -71,6 +75,12 @@ export function App() {
     if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
     setStatus({ text, isError, key: Date.now() });
     statusTimerRef.current = setTimeout(() => setStatus(null), 4000);
+  }, []);
+
+  const removeDocumentHandlerAsync = useCallback((eventType: Office.EventType): Promise<void> => {
+    return new Promise<void>((resolve) => {
+      Office.context.document.removeHandlerAsync(eventType, () => resolve());
+    });
   }, []);
 
   // ── Load versions ─────────────────────────────────────────────
@@ -202,7 +212,11 @@ export function App() {
       try {
         const meta = await storage.readBlob(v.metadataPath);
         total += meta.size;
-      } catch {}
+      } catch (error: unknown) {
+        if (!isNotFoundError(error)) {
+          throw error;
+        }
+      }
     }
     return total;
   }, []);
@@ -224,7 +238,7 @@ export function App() {
 
   // ── Auto-save ─────────────────────────────────────────────────
 
-  const registerAutoSave = useCallback(() => {
+  const registerAutoSave = useCallback((): (() => void) => {
     Office.context.document.addHandlerAsync(
       "documentBeforeSave" as unknown as Office.EventType,
       (eventArgs: { completed: () => void }) => {
@@ -250,11 +264,15 @@ export function App() {
         })();
       }
     );
-  }, [settings, enforceMaxVersions, loadVersions, showStatus]);
+
+    return () => {
+      void removeDocumentHandlerAsync("documentBeforeSave" as unknown as Office.EventType);
+    };
+  }, [settings, enforceMaxVersions, loadVersions, removeDocumentHandlerAsync, showStatus]);
 
   // ── Slide tracking ────────────────────────────────────────────
 
-  const initSlideTracking = useCallback(() => {
+  const initSlideTracking = useCallback((): (() => void) => {
     const updateSlide = () => {
       Office.context.document.getSelectedDataAsync(
         Office.CoercionType.SlideRange,
@@ -269,23 +287,55 @@ export function App() {
     };
     updateSlide();
     Office.context.document.addHandlerAsync(Office.EventType.DocumentSelectionChanged, updateSlide);
-  }, []);
+
+    return () => {
+      void removeDocumentHandlerAsync(Office.EventType.DocumentSelectionChanged);
+    };
+  }, [removeDocumentHandlerAsync]);
 
   // ── Init ──────────────────────────────────────────────────────
 
   useEffect(() => {
+    let disposed = false;
+    let unregisterAutoSave: (() => void) | null = null;
+    let unregisterSlideTracking: (() => void) | null = null;
+
     void (async () => {
       try {
         const stored = await readUserSettings();
         const merged = mergeSettings(stored);
+        if (disposed) {
+          return;
+        }
         setSettings(merged);
-      } catch {}
+      } catch (error: unknown) {
+        if (!disposed) {
+          showStatus(error instanceof Error ? error.message : "Failed to load settings.", true);
+        }
+      }
+
+      if (disposed) {
+        return;
+      }
+
       await loadVersions();
-      registerAutoSave();
-      initSlideTracking();
+      if (disposed) {
+        return;
+      }
+
+      unregisterAutoSave = registerAutoSave();
+      unregisterSlideTracking = initSlideTracking();
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    return () => {
+      disposed = true;
+      unregisterAutoSave?.();
+      unregisterSlideTracking?.();
+      if (statusTimerRef.current) {
+        clearTimeout(statusTimerRef.current);
+      }
+    };
+  }, [initSlideTracking, loadVersions, registerAutoSave, showStatus]);
 
   const getVersionName = (v: Version) => v.displayName ?? v.name;
   const getAuthorLabel = (v: Version) =>
