@@ -37,6 +37,7 @@ export function App() {
   const { settings, setSettings, onSettingsChange } = useSettings();
   const [documentScopeKey, setDocumentScopeKey] = useState<string | null>(null);
   const [appInitialized, setAppInitialized] = useState(false);
+  const [bootstrapping, setBootstrapping] = useState(true);
   const [githubGateDismissed, setGithubGateDismissed] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState<"welcome" | "connect">("welcome");
 
@@ -122,12 +123,14 @@ export function App() {
           setDocumentScopeKey(scopeKey);
           setGithubGateDismissed(false);
           setOnboardingStep("welcome");
+          setBootstrapping(false);
         }
       } catch {
         if (!cancelled) {
           setDocumentScopeKey("versions/by-session-fallback");
           setGithubGateDismissed(false);
           setOnboardingStep("welcome");
+          setBootstrapping(false);
         }
       }
     })();
@@ -197,8 +200,13 @@ export function App() {
   }, [documentScopeKey, onSettingsChange, settings]);
 
   const hasDocumentRepo = Boolean(activeGitHubSync?.repo.trim());
-  const shouldShowGitHubGate =
-    appInitialized && documentScopeKey !== null && !settingsOpen && !hasDocumentRepo && !githubGateDismissed;
+  const onboardingVisible =
+    !bootstrapping &&
+    documentScopeKey !== null &&
+    !settingsOpen &&
+    !hasDocumentRepo &&
+    !githubGateDismissed;
+  const shouldShowGitHubGate = onboardingVisible;
 
   const handleGitHubGateConnected = useCallback(
     async (config: GitHubSyncConfig, accountConnected: boolean) => {
@@ -354,6 +362,15 @@ export function App() {
         {currentTab === "workflow" && (
           <div className="flex-1 flex items-center justify-center p-4">
             <p className="text-[var(--color-text-muted)] text-sm">Workflow tools coming soon.</p>
+          </div>
+        )}
+
+        {bootstrapping && (
+          <div className="absolute inset-0 z-30 bg-[var(--color-bg)]">
+            <GitHubWelcomeGate
+              onConnectGitHub={handleStartGitHubConnect}
+              onContinueWithoutGitHub={handleContinueWithoutGitHub}
+            />
           </div>
         )}
 
