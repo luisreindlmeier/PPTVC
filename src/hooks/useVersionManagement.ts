@@ -115,17 +115,23 @@ export function useVersionManagement(
   const onDelete = useCallback(
     async (id: string) => {
       await deleteVersion(id);
-      setVersions((prev) => {
-        const next = prev.filter((v) => v.id !== id);
-        setDisplayedVersionId((cur) => {
-          if (cur !== id) return cur;
-          return next[0]?.id ?? null;
-        });
-        return next;
-      });
+
+      const wasDisplayed = displayedVersionId === id;
+      const loaded = await loadVersions();
+
+      if (wasDisplayed) {
+        const nextVersion = loaded[0];
+        const nextId = nextVersion?.id ?? null;
+        setDisplayedVersionId(nextId);
+
+        if (nextVersion) {
+          await restoreVersion(nextVersion.id);
+        }
+      }
+
       showStatus("Version deleted.", false);
     },
-    [showStatus]
+    [displayedVersionId, loadVersions, showStatus]
   );
 
   const onUpdateMeta = useCallback(
