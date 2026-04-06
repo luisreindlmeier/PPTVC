@@ -138,6 +138,18 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (!appInitialized || !documentScopeKey) return;
+    if (settingsOpen) return;
+
+    // Once app is initialized and we have a document, show the gate if:
+    // - No repo is linked yet, AND
+    // - We haven't dismissed in this session yet
+    if (!hasDocumentRepo && !githubGateDismissed) {
+      setOnboardingStep("welcome");
+    }
+  }, [appInitialized, documentScopeKey, hasDocumentRepo, githubGateDismissed, settingsOpen]);
+
+  useEffect(() => {
     if (!appInitialized) return;
 
     let cancelled = false;
