@@ -6,3 +6,5 @@ lib-amd/
 # GitHub App private keys — never commit
 *.pem
 
+
+coverage/
