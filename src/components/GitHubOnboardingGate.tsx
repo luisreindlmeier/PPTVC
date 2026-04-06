@@ -25,7 +25,9 @@ export function GitHubOnboardingGate({
   onConnected,
 }: GitHubOnboardingGateProps) {
   const [repo, setRepo] = useState(initialConfig?.repo ?? "");
-  const [branch, setBranch] = useState(initialConfig?.branch === "main" ? "" : (initialConfig?.branch ?? ""));
+  const [branch, setBranch] = useState(
+    initialConfig?.branch === "main" ? "" : (initialConfig?.branch ?? "")
+  );
   const [status, setStatus] = useState<GateStatus | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -79,19 +81,36 @@ export function GitHubOnboardingGate({
   };
 
   return (
-    <div className="absolute inset-0 z-40 p-4 flex items-center justify-center bg-[var(--color-bg)]">
-      <div className="w-full max-w-[420px] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-subtle)] space-y-3">
-        <div>
-          <h2 className="text-[14px] font-medium text-[var(--color-text)]">Connect GitHub before you start</h2>
-          <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-            Link this PowerPoint to a repository to sync snapshots. You can also skip and continue with local versioning.
+    <div className="absolute inset-0 z-40 bg-[var(--color-bg)] overflow-y-auto">
+      <div className="mx-auto w-full max-w-[460px] px-3.5 pt-5 pb-4">
+        <div className="min-w-0 pr-2">
+          <p className="m-0 text-[10px] tracking-[0.16em] uppercase text-[var(--color-text-muted)]">
+            GEDONUS
+          </p>
+          <h1 className="header-slogan m-0 mt-1 text-[28px] leading-[1.05] text-[var(--color-text)]">
+            Track every <span className="italic">change.</span>
+            <br />
+            <span className="inline-block whitespace-nowrap">
+              Build <span className="italic">great</span> slides with{" "}
+              <span className="italic">precision</span>.
+            </span>
+          </h1>
+
+          <h2 className="mt-4 text-[15px] font-medium text-[var(--color-text)]">
+            Connect GitHub before you start
+          </h2>
+          <p className="mt-1 text-[12px] leading-[1.45] text-[var(--color-text-muted)]">
+            Link this PowerPoint to a repository to sync snapshots. You can also skip and continue
+            with local versioning.
           </p>
           {accountConnected && (
-            <p className="mt-2 text-[11px] text-[var(--color-primary)]">GitHub account already connected.</p>
+            <p className="mt-2 text-[11px] text-[var(--color-primary)]">
+              GitHub account already connected.
+            </p>
           )}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="mt-4 space-y-1.5">
           <Label htmlFor="onboarding-repo" className="text-[11px] text-[var(--color-text-muted)]">
             Repository
           </Label>
@@ -106,7 +125,7 @@ export function GitHubOnboardingGate({
           />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="mt-3 space-y-1.5">
           <Label htmlFor="onboarding-branch" className="text-[11px] text-[var(--color-text-muted)]">
             Branch
           </Label>
@@ -121,7 +140,7 @@ export function GitHubOnboardingGate({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="mt-4 grid grid-cols-2 gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -145,7 +164,7 @@ export function GitHubOnboardingGate({
           variant="ghost"
           size="sm"
           onClick={onSkip}
-          className="w-full h-7 text-[11px] text-[var(--color-text-muted)] cursor-pointer"
+          className="mt-1 w-full h-7 text-[11px] text-[var(--color-text-muted)] cursor-pointer"
         >
           Skip for now
         </Button>
