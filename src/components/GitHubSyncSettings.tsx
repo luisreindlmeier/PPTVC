@@ -4,7 +4,6 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import {
-  testGitHubConnection,
   pushVersionsToGitHub,
   getAppInstallUrl,
   findInstallation,
@@ -32,7 +31,6 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     settings.githubSync?.installationId
   );
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
-  const [testing, setTesting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -99,31 +97,6 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     setInstallationId(undefined);
     await persist({ installationId: undefined });
     setSyncStatus(null);
-  };
-
-  const handleTestConnection = async () => {
-    const cfg = getSyncConfig();
-    if (!cfg.repo) {
-      setSyncStatus({ message: "Enter a repository first.", isError: true });
-      return;
-    }
-    if (!cfg.installationId) {
-      setSyncStatus({ message: "Connect Gedonus first.", isError: true });
-      return;
-    }
-    setTesting(true);
-    try {
-      await testGitHubConnection(cfg);
-      setSyncStatus({ message: `Connected to ${cfg.repo}.`, isError: false });
-      await persist();
-    } catch (err) {
-      setSyncStatus({
-        message: err instanceof Error ? err.message : "Connection failed.",
-        isError: true,
-      });
-    } finally {
-      setTesting(false);
-    }
   };
 
   const handleSync = async () => {
@@ -220,25 +193,26 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
 
       {/* Gedonus connection */}
       {!isConnected ? (
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void handleConnect()}
-            disabled={connecting}
-            className="flex-1 h-7 text-[11px] border-[var(--color-border)] cursor-pointer"
-          >
-            {connecting ? "Opening…" : "Connect Gedonus"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
+        <div className="space-y-1.5">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleConnect()}
+              disabled={connecting}
+              className="flex-1 h-7 text-[11px] border-[var(--color-border)] cursor-pointer"
+            >
+              {connecting ? "Opening…" : "Connect Gedonus"}
+            </Button>
+          </div>
+          <button
+            type="button"
             onClick={() => void handleConfirm()}
             disabled={confirming}
-            className="flex-1 h-7 text-[11px] border-[var(--color-border)] cursor-pointer"
+            className="text-[11px] text-[var(--color-text-muted)] underline hover:no-underline cursor-pointer disabled:opacity-50"
           >
-            {confirming ? "Checking…" : "I've installed it"}
-          </Button>
+            {confirming ? "Checking…" : "I've already installed it"}
+          </button>
         </div>
       ) : (
         <div className="flex items-center justify-between text-[11px]">
@@ -264,25 +238,22 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
       )}
 
       {/* Actions */}
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => void handleTestConnection()}
-          disabled={testing || syncing}
-          className="flex-1 h-7 text-[11px] border-[var(--color-border)] cursor-pointer"
-        >
-          {testing ? "Testing…" : "Test Connection"}
-        </Button>
-        <Button
-          size="sm"
-          onClick={() => void handleSync()}
-          disabled={syncing || testing}
-          className="flex-1 h-7 text-[11px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white border-0 cursor-pointer"
-        >
-          {syncing ? <span className="btn-spinner" aria-hidden="true" /> : "Sync to GitHub"}
-        </Button>
-      </div>
+      {isConnected ? (
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            onClick={() => void handleSync()}
+            disabled={syncing}
+            className="flex-1 h-7 text-[11px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white border-0 cursor-pointer"
+          >
+            {syncing ? <span className="btn-spinner" aria-hidden="true" /> : "Sync to GitHub"}
+          </Button>
+        </div>
+      ) : (
+        <p className="text-[11px] text-[var(--color-text-muted)]">
+          Sync becomes available after the connection is confirmed.
+        </p>
+      )}
 
       {/* Status message */}
       {syncStatus && (
