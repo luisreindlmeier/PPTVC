@@ -32,6 +32,7 @@ export interface UserSettings {
   githubSync?: GitHubSyncConfig;
   githubSyncByDocument?: GitHubSyncByDocument;
   githubAccountConnected?: boolean;
+  githubAccountName?: string;
 }
 
 function isNotFoundError(error: unknown): boolean {

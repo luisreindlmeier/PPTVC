@@ -75,6 +75,10 @@ export function App() {
       const result: UserSettings = {
         ...next,
         githubSync: normalizedGitHubSync,
+        githubAccountName:
+          next.githubAccountName ??
+          settings.githubAccountName ??
+          normalizedGitHubSync?.repo.split("/")[0],
         githubAccountConnected:
           next.githubAccountConnected ??
           settings.githubAccountConnected ??

@@ -7,6 +7,7 @@ import {
   pushVersionsToGitHub,
   getAppInstallUrl,
   findInstallation,
+  inspectRepositoryConnectionHint,
   testGedonusCommit,
 } from "../sync/github-sync";
 import { listVersions, getVersionBlob } from "../versions";
@@ -19,11 +20,18 @@ interface GitHubSyncSettingsProps {
 
 interface SyncStatus {
   message: string;
-  isError: boolean;
+  tone: "error" | "success" | "warning";
 }
 
 export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSettingsProps) {
-  const [repo, setRepo] = useState(settings.githubSync?.repo ?? "");
+  const initialRepo = settings.githubSync?.repo ?? "";
+  const fallbackAccountName = initialRepo.includes("/") ? initialRepo.split("/")[0] : "";
+  const accountName = settings.githubAccountName?.trim() || fallbackAccountName;
+  const [repoName, setRepoName] = useState(() => {
+    if (!initialRepo) return "";
+    const parts = initialRepo.split("/");
+    return parts.length > 1 ? parts.slice(1).join("/") : parts[0];
+  });
   const [branch, setBranch] = useState(
     settings.githubSync?.branch !== "main" ? (settings.githubSync?.branch ?? "") : ""
   );
@@ -39,8 +47,25 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   const isRepoConnected = installationId !== undefined;
   const isAccountConnected = settings.githubAccountConnected === true;
 
+  useEffect(() => {
+    const repo = settings.githubSync?.repo ?? "";
+    if (!repo) {
+      setRepoName("");
+      return;
+    }
+    const parts = repo.split("/");
+    setRepoName(parts.length > 1 ? parts.slice(1).join("/") : parts[0]);
+  }, [settings.githubSync?.repo]);
+
+  const fullRepo = (() => {
+    if (!isAccountConnected || !accountName) return "";
+    const trimmedRepoName = repoName.trim();
+    if (!trimmedRepoName) return "";
+    return `${accountName}/${trimmedRepoName}`;
+  })();
+
   const getSyncConfig = (): GitHubSyncConfig => ({
-    repo: repo.trim(),
+    repo: fullRepo,
     branch: branch.trim() || "main",
     ...(installationId !== undefined ? { installationId } : {}),
   });
@@ -50,19 +75,29 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     const next: UserSettings = { ...settings };
     if (cfg.repo) next.githubSync = cfg;
     else delete next.githubSync;
+    next.githubAccountConnected = settings.githubAccountConnected;
+    if (accountName) {
+      next.githubAccountName = accountName;
+    }
     await onSettingsChange(next);
   };
 
+  const markAccountConnected = async () => {
+    const next: UserSettings = {
+      ...settings,
+      githubAccountConnected: true,
+      githubAccountName: accountName || settings.githubAccountName,
+    };
+    await onSettingsChange(next);
+    setSyncStatus({ message: "Account connected. Select a repository.", tone: "success" });
+  };
+
   const handleConnect = async () => {
-    if (!repo.trim()) {
-      setSyncStatus({ message: "Enter a repository first.", isError: true });
-      return;
-    }
     setConnecting(true);
     try {
       const url = await getAppInstallUrl();
       if (!url) {
-        setSyncStatus({ message: "Could not reach Gedonus service.", isError: true });
+        setSyncStatus({ message: "Could not reach Gedonus service.", tone: "error" });
         return;
       }
       window.open(url, "_blank", "noopener,noreferrer");
@@ -72,15 +107,19 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   };
 
   const handleConfirm = async () => {
-    if (!repo.trim()) {
-      setSyncStatus({ message: "Enter a repository first.", isError: true });
+    if (!isAccountConnected) {
+      setSyncStatus({ message: "Connect your GitHub account first.", tone: "error" });
+      return;
+    }
+    if (!fullRepo) {
+      setSyncStatus({ message: "Enter a repository name.", tone: "error" });
       return;
     }
     setConfirming(true);
     try {
-      const id = await findInstallation(repo.trim());
+      const id = await findInstallation(fullRepo);
       if (id === null) {
-        const [owner, repository] = repo.trim().split("/");
+        const [owner, repository] = fullRepo.split("/");
         let repoMissing = false;
         if (owner && repository) {
           try {
@@ -93,15 +132,38 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
 
         setSyncStatus({
           message: repoMissing
-            ? `Repository \"${repo.trim()}\" not found. Check owner/repo and access.`
-            : `Gedonus app is not installed for \"${repo.trim()}\". Install the app for this repository, then confirm again.`,
-          isError: true,
+            ? `Repository \"${fullRepo}\" not found. Check the repository name and access.`
+            : `Gedonus app is not installed for \"${fullRepo}\". Install the app for this repository, then confirm again.`,
+          tone: "error",
         });
         return;
       }
+
+      const config: GitHubSyncConfig = {
+        repo: fullRepo,
+        branch: branch.trim() || "main",
+        installationId: id,
+      };
+
+      const repoHint = await inspectRepositoryConnectionHint(config);
       setInstallationId(id);
-      await persist({ installationId: id });
-      setSyncStatus({ message: "Gedonus connected.", isError: false });
+      await persist({ installationId: id, repo: fullRepo, branch: config.branch });
+
+      if (repoHint.hasGedonusHistory) {
+        setSyncStatus({
+          message:
+            "This repository already contains Gedonus version history. New syncs will append to existing history.",
+          tone: "warning",
+        });
+      } else if (!repoHint.isEmpty) {
+        setSyncStatus({
+          message:
+            "This repository is not empty. Gedonus will add version data under 'gedonus-versions/'.",
+          tone: "warning",
+        });
+      } else {
+        setSyncStatus({ message: "Repository connected.", tone: "success" });
+      }
     } finally {
       setConfirming(false);
     }
@@ -116,37 +178,37 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   const handleSync = async () => {
     const cfg = getSyncConfig();
     if (!cfg.repo) {
-      setSyncStatus({ message: "Enter a repository first.", isError: true });
+      setSyncStatus({ message: "Enter a repository first.", tone: "error" });
       return;
     }
     if (!cfg.installationId) {
-      setSyncStatus({ message: "Connect Gedonus first.", isError: true });
+      setSyncStatus({ message: "Connect repository first.", tone: "error" });
       return;
     }
     setSyncing(true);
-    setSyncStatus({ message: "Starting sync...", isError: false });
+    setSyncStatus({ message: "Starting sync...", tone: "success" });
     try {
       const versions = await listVersions();
       if (versions.length === 0) {
-        setSyncStatus({ message: "No versions to sync.", isError: false });
+        setSyncStatus({ message: "No versions to sync.", tone: "success" });
         return;
       }
       const result = await pushVersionsToGitHub(cfg, versions, getVersionBlob, (p) => {
-        setSyncStatus({ message: `${p.label} (${p.current}/${p.total})`, isError: false });
+        setSyncStatus({ message: `${p.label} (${p.current}/${p.total})`, tone: "success" });
       });
       await persist();
       setSyncStatus(
         result.errors.length === 0
-          ? { message: `Synced ${result.pushed} files to ${cfg.repo}.`, isError: false }
+          ? { message: `Synced ${result.pushed} files to ${cfg.repo}.`, tone: "success" }
           : {
               message: `Synced ${result.pushed} files. ${result.errors.length} error(s): ${result.errors[0]}`,
-              isError: true,
+              tone: "error",
             }
       );
     } catch (err) {
       setSyncStatus({
         message: err instanceof Error ? err.message : "Sync failed.",
-        isError: true,
+        tone: "error",
       });
     } finally {
       setSyncing(false);
@@ -159,12 +221,12 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
       await testGedonusCommit(getSyncConfig());
       setSyncStatus({
         message: "Test commit created. Check your repo — Gedonus should appear as committer.",
-        isError: false,
+        tone: "success",
       });
     } catch (err) {
       setSyncStatus({
         message: err instanceof Error ? err.message : "Test commit failed.",
-        isError: true,
+        tone: "error",
       });
     } finally {
       setTestCommitting(false);
@@ -173,71 +235,73 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
 
   return (
     <div className="space-y-3">
-      <div className="space-y-1.5">
-        <Label htmlFor="gh-repo" className="text-[11px] text-[var(--color-text-muted)]">
-          Repository
-        </Label>
-        <Input
-          id="gh-repo"
-          value={repo}
-          onChange={(e) => setRepo(e.target.value)}
-          onBlur={() => void persist()}
-          placeholder="owner/repo"
-          autoComplete="off"
-          spellCheck={false}
-          className="h-7 text-[12px] bg-[var(--color-surface-raised)] border-[var(--color-border)]"
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="gh-branch" className="text-[11px] text-[var(--color-text-muted)]">
-          Branch
-        </Label>
-        <Input
-          id="gh-branch"
-          value={branch}
-          onChange={(e) => setBranch(e.target.value)}
-          onBlur={() => void persist()}
-          placeholder="main"
-          autoComplete="off"
-          spellCheck={false}
-          className="h-7 text-[12px] bg-[var(--color-surface-raised)] border-[var(--color-border)]"
-        />
-      </div>
-
-      {/* Gedonus connection */}
-      {!isRepoConnected ? (
+      {!isAccountConnected ? (
         <div className="space-y-1.5">
-          {isAccountConnected ? (
-            <div className="rounded-[var(--radius-xs)] border border-[#bbf7d0] bg-[#f0fdf4] px-2 py-1.5 text-[11px] text-[#166534]">
-              Gedonus connected. Select a repository and confirm access.
-            </div>
-          ) : (
-            <>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void handleConnect()}
-                  disabled={connecting}
-                  className="flex-1 h-7 text-[11px] border-[var(--color-border)] cursor-pointer"
-                >
-                  {connecting ? "Opening…" : "Connect Gedonus"}
-                </Button>
-              </div>
-              <button
-                type="button"
-                onClick={() => void handleConfirm()}
-                disabled={confirming}
-                className="text-[11px] text-[var(--color-text-muted)] underline hover:no-underline cursor-pointer disabled:opacity-50"
-              >
-                {confirming ? "Checking…" : "I've already installed it"}
-              </button>
-            </>
-          )}
+          <p className="text-[11px] text-[var(--color-text-muted)]">
+            Connect your GitHub account to enable repository sync.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleConnect()}
+            disabled={connecting}
+            className="w-full h-7 text-[11px] border-[var(--color-border)] cursor-pointer"
+          >
+            {connecting ? "Opening…" : "Connect account"}
+          </Button>
+          <button
+            type="button"
+            onClick={() => void markAccountConnected()}
+            className="text-[11px] text-[var(--color-text-muted)] underline hover:no-underline cursor-pointer"
+          >
+            I have connected my account
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="rounded-[var(--radius-xs)] border border-[#bbf7d0] bg-[#f0fdf4] px-2 py-1.5 text-[11px] text-[#166534]">
+            Gedonus connected as <span className="font-medium">{accountName || "your account"}</span>.
+          </div>
 
-          {isAccountConnected && (
-            <div className="pt-2 border-t border-[var(--color-border)] space-y-1">
+          <div className="space-y-1.5">
+            <Label htmlFor="gh-repo-name" className="text-[11px] text-[var(--color-text-muted)]">
+              Repository
+            </Label>
+            <div className="flex items-center h-7 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] overflow-hidden">
+              <span className="px-2 text-[12px] text-[var(--color-text-muted)] border-r border-[var(--color-border)]">
+                {(accountName || "your-account") + "/"}
+              </span>
+              <Input
+                id="gh-repo-name"
+                value={repoName}
+                onChange={(e) => setRepoName(e.target.value)}
+                onBlur={() => void persist()}
+                placeholder="repository-name"
+                autoComplete="off"
+                spellCheck={false}
+                className="h-7 text-[12px] border-0 shadow-none rounded-none"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="gh-branch" className="text-[11px] text-[var(--color-text-muted)]">
+              Branch
+            </Label>
+            <Input
+              id="gh-branch"
+              value={branch}
+              onChange={(e) => setBranch(e.target.value)}
+              onBlur={() => void persist()}
+              placeholder="main"
+              autoComplete="off"
+              spellCheck={false}
+              className="h-7 text-[12px] bg-[var(--color-surface-raised)] border-[var(--color-border)]"
+            />
+          </div>
+
+          {!isRepoConnected ? (
+            <div className="pt-1 space-y-1">
               <p className="text-[11px] text-[var(--color-text-muted)]">Repository connection</p>
               <Button
                 size="sm"
@@ -248,29 +312,29 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
                 {confirming ? "Checking…" : "Connect this repository"}
               </Button>
             </div>
+          ) : (
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-[var(--color-primary)]">Repository connected</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleTestCommit()}
+                  disabled={testCommitting}
+                  className="text-[var(--color-primary)] underline hover:no-underline cursor-pointer disabled:opacity-50"
+                >
+                  {testCommitting ? "Committing…" : "Test commit"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDisconnect()}
+                  className="text-[var(--color-text-muted)] underline hover:no-underline cursor-pointer"
+                >
+                  Disconnect repo
+                </button>
+              </div>
+            </div>
           )}
-        </div>
-      ) : (
-        <div className="flex items-center justify-between text-[11px]">
-          <span className="text-[var(--color-primary)]">Gedonus connected</span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => void handleTestCommit()}
-              disabled={testCommitting}
-              className="text-[var(--color-primary)] underline hover:no-underline cursor-pointer disabled:opacity-50"
-            >
-              {testCommitting ? "Committing…" : "Test commit"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleDisconnect()}
-              className="text-[var(--color-text-muted)] underline hover:no-underline cursor-pointer"
-            >
-              Disconnect
-            </button>
-          </div>
-        </div>
+        </>
       )}
 
       {/* Actions */}
@@ -297,9 +361,11 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
           role="status"
           className={cn(
             "text-[11px] px-2 py-1.5 rounded-[var(--radius-xs)]",
-            syncStatus.isError
+            syncStatus.tone === "error"
               ? "bg-[var(--color-danger-light)] text-[var(--color-danger)]"
-              : "bg-[var(--color-primary-light)] text-[var(--color-primary)]"
+              : syncStatus.tone === "warning"
+                ? "bg-[#fff7ed] text-[#c2410c]"
+                : "bg-[var(--color-primary-light)] text-[var(--color-primary)]"
           )}
         >
           {syncStatus.message}
