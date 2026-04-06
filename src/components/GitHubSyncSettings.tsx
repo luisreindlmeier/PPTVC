@@ -30,10 +30,22 @@ function extractOwner(repoValue: string): string {
   return owner;
 }
 
+function findKnownOwnerFromDocumentMappings(
+  mapping: UserSettings["githubSyncByDocument"]
+): string {
+  if (!mapping) return "";
+  for (const config of Object.values(mapping)) {
+    const owner = extractOwner(config.repo);
+    if (owner) return owner;
+  }
+  return "";
+}
+
 export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSettingsProps) {
   const initialRepo = settings.githubSync?.repo ?? "";
   const explicitAccountName = settings.githubAccountName?.trim() ?? "";
   const ownerFromSettingsRepo = extractOwner(settings.githubSync?.repo ?? "");
+  const ownerFromAnyKnownRepo = findKnownOwnerFromDocumentMappings(settings.githubSyncByDocument);
   const [repoName, setRepoName] = useState(() => {
     if (!initialRepo) return "";
     if (explicitAccountName && initialRepo.startsWith(`${explicitAccountName}/`)) {
@@ -56,7 +68,8 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   const isRepoConnected = installationId !== undefined;
   const isAccountConnected = settings.githubAccountConnected === true;
   const ownerFromInput = extractOwner(repoName);
-  const accountName = explicitAccountName || ownerFromSettingsRepo || ownerFromInput;
+  const accountName =
+    explicitAccountName || ownerFromSettingsRepo || ownerFromAnyKnownRepo || ownerFromInput;
   const accountPrefix = accountName || "owner";
 
   useEffect(() => {
