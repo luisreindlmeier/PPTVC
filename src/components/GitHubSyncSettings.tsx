@@ -41,6 +41,22 @@ function findKnownOwnerFromDocumentMappings(
   return "";
 }
 
+function collectKnownRepos(settings: UserSettings): string[] {
+  const repos = new Set<string>();
+  const directRepo = settings.githubSync?.repo?.trim();
+  if (directRepo && directRepo.includes("/")) repos.add(directRepo);
+
+  const mapping = settings.githubSyncByDocument;
+  if (mapping) {
+    for (const cfg of Object.values(mapping)) {
+      const repo = cfg.repo?.trim();
+      if (repo && repo.includes("/")) repos.add(repo);
+    }
+  }
+
+  return [...repos];
+}
+
 export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSettingsProps) {
   const initialRepo = settings.githubSync?.repo ?? "";
   const explicitAccountName = settings.githubAccountName?.trim() ?? "";
@@ -62,6 +78,8 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [checkingAccount, setCheckingAccount] = useState(false);
+  const [accountCheckDone, setAccountCheckDone] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [testCommitting, setTestCommitting] = useState(false);
 
@@ -71,6 +89,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   const accountName =
     explicitAccountName || ownerFromSettingsRepo || ownerFromAnyKnownRepo || ownerFromInput;
   const accountPrefix = accountName || "owner";
+  const knownRepos = collectKnownRepos(settings);
 
   useEffect(() => {
     const repo = settings.githubSync?.repo ?? "";
@@ -92,6 +111,43 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     if (!trimmed.startsWith(`${accountName}/`)) return;
     setRepoName(trimmed.slice(accountName.length + 1));
   }, [accountName, repoName]);
+
+  useEffect(() => {
+    if (isAccountConnected || accountCheckDone || knownRepos.length === 0) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      setCheckingAccount(true);
+      try {
+        for (const repo of knownRepos) {
+          const installation = await findInstallation(repo);
+          if (cancelled) return;
+          if (installation === null) continue;
+
+          const next: UserSettings = {
+            ...settings,
+            githubAccountConnected: true,
+            githubAccountName:
+              installation.accountLogin ?? settings.githubAccountName ?? extractOwner(repo),
+          };
+          await onSettingsChange(next);
+          if (cancelled) return;
+          setSyncStatus({ message: "Account connected.", tone: "success" });
+          setAccountCheckDone(true);
+          return;
+        }
+
+        setAccountCheckDone(true);
+      } finally {
+        if (!cancelled) setCheckingAccount(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accountCheckDone, isAccountConnected, knownRepos, onSettingsChange, settings]);
 
   const fullRepo = (() => {
     if (!isAccountConnected) return "";
@@ -301,21 +357,28 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
             Connect your GitHub account to enable repository sync.
           </p>
           <Button
-            variant="outline"
+            variant={checkingAccount ? "default" : "outline"}
             size="sm"
             onClick={() => void handleConnect()}
-            disabled={connecting}
-            className="w-full h-7 text-[11px] border-[var(--color-border)] cursor-pointer"
+            disabled={connecting || checkingAccount}
+            className={cn(
+              "w-full h-7 text-[11px] cursor-pointer",
+              checkingAccount
+                ? "bg-[#16a34a] hover:bg-[#15803d] text-white border-0"
+                : "border-[var(--color-border)]"
+            )}
           >
-            {connecting ? "Opening…" : "Connect account"}
+            {checkingAccount ? "Checking account..." : connecting ? "Opening…" : "Connect account"}
           </Button>
-          <button
-            type="button"
-            onClick={() => void markAccountConnected()}
-            className="text-[11px] text-[var(--color-text-muted)] underline hover:no-underline cursor-pointer"
-          >
-            I have connected my account
-          </button>
+          {!checkingAccount && (
+            <button
+              type="button"
+              onClick={() => void markAccountConnected()}
+              className="text-[11px] text-[var(--color-text-muted)] underline hover:no-underline cursor-pointer"
+            >
+              I have connected my account
+            </button>
+          )}
         </div>
       ) : (
         <>
