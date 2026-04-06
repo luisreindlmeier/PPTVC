@@ -68,6 +68,7 @@ export function SettingsPage({
   const [tagInput, setTagInput] = useState("");
 
   const tabIdx = TABS.findIndex((t) => t.id === activeTab);
+  const hasConnectedRepo = Boolean(settings.githubSync?.repo?.trim() && settings.githubSync.installationId);
 
   const update = (patch: Partial<UserSettings>) => {
     const next = { ...settings, ...patch };
@@ -208,19 +209,25 @@ export function SettingsPage({
 
             <div>
               <SectionHeader
-                label="Auto-Save"
-                tooltip="When enabled, a snapshot is captured each time the presentation is saved."
+                label="GitHub Auto-Sync"
+                tooltip="When enabled, each new version created from the taskpane is synced to the connected GitHub repository."
               />
               <label className="flex items-center gap-2 cursor-pointer">
                 <Switch
-                  checked={settings.autoSaveOnDocumentSave ?? false}
-                  onCheckedChange={(v) => update({ autoSaveOnDocumentSave: v })}
+                  checked={settings.autoSyncOnVersionSave ?? false}
+                  onCheckedChange={(v) => update({ autoSyncOnVersionSave: v })}
+                  disabled={!hasConnectedRepo}
                   className="data-[state=checked]:bg-[var(--color-primary)]"
                 />
                 <span className="text-[12px] text-[var(--color-text)]">
-                  Save snapshot on file save
+                  Auto-sync new versions to GitHub
                 </span>
               </label>
+              {!hasConnectedRepo && (
+                <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+                  Connect a repository first to enable auto-sync.
+                </p>
+              )}
             </div>
 
             <Separator className="bg-[var(--color-border)]" />

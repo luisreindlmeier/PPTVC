@@ -23,7 +23,10 @@ export interface UserSettings {
   authorName?: string;
   email?: string;
   maxVersions?: number;
+  /** @deprecated Legacy setting for Office document save handler; no longer used. */
   autoSaveOnDocumentSave?: boolean;
+  /** Automatically syncs newly created taskpane versions to GitHub when repo is connected. */
+  autoSyncOnVersionSave?: boolean;
   namingTemplate?: string;
   customTags?: string[];
   githubSync?: GitHubSyncConfig;

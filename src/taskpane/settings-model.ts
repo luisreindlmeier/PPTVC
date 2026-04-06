@@ -4,7 +4,7 @@ import { DEFAULT_TAGS } from "../ui";
 export const DEFAULT_SETTINGS: UserSettings = {
   authorName: "",
   email: "",
-  autoSaveOnDocumentSave: false,
+  autoSyncOnVersionSave: false,
   namingTemplate: "Version {version_number}",
   customTags: [],
 };

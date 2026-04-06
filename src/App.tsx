@@ -255,10 +255,8 @@ export function App() {
   }, [showStatus]);
 
   useOfficeEventHandlers({
-    settings: effectiveSettings,
     setSettings,
     loadVersions: loadVersionsWithReadyFlag,
-    enforceMaxVersions,
     showStatus,
     setCurrentSlide,
     onInitialized: () => setAppInitialized(true),

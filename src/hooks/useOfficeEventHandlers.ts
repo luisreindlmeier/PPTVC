@@ -1,17 +1,14 @@
 /* global Office */
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { readUserSettings, type UserSettings } from "../storage";
-import { getDefaultVersionName, mergeSettings } from "../taskpane/settings-model";
-import { listVersions, saveVersion } from "../versions";
+import { mergeSettings } from "../taskpane/settings-model";
 import type { SlideInfo } from "../app-types";
 
 interface UseOfficeEventHandlersOptions {
-  settings: UserSettings;
   setSettings: Dispatch<SetStateAction<UserSettings>>;
   loadVersions: () => Promise<unknown>;
-  enforceMaxVersions: () => Promise<void>;
   showStatus: (text: string, isError: boolean) => void;
   setCurrentSlide: Dispatch<SetStateAction<SlideInfo>>;
   onInitialized?: () => void;
@@ -22,53 +19,17 @@ interface UseOfficeEventHandlersOptions {
  * and loads persisted settings + versions. Cleans up handlers on unmount.
  */
 export function useOfficeEventHandlers({
-  settings,
   setSettings,
   loadVersions,
-  enforceMaxVersions,
   showStatus,
   setCurrentSlide,
   onInitialized,
 }: UseOfficeEventHandlersOptions): void {
-  const autoSaveInProgress = useRef(false);
-
   const removeDocumentHandlerAsync = useCallback((eventType: Office.EventType): Promise<void> => {
     return new Promise<void>((resolve) => {
       Office.context.document.removeHandlerAsync(eventType, () => resolve());
     });
   }, []);
-
-  const registerAutoSave = useCallback((): (() => void) => {
-    Office.context.document.addHandlerAsync(
-      "documentBeforeSave" as unknown as Office.EventType,
-      (eventArgs: { completed: () => void }) => {
-        if (!settings.autoSaveOnDocumentSave || autoSaveInProgress.current) {
-          eventArgs.completed();
-          return;
-        }
-        autoSaveInProgress.current = true;
-        void (async () => {
-          try {
-            const loaded = await listVersions();
-            const name = getDefaultVersionName(loaded.length + 1, settings);
-            await saveVersion({ name, tags: [], authorName: settings.authorName || undefined });
-            await enforceMaxVersions();
-            await loadVersions();
-            showStatus(`Auto-saved: ${name}`, false);
-          } catch (err) {
-            showStatus(err instanceof Error ? err.message : "Auto-save failed.", true);
-          } finally {
-            autoSaveInProgress.current = false;
-            eventArgs.completed();
-          }
-        })();
-      }
-    );
-
-    return () => {
-      void removeDocumentHandlerAsync("documentBeforeSave" as unknown as Office.EventType);
-    };
-  }, [settings, enforceMaxVersions, loadVersions, removeDocumentHandlerAsync, showStatus]);
 
   const initSlideTracking = useCallback((): (() => void) => {
     const updateSlide = () => {
@@ -93,7 +54,6 @@ export function useOfficeEventHandlers({
 
   useEffect(() => {
     let disposed = false;
-    let unregisterAutoSave: (() => void) | null = null;
     let unregisterSlideTracking: (() => void) | null = null;
 
     void (async () => {
@@ -121,14 +81,12 @@ export function useOfficeEventHandlers({
       }
       if (disposed) return;
 
-      unregisterAutoSave = registerAutoSave();
       unregisterSlideTracking = initSlideTracking();
     })();
 
     return () => {
       disposed = true;
-      unregisterAutoSave?.();
       unregisterSlideTracking?.();
     };
-  }, [initSlideTracking, loadVersions, onInitialized, registerAutoSave, setSettings, showStatus]);
+  }, [initSlideTracking, loadVersions, onInitialized, setSettings, showStatus]);
 }
