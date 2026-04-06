@@ -23,13 +23,21 @@ interface SyncStatus {
   tone: "error" | "success" | "warning";
 }
 
+function extractOwner(repoValue: string): string {
+  const trimmed = repoValue.trim();
+  if (!trimmed.includes("/")) return "";
+  const owner = trimmed.split("/")[0]?.trim() ?? "";
+  return owner;
+}
+
 export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSettingsProps) {
   const initialRepo = settings.githubSync?.repo ?? "";
-  const accountName = settings.githubAccountName?.trim() ?? "";
+  const explicitAccountName = settings.githubAccountName?.trim() ?? "";
+  const ownerFromSettingsRepo = extractOwner(settings.githubSync?.repo ?? "");
   const [repoName, setRepoName] = useState(() => {
     if (!initialRepo) return "";
-    if (accountName && initialRepo.startsWith(`${accountName}/`)) {
-      return initialRepo.slice(accountName.length + 1);
+    if (explicitAccountName && initialRepo.startsWith(`${explicitAccountName}/`)) {
+      return initialRepo.slice(explicitAccountName.length + 1);
     }
     return initialRepo;
   });
@@ -47,6 +55,8 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
 
   const isRepoConnected = installationId !== undefined;
   const isAccountConnected = settings.githubAccountConnected === true;
+  const ownerFromInput = extractOwner(repoName);
+  const accountName = explicitAccountName || ownerFromSettingsRepo || ownerFromInput;
   const accountPrefix = accountName || "owner";
 
   useEffect(() => {
@@ -60,7 +70,15 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
       return;
     }
     setRepoName(repo);
-  }, [settings.githubSync?.repo]);
+  }, [accountName, settings.githubSync?.repo]);
+
+  useEffect(() => {
+    if (!accountName) return;
+    const trimmed = repoName.trim();
+    if (!trimmed.includes("/")) return;
+    if (!trimmed.startsWith(`${accountName}/`)) return;
+    setRepoName(trimmed.slice(accountName.length + 1));
+  }, [accountName, repoName]);
 
   const fullRepo = (() => {
     if (!isAccountConnected) return "";
