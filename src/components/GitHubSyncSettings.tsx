@@ -75,7 +75,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   const [installationId, setInstallationId] = useState<number | undefined>(
     settings.githubSync?.installationId
   );
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const [, setSyncStatus] = useState<SyncStatus | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [checkingAccount, setCheckingAccount] = useState(false);
@@ -231,6 +231,13 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   const handleConnect = async () => {
     setConnecting(true);
     try {
+      const hasExistingConnectionHint = isAccountConnected || accountName.length > 0 || knownRepos.length > 0;
+
+      if (hasExistingConnectionHint) {
+        await markAccountConnected();
+        return;
+      }
+
       if (isAutoCheckDisabled || accountCheckDone) {
         setAccountCheckDone(false);
         await onSettingsChange({
@@ -530,23 +537,6 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
       ) : (
         <p className="text-[11px] text-[var(--color-text-muted)]">
           Sync becomes available after the connection is confirmed.
-        </p>
-      )}
-
-      {/* Status message */}
-      {syncStatus && (
-        <p
-          role="status"
-          className={cn(
-            "text-[11px] px-2 py-1.5 rounded-[var(--radius-xs)]",
-            syncStatus.tone === "error"
-              ? "bg-[var(--color-danger-light)] text-[var(--color-danger)]"
-              : syncStatus.tone === "warning"
-                ? "bg-[#fff7ed] text-[#c2410c]"
-                : "bg-[var(--color-primary-light)] text-[var(--color-primary)]"
-          )}
-        >
-          {syncStatus.message}
         </p>
       )}
     </div>
