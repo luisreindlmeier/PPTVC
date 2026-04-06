@@ -84,22 +84,10 @@ export function GitHubOnboardingGate({
     <div className="absolute inset-0 z-40 bg-[var(--color-bg)] overflow-y-auto">
       <div className="mx-auto w-full max-w-[460px] px-3.5 pt-5 pb-4">
         <div className="min-w-0 pr-2">
-          <p className="m-0 text-[10px] tracking-[0.16em] uppercase text-[var(--color-text-muted)]">
-            GEDONUS
-          </p>
-          <h1 className="header-slogan m-0 mt-1 text-[28px] leading-[1.05] text-[var(--color-text)]">
-            Track every <span className="italic">change.</span>
-            <br />
-            <span className="inline-block whitespace-nowrap">
-              Build <span className="italic">great</span> slides with{" "}
-              <span className="italic">precision</span>.
-            </span>
-          </h1>
-
-          <h2 className="mt-4 text-[15px] font-medium text-[var(--color-text)]">
+          <h2 className="header-slogan m-0 text-[20px] leading-[1.08] text-[var(--color-text)]">
             Connect GitHub before you start
           </h2>
-          <p className="mt-1 text-[12px] leading-[1.45] text-[var(--color-text-muted)]">
+          <p className="mt-2 text-[12px] leading-[1.5] text-[var(--color-text-muted)]">
             Link this PowerPoint to a repository to sync snapshots. You can also skip and continue
             with local versioning.
           </p>
