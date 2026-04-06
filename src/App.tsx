@@ -34,24 +34,35 @@ export type { StatusMessage } from "./app-types";
 
 class SettingsPageBoundary extends Component<
   { children: ReactNode },
-  { hasError: boolean }
+  { hasError: boolean; errorMessage: string }
 > {
   constructor(props: { children: ReactNode }) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, errorMessage: "" };
   }
 
   static getDerivedStateFromError() {
-    return { hasError: true };
+    return { hasError: true, errorMessage: "" };
+  }
+
+  override componentDidCatch(error: Error) {
+    this.setState({ errorMessage: error.message });
   }
 
   override render() {
     if (this.state.hasError) {
       return (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-[var(--color-bg)] px-4 text-center">
-          <p className="text-[12px] text-[var(--color-text-muted)]">
-            Settings could not be loaded. Please reopen the pane.
-          </p>
+          <div className="max-w-[320px] space-y-2">
+            <p className="text-[12px] text-[var(--color-text-muted)]">
+              Settings could not be loaded.
+            </p>
+            {this.state.errorMessage && (
+              <p className="text-[11px] text-[var(--color-danger)] break-words">
+                {this.state.errorMessage}
+              </p>
+            )}
+          </div>
         </div>
       );
     }

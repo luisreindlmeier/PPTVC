@@ -25,6 +25,7 @@ interface SyncStatus {
 
 export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSettingsProps) {
   const initialRepo = settings.githubSync?.repo ?? "";
+  const [accountInput, setAccountInput] = useState(settings.githubAccountName ?? "");
   const [repoName, setRepoName] = useState(() => {
     if (!initialRepo) return "";
     const parts = initialRepo.split("/");
@@ -56,6 +57,10 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     const parts = repo.split("/");
     setRepoName(parts.length > 1 ? parts.slice(1).join("/") : parts[0]);
   }, [settings.githubSync?.repo]);
+
+  useEffect(() => {
+    setAccountInput(settings.githubAccountName ?? "");
+  }, [settings.githubAccountName]);
 
   const fullRepo = (() => {
     if (!isAccountConnected || !accountName) return "";
