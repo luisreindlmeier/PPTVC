@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import type { UserSettings, GitHubSyncConfig } from "../storage";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -89,7 +89,15 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   const accountName =
     explicitAccountName || ownerFromSettingsRepo || ownerFromAnyKnownRepo || ownerFromInput;
   const accountPrefix = accountName || "owner";
-  const knownRepos = collectKnownRepos(settings);
+  const knownRepos = useMemo(
+    () => collectKnownRepos(settings),
+    [settings.githubSync?.repo, settings.githubSyncByDocument]
+  );
+  const settingsRef = useRef(settings);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   useEffect(() => {
     const repo = settings.githubSync?.repo ?? "";
@@ -125,11 +133,13 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
           if (cancelled) return;
           if (installation === null) continue;
 
+          const current = settingsRef.current;
+
           const next: UserSettings = {
-            ...settings,
+            ...current,
             githubAccountConnected: true,
             githubAccountName:
-              installation.accountLogin ?? settings.githubAccountName ?? extractOwner(repo),
+              installation.accountLogin ?? current.githubAccountName ?? extractOwner(repo),
           };
           await onSettingsChange(next);
           if (cancelled) return;
@@ -147,7 +157,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     return () => {
       cancelled = true;
     };
-  }, [accountCheckDone, isAccountConnected, knownRepos, onSettingsChange, settings]);
+  }, [accountCheckDone, isAccountConnected, knownRepos, onSettingsChange]);
 
   const fullRepo = (() => {
     if (!isAccountConnected) return "";
