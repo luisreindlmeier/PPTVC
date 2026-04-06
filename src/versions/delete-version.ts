@@ -1,6 +1,10 @@
 import { createStorageAdapter } from "../storage";
 import { getVersionRootPath } from "./document-scope";
 
+/**
+ * Removes the entire version directory (snapshot + metadata) from OPFS.
+ * Throws if the given `id` does not exist in the current document scope.
+ */
 export async function deleteVersion(id: string): Promise<void> {
   const storage = createStorageAdapter();
   const versionRootPath = await getVersionRootPath();

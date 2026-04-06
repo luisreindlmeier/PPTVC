@@ -47,7 +47,12 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
-      include: ["src/taskpane/settings-model.ts", "src/ui/format.ts"],
+      include: [
+        "src/taskpane/settings-model.ts",
+        "src/ui/format.ts",
+        "src/diff/path-utils.ts",
+        "src/versions/utils.ts",
+      ],
       thresholds: {
         statements: 90,
         branches: 75,

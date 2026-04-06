@@ -24,6 +24,7 @@ The long-term position: the governance standard for AI-generated presentation do
 - GitHub App integration via Cloudflare Worker for team sync
 
 ## Quick Start
+
 ```bash
 npm install
 npm start

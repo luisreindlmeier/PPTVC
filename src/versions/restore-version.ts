@@ -16,6 +16,11 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
+/**
+ * Restores a saved version by reading its snapshot blob from OPFS, inserting all slides
+ * via `insertSlidesFromBase64`, then deleting the pre-existing slides.
+ * Throws if the given `id` does not exist in the current document scope.
+ */
 export async function restoreVersion(id: string): Promise<void> {
   const storage = createStorageAdapter();
   const versionRootPath = await getVersionRootPath();

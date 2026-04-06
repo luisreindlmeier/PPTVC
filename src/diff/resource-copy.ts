@@ -67,6 +67,25 @@ function contentTypeOverrideFor(path: string): string | null {
   return null;
 }
 
+function appendRelationshipEntries(relsXml: string, entries: string[]): string {
+  if (entries.length === 0) {
+    return relsXml;
+  }
+
+  const payload = `${entries.join("\n")}\n`;
+
+  if (relsXml.includes("</Relationships>")) {
+    return relsXml.replace("</Relationships>", `${payload}</Relationships>`);
+  }
+
+  // Some PPTX writers serialize empty relationship parts as self-closing nodes.
+  // Expand them before appending entries so r:id rewrites always have matching rels.
+  return relsXml.replace(
+    /<Relationships\b([^>]*)\/>/,
+    `<Relationships$1>${payload}</Relationships>`
+  );
+}
+
 async function copyChartSubResources(
   srcZip: JSZip,
   destZip: JSZip,
@@ -189,10 +208,7 @@ export async function copySlideResources(
   }
 
   if (newEntries.length > 0) {
-    const updatedRelsXml = destRelsXml.replace(
-      "</Relationships>",
-      `${newEntries.join("\n")}\n</Relationships>`
-    );
+    const updatedRelsXml = appendRelationshipEntries(destRelsXml, newEntries);
     destZip.file(destRelsPath, updatedRelsXml);
   }
 

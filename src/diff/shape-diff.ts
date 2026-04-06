@@ -2,6 +2,7 @@ import JSZip from "jszip";
 import { relsPathOf, resolveRelPath } from "./path-utils";
 import { parseRelsXml } from "./resource-copy";
 
+/** Union of the OOXML drawing-object element tag names that Gedonus recognises for diffing. */
 export type DrawingObjectKind = "sp" | "pic" | "graphicFrame" | "cxnSp" | "grpSp" | "contentPart";
 
 interface ShapeDescriptor {
@@ -19,6 +20,10 @@ interface ObjectPattern {
   regex: RegExp;
 }
 
+/**
+ * Priority-ordered array of regex patterns for extracting drawing objects from a `<p:spTree>` XML string.
+ * All patterns use the `g` flag — callers must reset `lastIndex` to 0 before reusing them across calls.
+ */
 export const DIFF_OBJECT_PATTERNS: ObjectPattern[] = [
   { kind: "sp", regex: /<p:sp\b[\s\S]*?<\/p:sp>/g },
   { kind: "pic", regex: /<p:pic\b[\s\S]*?<\/p:pic>/g },
@@ -29,6 +34,12 @@ export const DIFF_OBJECT_PATTERNS: ObjectPattern[] = [
   { kind: "contentPart", regex: /<p:contentPart\b[\s\S]*?<\/p:contentPart>/g },
 ];
 
+/**
+ * Result of a slide-level shape diff.
+ * - `changedInFrom` / `changedInTo` — IDs present in both slides but with differing content fingerprints.
+ * - `removedInFrom` — IDs that exist only in the "from" slide (deleted in "to").
+ * - `addedInTo` — IDs that exist only in the "to" slide (added after "from").
+ */
 export interface ShapeDiffResult {
   changedInFrom: Set<string>;
   removedInFrom: Set<string>;
@@ -58,6 +69,7 @@ function normalizeXml(xml: string): string {
   return xml.replace(/\s+/g, " ").trim();
 }
 
+/** Extracts the `cNvPr id` attribute value from the first occurrence in an OOXML drawing-object XML fragment, or returns `null` if the attribute is absent. */
 export function extractObjectId(xml: string): string | null {
   const idMatch = xml.match(/\bcNvPr[^>]*\bid="(\d+)"/);
   return idMatch ? idMatch[1] : null;
@@ -179,6 +191,18 @@ async function parseShapeMap(
   return { byId };
 }
 
+/**
+ * Compares the drawing objects in two PPTX slide spTree XML strings and returns a diff.
+ * Fingerprints are computed recursively over all linked relationships (images, charts, etc.)
+ * so that embedded-resource changes are detected even without XML text changes.
+ *
+ * @param fromSpTreeContent - Raw `<p:spTree>` XML string from the "from" slide.
+ * @param toSpTreeContent   - Raw `<p:spTree>` XML string from the "to" slide.
+ * @param fromZip           - JSZip of the "from" PPTX, used to resolve linked parts.
+ * @param toZip             - JSZip of the "to" PPTX, used to resolve linked parts.
+ * @param fromSlidePath     - Part path of the "from" slide (e.g. `ppt/slides/slide1.xml`).
+ * @param toSlidePath       - Part path of the "to" slide.
+ */
 export async function computeShapeDiff(
   fromSpTreeContent: string,
   toSpTreeContent: string,

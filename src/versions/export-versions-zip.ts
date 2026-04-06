@@ -7,6 +7,10 @@ import { getVersionRootPath } from "./document-scope";
 const SNAPSHOT_FILE_NAME = "snapshot.pptx";
 const METADATA_FILE_NAME = "metadata.json";
 
+/**
+ * Packs all version snapshots and their metadata into a single in-memory ZIP `Blob`.
+ * Silently skips any entries whose blobs cannot be read (e.g. concurrent deletion).
+ */
 export async function exportVersionsZip(): Promise<Blob> {
   const storage = createStorageAdapter();
   const versionRootPath = await getVersionRootPath();
@@ -26,7 +30,9 @@ export async function exportVersionsZip(): Promise<Blob> {
       zip.file(`versions/${id}/${SNAPSHOT_FILE_NAME}`, snapshotBlob);
       zip.file(`versions/${id}/${METADATA_FILE_NAME}`, metadataBlob);
     } catch {
-      // Skip any entries that are missing
+      // Intentionally silent: skips entries whose snapshot or metadata blob
+      // cannot be read (e.g. concurrent deletion). ZIP is still returned
+      // with all successfully-read entries.
     }
   }
 

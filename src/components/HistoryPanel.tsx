@@ -43,9 +43,7 @@ export function HistoryPanel({
   const [restoreCandidate, setRestoreCandidate] = useState<{ id: string; name: string } | null>(
     null
   );
-  const [deleteCandidate, setDeleteCandidate] = useState<{ id: string; name: string } | null>(
-    null
-  );
+  const [deleteCandidate, setDeleteCandidate] = useState<{ id: string; name: string } | null>(null);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -263,7 +261,11 @@ export function HistoryPanel({
                 disabled={restoringId !== null}
                 className="flex-1 text-[11px] h-7 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white cursor-pointer"
               >
-                {restoringId !== null ? <span className="btn-spinner" aria-hidden="true" /> : "Restore"}
+                {restoringId !== null ? (
+                  <span className="btn-spinner" aria-hidden="true" />
+                ) : (
+                  "Restore"
+                )}
               </Button>
             </div>
           </div>
@@ -304,7 +306,11 @@ export function HistoryPanel({
                 disabled={deletingId !== null}
                 className="flex-1 text-[11px] h-7 bg-[var(--color-danger)] hover:bg-[var(--color-danger-hover)] text-white cursor-pointer"
               >
-                {deletingId !== null ? <span className="btn-spinner" aria-hidden="true" /> : "Delete"}
+                {deletingId !== null ? (
+                  <span className="btn-spinner" aria-hidden="true" />
+                ) : (
+                  "Delete"
+                )}
               </Button>
             </div>
           </div>
