@@ -25,8 +25,6 @@ interface SyncStatus {
 
 export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSettingsProps) {
   const initialRepo = settings.githubSync?.repo ?? "";
-  const fallbackAccountName = initialRepo.includes("/") ? initialRepo.split("/")[0] : "";
-  const [accountInput, setAccountInput] = useState(settings.githubAccountName ?? fallbackAccountName);
   const [repoName, setRepoName] = useState(() => {
     if (!initialRepo) return "";
     const parts = initialRepo.split("/");
@@ -46,7 +44,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
 
   const isRepoConnected = installationId !== undefined;
   const isAccountConnected = settings.githubAccountConnected === true;
-  const accountName = accountInput.trim();
+  const accountName = settings.githubAccountName?.trim() ?? "";
   const accountPrefix = accountName || "account";
 
   useEffect(() => {
@@ -58,11 +56,6 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     const parts = repo.split("/");
     setRepoName(parts.length > 1 ? parts.slice(1).join("/") : parts[0]);
   }, [settings.githubSync?.repo]);
-
-  useEffect(() => {
-    const next = settings.githubAccountName ?? fallbackAccountName;
-    setAccountInput(next);
-  }, [settings.githubAccountName, fallbackAccountName]);
 
   const fullRepo = (() => {
     if (!isAccountConnected || !accountName) return "";
@@ -92,10 +85,9 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     const next: UserSettings = {
       ...settings,
       githubAccountConnected: true,
-      githubAccountName: accountName || settings.githubAccountName || undefined,
     };
     await onSettingsChange(next);
-    setSyncStatus({ message: "Account connected. Select a repository.", tone: "success" });
+    setSyncStatus({ message: "GitHub account connected. Select a repository.", tone: "success" });
   };
 
   const handleAccountDisconnect = async () => {
@@ -134,8 +126,8 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     }
     setConfirming(true);
     try {
-      const id = await findInstallation(fullRepo);
-      if (id === null) {
+      const installation = await findInstallation(fullRepo);
+      if (installation === null) {
         const [owner, repository] = fullRepo.split("/");
         let repoMissing = false;
         if (owner && repository) {
@@ -159,12 +151,18 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
       const config: GitHubSyncConfig = {
         repo: fullRepo,
         branch: branch.trim() || "main",
-        installationId: id,
+        installationId: installation.installationId,
       };
 
       const repoHint = await inspectRepositoryConnectionHint(config);
-      setInstallationId(id);
-      await persist({ installationId: id, repo: fullRepo, branch: config.branch });
+      const next: UserSettings = {
+        ...settings,
+        githubAccountConnected: true,
+        githubAccountName: installation.accountLogin ?? settings.githubAccountName,
+        githubSync: config,
+      };
+      await onSettingsChange(next);
+      setInstallationId(installation.installationId);
 
       if (repoHint.hasGedonusHistory) {
         setSyncStatus({
@@ -279,7 +277,13 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
           <div className="rounded-[var(--radius-xs)] border border-[#bbf7d0] bg-[#f0fdf4] px-2 py-1.5 text-[11px] text-[#166534]">
             <div className="flex items-center justify-between gap-2">
               <span>
-                Gedonus connected as <span className="font-medium">{accountName || "your account"}</span>.
+                {accountName ? (
+                  <>
+                    GitHub account connected as <span className="font-medium">{accountName}</span>.
+                  </>
+                ) : (
+                  <>GitHub account connected. Enter your account name below.</>
+                )}
               </span>
               <button
                 type="button"

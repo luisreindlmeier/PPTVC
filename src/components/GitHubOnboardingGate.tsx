@@ -10,7 +10,11 @@ interface GitHubOnboardingGateProps {
   initialConfig?: GitHubSyncConfig;
   accountConnected: boolean;
   onSkip: () => void;
-  onConnected: (config: GitHubSyncConfig, accountConnected: boolean) => Promise<void>;
+  onConnected: (
+    config: GitHubSyncConfig,
+    accountConnected: boolean,
+    accountLogin?: string
+  ) => Promise<void>;
 }
 
 interface GateStatus {
@@ -64,8 +68,8 @@ export function GitHubOnboardingGate({
 
     setConfirming(true);
     try {
-      const installationId = await findInstallation(trimmedRepo);
-      if (installationId === null) {
+      const installation = await findInstallation(trimmedRepo);
+      if (installation === null) {
         setStatus({
           text: "App not found for this repo. Click 'Connect GitHub' and install the app first.",
           isError: true,
@@ -81,7 +85,7 @@ export function GitHubOnboardingGate({
 
       await testGitHubConnection(config);
 
-      await onConnected(config, true);
+      await onConnected(config, true, installation.accountLogin);
 
       setStatus({ text: "Repository connected.", isError: false });
     } finally {

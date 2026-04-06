@@ -29,6 +29,11 @@ export interface RepositoryConnectionHint {
   hasGedonusHistory: boolean;
 }
 
+export interface RepositoryInstallationInfo {
+  installationId: number;
+  accountLogin?: string;
+}
+
 // ── Folder naming ──────────────────────────────────────────────
 // Produces a human-readable, date-sortable, deterministic folder name:
 // e.g. "2026-03-23T14-30--final-draft--ab3def"
@@ -213,13 +218,19 @@ export async function getAppInstallUrl(): Promise<string | null> {
 }
 
 /**
- * Finds the Gedonus App installation ID for a repo.
+ * Finds the Gedonus App installation for a repo.
  * Call this after the user has installed the app on their repo.
  * Returns null if the Worker is unreachable or the app is not installed.
  */
-export async function findInstallation(repo: string): Promise<number | null> {
-  const data = await workerPost<{ installationId?: unknown }>("/connect", { repo });
-  return typeof data?.installationId === "number" ? data.installationId : null;
+export async function findInstallation(repo: string): Promise<RepositoryInstallationInfo | null> {
+  const data = await workerPost<{ installationId?: unknown; accountLogin?: unknown }>("/connect", {
+    repo,
+  });
+  if (typeof data?.installationId !== "number") return null;
+  return {
+    installationId: data.installationId,
+    accountLogin: typeof data.accountLogin === "string" ? data.accountLogin : undefined,
+  };
 }
 
 /**

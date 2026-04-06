@@ -75,10 +75,7 @@ export function App() {
       const result: UserSettings = {
         ...next,
         githubSync: normalizedGitHubSync,
-        githubAccountName:
-          next.githubAccountName ??
-          settings.githubAccountName ??
-          normalizedGitHubSync?.repo.split("/")[0],
+        githubAccountName: next.githubAccountName ?? settings.githubAccountName,
         githubAccountConnected:
           next.githubAccountConnected ??
           settings.githubAccountConnected ??
@@ -230,11 +227,12 @@ export function App() {
   const shouldShowMainView = startupReady && !shouldShowGitHubGate;
 
   const handleGitHubGateConnected = useCallback(
-    async (config: GitHubSyncConfig, accountConnected: boolean) => {
+    async (config: GitHubSyncConfig, accountConnected: boolean, accountLogin?: string) => {
       await onSettingsChangeForDocument({
         ...effectiveSettings,
         githubSync: config,
         githubAccountConnected: accountConnected,
+        githubAccountName: accountLogin ?? effectiveSettings.githubAccountName,
       });
       setGithubGateDismissed(true);
       showStatus(`Connected to ${config.repo}.`, false);
