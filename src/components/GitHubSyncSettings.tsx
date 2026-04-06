@@ -25,11 +25,13 @@ interface SyncStatus {
 
 export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSettingsProps) {
   const initialRepo = settings.githubSync?.repo ?? "";
-  const [accountInput, setAccountInput] = useState(settings.githubAccountName ?? "");
+  const accountName = settings.githubAccountName?.trim() ?? "";
   const [repoName, setRepoName] = useState(() => {
     if (!initialRepo) return "";
-    const parts = initialRepo.split("/");
-    return parts.length > 1 ? parts.slice(1).join("/") : parts[0];
+    if (accountName && initialRepo.startsWith(`${accountName}/`)) {
+      return initialRepo.slice(accountName.length + 1);
+    }
+    return initialRepo;
   });
   const [branch, setBranch] = useState(
     settings.githubSync?.branch !== "main" ? (settings.githubSync?.branch ?? "") : ""
@@ -45,8 +47,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
 
   const isRepoConnected = installationId !== undefined;
   const isAccountConnected = settings.githubAccountConnected === true;
-  const accountName = settings.githubAccountName?.trim() ?? "";
-  const accountPrefix = accountName || "account";
+  const accountPrefix = accountName || "owner";
 
   useEffect(() => {
     const repo = settings.githubSync?.repo ?? "";
@@ -54,18 +55,26 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
       setRepoName("");
       return;
     }
-    const parts = repo.split("/");
-    setRepoName(parts.length > 1 ? parts.slice(1).join("/") : parts[0]);
+    if (accountName && repo.startsWith(`${accountName}/`)) {
+      setRepoName(repo.slice(accountName.length + 1));
+      return;
+    }
+    setRepoName(repo);
   }, [settings.githubSync?.repo]);
 
-  useEffect(() => {
-    setAccountInput(settings.githubAccountName ?? "");
-  }, [settings.githubAccountName]);
-
   const fullRepo = (() => {
-    if (!isAccountConnected || !accountName) return "";
+    if (!isAccountConnected) return "";
     const trimmedRepoName = repoName.trim();
     if (!trimmedRepoName) return "";
+
+    if (!accountName) {
+      return trimmedRepoName;
+    }
+
+    if (trimmedRepoName.includes("/")) {
+      return trimmedRepoName;
+    }
+
     return `${accountName}/${trimmedRepoName}`;
   })();
 
@@ -126,7 +135,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
       return;
     }
     if (!fullRepo) {
-      setSyncStatus({ message: "Enter a repository name.", tone: "error" });
+      setSyncStatus({ message: "Enter a repository first.", tone: "error" });
       return;
     }
     setConfirming(true);
@@ -287,7 +296,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
                     GitHub account connected as <span className="font-medium">{accountName}</span>.
                   </>
                 ) : (
-                  <>GitHub account connected. Enter your account name below.</>
+                  <>GitHub account connected. Connect a repository to resolve the account name.</>
                 )}
               </span>
               <button
@@ -300,43 +309,38 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
             </div>
           </div>
 
-          {!accountName && (
-            <div className="space-y-1.5">
-              <Label htmlFor="gh-account" className="text-[11px] text-[var(--color-text-muted)]">
-                GitHub account
-              </Label>
-              <Input
-                id="gh-account"
-                value={accountInput}
-                onChange={(e) => setAccountInput(e.target.value)}
-                onBlur={() => void persist()}
-                placeholder="your-github-name"
-                autoComplete="off"
-                spellCheck={false}
-                className="h-7 text-[12px] bg-[var(--color-surface-raised)] border-[var(--color-border)]"
-              />
-            </div>
-          )}
-
           <div className="space-y-1.5">
             <Label htmlFor="gh-repo-name" className="text-[11px] text-[var(--color-text-muted)]">
               Repository
             </Label>
-            <div className="flex items-center h-7 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] overflow-hidden">
-              <span className="px-2 text-[12px] text-[var(--color-text-muted)] border-r border-[var(--color-border)] shrink-0 whitespace-nowrap leading-none">
-                {accountPrefix + "/"}
-              </span>
+            {accountName ? (
+              <div className="flex items-center h-7 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] overflow-hidden">
+                <span className="px-2 text-[12px] text-[var(--color-text-muted)] border-r border-[var(--color-border)] shrink-0 whitespace-nowrap leading-none">
+                  {accountPrefix + "/"}
+                </span>
+                <Input
+                  id="gh-repo-name"
+                  value={repoName}
+                  onChange={(e) => setRepoName(e.target.value)}
+                  onBlur={() => void persist()}
+                  placeholder="repository-name"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="h-7 text-[12px] border-0 shadow-none rounded-none"
+                />
+              </div>
+            ) : (
               <Input
                 id="gh-repo-name"
                 value={repoName}
                 onChange={(e) => setRepoName(e.target.value)}
                 onBlur={() => void persist()}
-                placeholder="repository-name"
+                placeholder="owner/repository-name"
                 autoComplete="off"
                 spellCheck={false}
-                className="h-7 text-[12px] border-0 shadow-none rounded-none"
+                className="h-7 text-[12px] bg-[var(--color-surface-raised)] border-[var(--color-border)]"
               />
-            </div>
+            )}
           </div>
 
           <div className="space-y-1.5">
