@@ -15,6 +15,9 @@ export interface GitHubSyncConfig {
   installationId?: number; // Gedonus GitHub App installation ID for this repo
 }
 
+/** Stores repo-level GitHub sync config per PowerPoint document scope key. */
+export type GitHubSyncByDocument = Record<string, GitHubSyncConfig>;
+
 /** Persisted user preferences. All fields are optional; missing fields fall back to defaults defined in `src/taskpane/settings-model.ts`. */
 export interface UserSettings {
   authorName?: string;
@@ -24,6 +27,8 @@ export interface UserSettings {
   namingTemplate?: string;
   customTags?: string[];
   githubSync?: GitHubSyncConfig;
+  githubSyncByDocument?: GitHubSyncByDocument;
+  githubAccountConnected?: boolean;
 }
 
 function isNotFoundError(error: unknown): boolean {

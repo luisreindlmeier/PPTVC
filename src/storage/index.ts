@@ -8,4 +8,5 @@ export {
   writeUserSettings,
   type UserSettings,
   type GitHubSyncConfig,
+  type GitHubSyncByDocument,
 } from "./user-settings";

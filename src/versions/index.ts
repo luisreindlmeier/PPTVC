@@ -11,3 +11,4 @@ export { deleteVersion } from "./delete-version";
 export { updateVersionMeta } from "./update-version-meta";
 export { getVersionBlob } from "./get-version-blob";
 export { exportVersionsZip } from "./export-versions-zip";
+export { getDocumentScopeKey } from "./document-scope";

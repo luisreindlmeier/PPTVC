@@ -120,3 +120,8 @@ export async function getVersionRootPath(): Promise<string> {
 
   return `${VERSION_ROOT_PREFIX}/by-session-${getOrCreateVolatileScopeId()}`;
 }
+
+/** Returns the stable scope key used for document-level settings mappings. */
+export async function getDocumentScopeKey(): Promise<string> {
+  return getVersionRootPath();
+}

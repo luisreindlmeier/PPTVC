@@ -1,10 +1,11 @@
 /* global PowerPoint, DOMException, URL, document */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { getVersionBlob, exportVersionsZip, restoreVersion, type Version } from "./versions";
 import { buildComparisonSlide } from "./diff/build-comparison-slide";
 import { analyzeSlideDiff } from "./diff/analyze-slide-diff";
 import { createStorageAdapter } from "./storage";
+import type { GitHubSyncConfig, UserSettings } from "./storage";
 import { formatTimestamp, formatBytes } from "./ui/format";
 import { blobToBase64 } from "./lib/binary";
 import { Header } from "./components/Header";
@@ -12,6 +13,7 @@ import { TabBar } from "./components/TabBar";
 import { HistoryPanel } from "./components/HistoryPanel";
 import { DiffPanel } from "./components/DiffPanel";
 import { SettingsPage } from "./components/SettingsPage";
+import { GitHubOnboardingGate } from "./components/GitHubOnboardingGate";
 import { TooltipProvider } from "./components/ui/tooltip";
 import {
   useStatusMessages,
@@ -19,6 +21,7 @@ import {
   useVersionManagement,
   useOfficeEventHandlers,
 } from "./hooks";
+import { getDocumentScopeKey } from "./versions/document-scope";
 import type { ScopeTab, SlideInfo } from "./app-types";
 
 export type { ScopeTab, SlideInfo };
@@ -31,6 +34,63 @@ function isNotFoundError(error: unknown): boolean {
 export function App() {
   const { status, showStatus } = useStatusMessages();
   const { settings, setSettings, onSettingsChange } = useSettings();
+  const [documentScopeKey, setDocumentScopeKey] = useState<string | null>(null);
+  const [appInitialized, setAppInitialized] = useState(false);
+  const [githubGateDismissed, setGithubGateDismissed] = useState(false);
+
+  const activeGitHubSync = useMemo(() => {
+    if (!documentScopeKey) return settings.githubSync;
+    return settings.githubSyncByDocument?.[documentScopeKey];
+  }, [documentScopeKey, settings.githubSync, settings.githubSyncByDocument]);
+
+  const effectiveSettings = useMemo<UserSettings>(
+    () => ({
+      ...settings,
+      githubSync: activeGitHubSync,
+    }),
+    [activeGitHubSync, settings]
+  );
+
+  const onSettingsChangeForDocument = useCallback(
+    async (next: UserSettings) => {
+      const repo = next.githubSync?.repo.trim() ?? "";
+      const normalizedGitHubSync: GitHubSyncConfig | undefined =
+        repo.length > 0
+          ? {
+              ...next.githubSync,
+              repo,
+              branch: next.githubSync?.branch.trim() || "main",
+            }
+          : undefined;
+
+      const result: UserSettings = {
+        ...next,
+        githubSync: normalizedGitHubSync,
+        githubAccountConnected:
+          next.githubAccountConnected ??
+          settings.githubAccountConnected ??
+          normalizedGitHubSync?.installationId !== undefined,
+      };
+
+      if (documentScopeKey) {
+        const byDocument = { ...(next.githubSyncByDocument ?? settings.githubSyncByDocument ?? {}) };
+        if (normalizedGitHubSync) {
+          byDocument[documentScopeKey] = normalizedGitHubSync;
+        } else {
+          delete byDocument[documentScopeKey];
+        }
+        result.githubSyncByDocument = Object.keys(byDocument).length > 0 ? byDocument : undefined;
+      }
+
+      if (normalizedGitHubSync?.installationId !== undefined) {
+        result.githubAccountConnected = true;
+      }
+
+      await onSettingsChange(result);
+    },
+    [documentScopeKey, onSettingsChange, settings.githubAccountConnected, settings.githubSyncByDocument]
+  );
+
   const {
     versions,
     displayedVersionId,
@@ -42,7 +102,7 @@ export function App() {
     onRestore,
     onDelete,
     onUpdateMeta,
-  } = useVersionManagement(settings, showStatus);
+  } = useVersionManagement(effectiveSettings, showStatus);
 
   const [currentTab, setCurrentTab] = useState<ScopeTab>("history");
   const [currentSlide, setCurrentSlide] = useState<SlideInfo>({ num: 1, name: "Slide 1" });
@@ -50,13 +110,77 @@ export function App() {
   const [diffPreselectedId, setDiffPreselectedId] = useState<string | undefined>();
   const [hasActiveDiffComparison, setHasActiveDiffComparison] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const scopeKey = await getDocumentScopeKey();
+        if (!cancelled) {
+          setDocumentScopeKey(scopeKey);
+          setGithubGateDismissed(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setDocumentScopeKey("versions/by-session-fallback");
+          setGithubGateDismissed(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!documentScopeKey) return;
+    if (!settings.githubSync) return;
+    if (settings.githubSyncByDocument !== undefined) return;
+
+    void onSettingsChange({
+      ...settings,
+      githubSyncByDocument: {
+        [documentScopeKey]: {
+          ...settings.githubSync,
+          branch: settings.githubSync.branch.trim() || "main",
+        },
+      },
+      githubAccountConnected:
+        settings.githubAccountConnected ?? settings.githubSync.installationId !== undefined,
+    });
+  }, [documentScopeKey, onSettingsChange, settings]);
+
+  const hasDocumentRepo = Boolean(activeGitHubSync?.repo.trim());
+  const shouldShowGitHubGate =
+    appInitialized && documentScopeKey !== null && !settingsOpen && !hasDocumentRepo && !githubGateDismissed;
+
+  const handleGitHubGateConnected = useCallback(
+    async (config: GitHubSyncConfig, accountConnected: boolean) => {
+      await onSettingsChangeForDocument({
+        ...effectiveSettings,
+        githubSync: config,
+        githubAccountConnected: accountConnected,
+      });
+      setGithubGateDismissed(true);
+      showStatus(`Connected to ${config.repo}.`, false);
+    },
+    [effectiveSettings, onSettingsChangeForDocument, showStatus]
+  );
+
+  const handleGitHubGateSkip = useCallback(() => {
+    setGithubGateDismissed(true);
+    showStatus("GitHub setup skipped. Local versioning stays available.", false);
+  }, [showStatus]);
+
   useOfficeEventHandlers({
-    settings,
+    settings: effectiveSettings,
     setSettings,
     loadVersions,
     enforceMaxVersions,
     showStatus,
     setCurrentSlide,
+    onInitialized: () => setAppInitialized(true),
   });
 
   // ── Replace presentation (for diff) ──────────────────────────
@@ -121,7 +245,7 @@ export function App() {
 
   const getVersionName = (v: Version) => v.displayName ?? v.name;
   const getAuthorLabel = (v: Version) =>
-    v.authorName?.trim() || settings.authorName?.trim() || "Unknown";
+    v.authorName?.trim() || effectiveSettings.authorName?.trim() || "Unknown";
 
   return (
     <TooltipProvider>
@@ -134,7 +258,7 @@ export function App() {
         {currentTab === "history" && (
           <HistoryPanel
             versions={versions}
-            settings={settings}
+            settings={effectiveSettings}
             displayedVersionId={displayedVersionId}
             pendingTags={pendingTags}
             onPendingTagsChange={setPendingTags}
@@ -232,8 +356,8 @@ export function App() {
         {/* ── Settings overlay ─────────────────────────────────── */}
         {settingsOpen && (
           <SettingsPage
-            settings={settings}
-            onSettingsChange={onSettingsChange}
+            settings={effectiveSettings}
+            onSettingsChange={onSettingsChangeForDocument}
             onClose={() => setSettingsOpen(false)}
             calculateStorageUsage={calculateStorageUsage}
             formatBytes={formatBytes}
@@ -241,6 +365,15 @@ export function App() {
             showStatus={showStatus}
             onVersionsReload={() => loadVersions().then(() => undefined)}
             enforceMaxVersions={enforceMaxVersions}
+          />
+        )}
+
+        {shouldShowGitHubGate && (
+          <GitHubOnboardingGate
+            initialConfig={activeGitHubSync}
+            accountConnected={effectiveSettings.githubAccountConnected ?? false}
+            onSkip={handleGitHubGateSkip}
+            onConnected={handleGitHubGateConnected}
           />
         )}
       </div>

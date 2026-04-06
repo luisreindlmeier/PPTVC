@@ -14,6 +14,7 @@ interface UseOfficeEventHandlersOptions {
   enforceMaxVersions: () => Promise<void>;
   showStatus: (text: string, isError: boolean) => void;
   setCurrentSlide: Dispatch<SetStateAction<SlideInfo>>;
+  onInitialized?: () => void;
 }
 
 /**
@@ -27,6 +28,7 @@ export function useOfficeEventHandlers({
   enforceMaxVersions,
   showStatus,
   setCurrentSlide,
+  onInitialized,
 }: UseOfficeEventHandlersOptions): void {
   const autoSaveInProgress = useRef(false);
 
@@ -119,6 +121,7 @@ export function useOfficeEventHandlers({
 
       unregisterAutoSave = registerAutoSave();
       unregisterSlideTracking = initSlideTracking();
+      onInitialized?.();
     })();
 
     return () => {
@@ -126,5 +129,5 @@ export function useOfficeEventHandlers({
       unregisterAutoSave?.();
       unregisterSlideTracking?.();
     };
-  }, [initSlideTracking, loadVersions, registerAutoSave, setSettings, showStatus]);
+  }, [initSlideTracking, loadVersions, onInitialized, registerAutoSave, setSettings, showStatus]);
 }
