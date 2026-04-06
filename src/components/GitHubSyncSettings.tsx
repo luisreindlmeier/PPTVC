@@ -245,6 +245,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
         return;
       }
       window.open(url, "_blank", "noopener,noreferrer");
+      await markAccountConnected();
     } finally {
       setConnecting(false);
     }
@@ -404,15 +405,6 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
           >
             {isShowingAccountCheck ? "Checking account..." : connecting ? "Opening…" : "Connect account"}
           </Button>
-          {!checkingAccount && (
-            <button
-              type="button"
-              onClick={() => void markAccountConnected()}
-              className="text-[11px] text-[var(--color-text-muted)] underline hover:no-underline cursor-pointer"
-            >
-              I have connected my account
-            </button>
-          )}
         </div>
       ) : (
         <>
