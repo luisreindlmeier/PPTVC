@@ -101,6 +101,13 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   }, [settings]);
 
   useEffect(() => {
+    if (!isAccountConnected && isAutoCheckDisabled) {
+      setCheckingAccount(false);
+      setAccountCheckDone(true);
+    }
+  }, [isAccountConnected, isAutoCheckDisabled]);
+
+  useEffect(() => {
     const repo = settings.githubSync?.repo ?? "";
     if (!repo) {
       setRepoName("");
@@ -161,6 +168,8 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
       cancelled = true;
     };
   }, [accountCheckDone, isAccountConnected, isAutoCheckDisabled, knownRepos, onSettingsChange]);
+
+  const isShowingAccountCheck = checkingAccount && !isAccountConnected && !isAutoCheckDisabled;
 
   const fullRepo = (() => {
     if (!isAccountConnected) return "";
@@ -385,15 +394,15 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
             variant={checkingAccount ? "default" : "outline"}
             size="sm"
             onClick={() => void handleConnect()}
-            disabled={connecting || checkingAccount}
+            disabled={connecting || isShowingAccountCheck}
             className={cn(
               "w-full h-7 text-[11px] cursor-pointer",
-              checkingAccount
+              isShowingAccountCheck
                 ? "bg-[#16a34a] hover:bg-[#15803d] text-white border-0"
                 : "border-[var(--color-border)]"
             )}
           >
-            {checkingAccount ? "Checking account..." : connecting ? "Opening…" : "Connect account"}
+            {isShowingAccountCheck ? "Checking account..." : connecting ? "Opening…" : "Connect account"}
           </Button>
           {!checkingAccount && (
             <button
