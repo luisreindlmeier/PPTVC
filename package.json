@@ -16,6 +16,8 @@
     "dev-server": "vite --port 3000",
     "lint": "office-addin-lint check",
     "lint:fix": "office-addin-lint fix",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "signin": "office-addin-dev-settings m365-account login",
     "signout": "office-addin-dev-settings m365-account logout",
     "start": "office-addin-debugging start manifest.xml",
@@ -46,6 +48,7 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
+    "@vitest/coverage-v8": "^4.1.2",
     "eslint-plugin-office-addins": "^4.0.3",
     "office-addin-cli": "^2.0.3",
     "office-addin-debugging": "^6.0.3",
@@ -56,7 +59,8 @@
     "prettier": "^3.8.1",
     "tailwindcss": "^4.1.4",
     "typescript": "^5.4.2",
-    "vite": "^6.3.3"
+    "vite": "^6.3.3",
+    "vitest": "^4.1.2"
   },
   "prettier": "office-addin-prettier-config",
   "browserslist": [
