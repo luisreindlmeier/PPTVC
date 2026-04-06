@@ -110,42 +110,46 @@ export function VersionItem({
       <div className="transition-transform duration-150 ease-out group-hover:translate-x-0.5">
         {/* Header row: name + actions */}
         <div className="flex items-center gap-1 min-w-0">
-        <input
-          ref={nameRef}
-          defaultValue={name}
-          onBlur={handleNameBlur}
-          aria-label="Version name"
-          className="version-name-input flex-1 min-w-0"
-        />
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-          <button
-            type="button"
-            onClick={onViewDiff}
-            title="View diff"
-            aria-label="View diff"
-            className="p-1 rounded hover:bg-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
-          >
-            <IconDiff className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onRequestRestore}
-            disabled={isRestoring}
-            title="Restore this version"
-            aria-label="Restore this version"
-            className="p-1 rounded hover:bg-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors cursor-pointer disabled:opacity-50"
-          >
-            {isRestoring ? <span className="btn-spinner" aria-hidden="true" /> : <IconRestore className="w-3.5 h-3.5" />}
-          </button>
-          <button
-            type="button"
-            onClick={onRequestDelete}
-            aria-label="Delete version"
-            className="p-1 rounded hover:bg-[var(--color-danger-light)] text-[var(--color-text-muted)] hover:text-[var(--color-danger)] transition-colors cursor-pointer"
-          >
-            <IconX className="w-3.5 h-3.5" />
-          </button>
-        </div>
+          <input
+            ref={nameRef}
+            defaultValue={name}
+            onBlur={handleNameBlur}
+            aria-label="Version name"
+            className="version-name-input flex-1 min-w-0"
+          />
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+            <button
+              type="button"
+              onClick={onViewDiff}
+              title="View diff"
+              aria-label="View diff"
+              className="p-1 rounded hover:bg-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
+            >
+              <IconDiff className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onRequestRestore}
+              disabled={isRestoring}
+              title="Restore this version"
+              aria-label="Restore this version"
+              className="p-1 rounded hover:bg-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {isRestoring ? (
+                <span className="btn-spinner" aria-hidden="true" />
+              ) : (
+                <IconRestore className="w-3.5 h-3.5" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={onRequestDelete}
+              aria-label="Delete version"
+              className="p-1 rounded hover:bg-[var(--color-danger-light)] text-[var(--color-text-muted)] hover:text-[var(--color-danger)] transition-colors cursor-pointer"
+            >
+              <IconX className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* Meta row: timestamp + tag button */}
@@ -213,7 +217,6 @@ export function VersionItem({
             )}
           </div>
         )}
-
       </div>
     </li>
   );

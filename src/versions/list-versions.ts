@@ -5,6 +5,10 @@ import type { Version, VersionSnapshotMetadata } from "./types";
 const SNAPSHOT_FILE_NAME = "snapshot.pptx";
 const METADATA_FILE_NAME = "metadata.json";
 
+/**
+ * Reads all version directories from OPFS for the current document scope, skipping any entries
+ * whose `metadata.json` is missing or unparseable. Returns versions sorted newest-first by timestamp.
+ */
 export async function listVersions(): Promise<Version[]> {
   const storage = createStorageAdapter();
   const versionRootPath = await getVersionRootPath();
@@ -30,7 +34,9 @@ export async function listVersions(): Promise<Version[]> {
         metadataPath,
       });
     } catch {
-      // Skip entries whose metadata is missing or corrupted
+      // Intentionally silent: skips any version directory whose metadata.json
+      // is missing or contains invalid JSON, keeping the list functional
+      // even when OPFS entries are partially corrupted or concurrently written.
     }
   }
 

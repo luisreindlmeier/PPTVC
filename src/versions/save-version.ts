@@ -4,10 +4,10 @@ import JSZip from "jszip";
 import { createStorageAdapter, type StorageAdapter } from "../storage";
 import { getVersionRootPath } from "./document-scope";
 import type { Version, VersionSnapshotMetadata, SaveVersionOptions } from "./types";
+import { concatByteChunks, getFileNameFromUrl, normalizeSliceData } from "./utils";
 
 const SNAPSHOT_FILE_NAME = "snapshot.pptx";
 const METADATA_FILE_NAME = "metadata.json";
-const DEFAULT_FILE_NAME = "Untitled.pptx";
 const SLICE_SIZE = 64 * 1024;
 
 interface PptxFileData {
@@ -22,46 +22,6 @@ function getDocumentUrl(): string {
   }
 
   return documentUrl;
-}
-
-function getFileNameFromUrl(url: string): string {
-  const normalizedUrl = url.split("?")[0].trim();
-  const segments = normalizedUrl.split(/[\\/]/).filter((segment) => segment.length > 0);
-
-  if (segments.length === 0) {
-    return DEFAULT_FILE_NAME;
-  }
-
-  return decodeURIComponent(segments[segments.length - 1]);
-}
-
-function normalizeSliceData(data: unknown): Uint8Array {
-  if (data instanceof ArrayBuffer) {
-    return new Uint8Array(data);
-  }
-
-  if (ArrayBuffer.isView(data)) {
-    return new Uint8Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength));
-  }
-
-  if (Array.isArray(data)) {
-    return Uint8Array.from(data);
-  }
-
-  throw new Error("Unexpected Office slice payload type.");
-}
-
-function concatByteChunks(chunks: Uint8Array[]): Uint8Array {
-  const totalLength = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
-  const merged = new Uint8Array(totalLength);
-  let offset = 0;
-
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-
-  return merged;
 }
 
 function getFileAsync(sliceSize: number): Promise<Office.File> {
@@ -154,6 +114,10 @@ async function createVersionName(
   return `Version ${versionNumber}`;
 }
 
+/**
+ * Captures the current PowerPoint presentation via Office JS slicing, writes the snapshot blob
+ * and a metadata JSON file to OPFS, and returns a fully-populated {@link Version} object.
+ */
 export async function saveVersion(options: SaveVersionOptions = {}): Promise<Version> {
   const storage = createStorageAdapter();
   const versionRootPath = await getVersionRootPath();

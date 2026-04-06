@@ -194,7 +194,12 @@ export function DiffPanel({
       // Comparing by replacing the full presentation can trigger internal slide-change events.
       armAutoExitSlideChangeSkip();
       await replacePresentationFromBase64(await blobToBase64(modifiedBlob));
-      setActiveComparison({ fromVersion: from, toVersion: to, slideNum: currentSlide.num, summary });
+      setActiveComparison({
+        fromVersion: from,
+        toVersion: to,
+        slideNum: currentSlide.num,
+        summary,
+      });
       return true;
     } catch (err) {
       if (!options.silent) {
@@ -336,7 +341,6 @@ export function DiffPanel({
             )}
           </Button>
         </div>
-
       </section>
 
       {/* Active comparison indicator (below divider) */}
@@ -381,7 +385,10 @@ export function DiffPanel({
                 <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">
                   Changes
                 </p>
-                <Badge variant="outline" className="h-4 px-1.5 text-[9px] text-[var(--color-text-muted)]">
+                <Badge
+                  variant="outline"
+                  className="h-4 px-1.5 text-[9px] text-[var(--color-text-muted)]"
+                >
                   {displayedChanges.length}
                 </Badge>
               </div>
@@ -446,7 +453,9 @@ export function DiffPanel({
                         <p
                           className={cn(
                             "text-[11px] leading-snug",
-                            isFocused ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]"
+                            isFocused
+                              ? "text-[var(--color-text)]"
+                              : "text-[var(--color-text-muted)]"
                           )}
                           aria-label={categoryBadge.ariaLabel}
                           title={categoryBadge.ariaLabel}
@@ -458,7 +467,9 @@ export function DiffPanel({
                   })}
                 </ul>
               ) : (
-                <p className="text-[10px] text-[var(--color-text-muted)]">No changes in this category.</p>
+                <p className="text-[10px] text-[var(--color-text-muted)]">
+                  No changes in this category.
+                </p>
               )}
             </div>
             <Button

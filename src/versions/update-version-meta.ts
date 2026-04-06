@@ -4,6 +4,10 @@ import type { UpdateVersionMetaOptions, VersionSnapshotMetadata } from "./types"
 
 const METADATA_FILE_NAME = "metadata.json";
 
+/**
+ * Partially updates the `displayName` and/or `tags` of a stored version's metadata JSON
+ * without touching the snapshot blob.
+ */
 export async function updateVersionMeta(
   id: string,
   options: UpdateVersionMetaOptions

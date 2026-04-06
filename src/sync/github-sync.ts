@@ -1,5 +1,6 @@
 /* global fetch, TextEncoder, Blob, btoa, AbortController, clearTimeout, setTimeout */
 
+import { blobToBase64 } from "../lib/binary";
 import type { GitHubSyncConfig } from "../storage";
 import type { Version } from "../versions";
 
@@ -7,14 +8,17 @@ const SYNC_ROOT = "gedonus-versions";
 const API_BASE = "https://api.github.com";
 const WORKER_BASE = "https://gedonus-token-relay.gedonus.workers.dev";
 
+/** Progress state for a GitHub sync operation. `current` and `total` count upload steps (2 per version: metadata then snapshot). */
 export interface SyncProgress {
   current: number;
   total: number;
   label: string;
 }
 
+/** Callback invoked before each upload step to allow the UI to render progress. */
 export type SyncProgressCallback = (progress: SyncProgress) => void;
 
+/** Result of a push operation. `pushed` is the count of successfully uploaded files; `errors` collects per-file error messages so partial syncs can still succeed. */
 export interface SyncResult {
   pushed: number;
   errors: string[];
@@ -137,17 +141,6 @@ function versionAuthor(version: Version): CommitAuthor | undefined {
 
 // ── Encoding helpers ───────────────────────────────────────────
 
-async function blobToBase64(blob: Blob): Promise<string> {
-  const buffer = await blob.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  const chunk = 8192;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...Array.from(bytes.subarray(i, i + chunk)));
-  }
-  return btoa(binary);
-}
-
 function jsonToBase64(value: unknown): string {
   const json = JSON.stringify(value, null, 2);
   const bytes = new TextEncoder().encode(json);
@@ -169,6 +162,7 @@ async function resolveWriteToken(config: GitHubSyncConfig): Promise<string> {
   return token;
 }
 
+/** Validates the repo format, resolves a write token, and makes a `GET /repos/{owner}/{repo}` request. Throws with a user-readable message on 401, 404, or any other non-2xx response. */
 export async function testGitHubConnection(config: GitHubSyncConfig): Promise<void> {
   const parts = config.repo.split("/");
   if (parts.length !== 2 || !parts[0] || !parts[1]) {
@@ -229,6 +223,15 @@ async function fetchInstallationToken(installationId: number): Promise<string | 
   return typeof data?.token === "string" ? data.token : null;
 }
 
+/**
+ * Uploads versions to GitHub as individual commit files organised under `gedonus-versions/`.
+ * Errors per-version are collected in `SyncResult.errors` rather than thrown, so partial syncs succeed.
+ *
+ * @param config     - GitHub sync configuration (repo, branch, token / installationId).
+ * @param versions   - List of versions to push.
+ * @param getBlob    - Async function that returns the PPTX blob for a given snapshot path.
+ * @param onProgress - Callback invoked before each upload step.
+ */
 export async function pushVersionsToGitHub(
   config: GitHubSyncConfig,
   versions: Version[],

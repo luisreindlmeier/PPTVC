@@ -22,6 +22,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Security audit
+        run: npm audit --audit-level=high
+
       - name: Lint
         run: npm run lint
 
@@ -29,4 +32,12 @@ jobs:
         run: npm run build
 
       - name: Unit tests with coverage
-        run: npm run test:coverage
+        run: npm run test:coverage 2>&1 | tee /tmp/coverage-output.txt
+
+      - name: Write coverage summary
+        if: always()
+        run: |
+          echo "## Test Coverage" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/coverage-output.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
