@@ -138,16 +138,15 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    // Ensure gate shows after app initialization (delayed to avoid race condition)
     if (!appInitialized || !documentScopeKey) return;
-    if (settingsOpen) return;
-
-    // Once app is initialized and we have a document, show the gate if:
-    // - No repo is linked yet, AND
-    // - We haven't dismissed in this session yet
-    if (!hasDocumentRepo && !githubGateDismissed) {
-      setOnboardingStep("welcome");
-    }
-  }, [appInitialized, documentScopeKey, hasDocumentRepo, githubGateDismissed, settingsOpen]);
+    const tid = window.setTimeout(() => {
+      if (!githubGateDismissed && !hasDocumentRepo) {
+        setOnboardingStep("welcome");
+      }
+    }, 50);
+    return () => window.clearTimeout(tid);
+  }, [appInitialized, documentScopeKey]);
 
   useEffect(() => {
     if (!appInitialized) return;
