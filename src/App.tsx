@@ -14,6 +14,7 @@ import { HistoryPanel } from "./components/HistoryPanel";
 import { DiffPanel } from "./components/DiffPanel";
 import { SettingsPage } from "./components/SettingsPage";
 import { GitHubOnboardingGate } from "./components/GitHubOnboardingGate";
+import { GitHubWelcomeGate } from "./components/GitHubWelcomeGate";
 import { TooltipProvider } from "./components/ui/tooltip";
 import {
   useStatusMessages,
@@ -37,6 +38,7 @@ export function App() {
   const [documentScopeKey, setDocumentScopeKey] = useState<string | null>(null);
   const [appInitialized, setAppInitialized] = useState(false);
   const [githubGateDismissed, setGithubGateDismissed] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState<"welcome" | "connect">("welcome");
 
   const activeGitHubSync = useMemo(() => {
     if (!documentScopeKey) return settings.githubSync;
@@ -119,11 +121,13 @@ export function App() {
         if (!cancelled) {
           setDocumentScopeKey(scopeKey);
           setGithubGateDismissed(false);
+          setOnboardingStep("welcome");
         }
       } catch {
         if (!cancelled) {
           setDocumentScopeKey("versions/by-session-fallback");
           setGithubGateDismissed(false);
+          setOnboardingStep("welcome");
         }
       }
     })();
@@ -170,7 +174,18 @@ export function App() {
 
   const handleGitHubGateSkip = useCallback(() => {
     setGithubGateDismissed(true);
+    setOnboardingStep("welcome");
     showStatus("GitHub setup skipped. Local versioning stays available.", false);
+  }, [showStatus]);
+
+  const handleStartGitHubConnect = useCallback(() => {
+    setOnboardingStep("connect");
+  }, []);
+
+  const handleContinueWithoutGitHub = useCallback(() => {
+    setGithubGateDismissed(true);
+    setOnboardingStep("welcome");
+    showStatus("Continuing without GitHub. You can connect later in Settings.", false);
   }, [showStatus]);
 
   useOfficeEventHandlers({
@@ -368,7 +383,14 @@ export function App() {
           />
         )}
 
-        {shouldShowGitHubGate && (
+        {shouldShowGitHubGate && onboardingStep === "welcome" && (
+          <GitHubWelcomeGate
+            onConnectGitHub={handleStartGitHubConnect}
+            onContinueWithoutGitHub={handleContinueWithoutGitHub}
+          />
+        )}
+
+        {shouldShowGitHubGate && onboardingStep === "connect" && (
           <GitHubOnboardingGate
             initialConfig={activeGitHubSync}
             accountConnected={effectiveSettings.githubAccountConnected ?? false}

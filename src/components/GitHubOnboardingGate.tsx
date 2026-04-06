@@ -3,7 +3,7 @@ import type { GitHubSyncConfig } from "../storage";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { getAppInstallUrl, findInstallation } from "../sync/github-sync";
+import { getAppInstallUrl, findInstallation, testGitHubConnection } from "../sync/github-sync";
 import { cn } from "@/lib/utils";
 
 interface GitHubOnboardingGateProps {
@@ -31,6 +31,9 @@ export function GitHubOnboardingGate({
   const [status, setStatus] = useState<GateStatus | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [accountLinkedInSession, setAccountLinkedInSession] = useState(accountConnected);
+
+  const canLinkRepo = accountConnected || accountLinkedInSession;
 
   const handleConnect = async () => {
     setConnecting(true);
@@ -41,6 +44,7 @@ export function GitHubOnboardingGate({
         return;
       }
       window.open(url, "_blank", "noopener,noreferrer");
+      setAccountLinkedInSession(true);
       setStatus({ text: "Install the Gedonus app for your repo, then confirm below.", isError: false });
     } finally {
       setConnecting(false);
@@ -51,6 +55,10 @@ export function GitHubOnboardingGate({
     const trimmedRepo = repo.trim();
     if (!trimmedRepo) {
       setStatus({ text: "Please enter a repository (owner/repo).", isError: true });
+      return;
+    }
+    if (!canLinkRepo) {
+      setStatus({ text: "Connect your GitHub account first.", isError: true });
       return;
     }
 
@@ -65,14 +73,15 @@ export function GitHubOnboardingGate({
         return;
       }
 
-      await onConnected(
-        {
-          repo: trimmedRepo,
-          branch: branch.trim() || "main",
-          installationId,
-        },
-        true
-      );
+      const config: GitHubSyncConfig = {
+        repo: trimmedRepo,
+        branch: branch.trim() || "main",
+        installationId,
+      };
+
+      await testGitHubConnection(config);
+
+      await onConnected(config, true);
 
       setStatus({ text: "Repository connected.", isError: false });
     } finally {
@@ -136,12 +145,12 @@ export function GitHubOnboardingGate({
             disabled={connecting || confirming}
             className="h-7 text-[11px] border-[var(--color-border)] cursor-pointer"
           >
-            {connecting ? "Opening..." : "Connect GitHub"}
+            {connecting ? "Opening..." : "Connect account"}
           </Button>
           <Button
             size="sm"
             onClick={() => void handleConfirmRepo()}
-            disabled={confirming || connecting}
+            disabled={confirming || connecting || !canLinkRepo}
             className="h-7 text-[11px] bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white border-0 cursor-pointer"
           >
             {confirming ? "Checking..." : "Use this repo"}
