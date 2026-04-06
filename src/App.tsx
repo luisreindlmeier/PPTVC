@@ -75,6 +75,21 @@ function isNotFoundError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "NotFoundError";
 }
 
+function extractOwnerFromRepo(repo: string | undefined): string {
+  const value = repo?.trim() ?? "";
+  if (!value.includes("/")) return "";
+  return value.split("/")[0]?.trim() ?? "";
+}
+
+function findOwnerFromMappings(byDocument: UserSettings["githubSyncByDocument"]): string {
+  if (!byDocument) return "";
+  for (const cfg of Object.values(byDocument)) {
+    const owner = extractOwnerFromRepo(cfg.repo);
+    if (owner) return owner;
+  }
+  return "";
+}
+
 export function App() {
   const { status, showStatus } = useStatusMessages();
   const { settings, setSettings, onSettingsChange } = useSettings();
@@ -254,6 +269,10 @@ export function App() {
   }, [documentScopeKey, onSettingsChange, settings]);
 
   const hasDocumentRepo = Boolean(activeGitHubSync?.repo.trim());
+  const onboardingKnownAccountName =
+    effectiveSettings.githubAccountName?.trim() ||
+    extractOwnerFromRepo(activeGitHubSync?.repo) ||
+    findOwnerFromMappings(settings.githubSyncByDocument);
   const hasExistingLocalVersioning = documentHasLocalVersioningHint || versions.length > 0;
   const startupReady = appInitialized && documentScopeReady && (documentHasLocalVersioningHint || initialVersionsLoaded);
   const shouldShowGitHubGate =
@@ -522,6 +541,7 @@ export function App() {
           <GitHubOnboardingGate
             initialConfig={activeGitHubSync}
             accountConnected={effectiveSettings.githubAccountConnected ?? false}
+            accountName={onboardingKnownAccountName}
             onSkip={handleGitHubGateSkip}
             onConnected={handleGitHubGateConnected}
           />

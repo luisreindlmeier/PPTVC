@@ -8,6 +8,7 @@ import { getAppInstallUrl, findInstallation, testGitHubConnection } from "../syn
 interface GitHubOnboardingGateProps {
   initialConfig?: GitHubSyncConfig;
   accountConnected: boolean;
+  accountName?: string;
   onSkip: () => void;
   onConnected: (
     config: GitHubSyncConfig,
@@ -25,11 +26,12 @@ function extractOwner(repoValue: string): string {
 export function GitHubOnboardingGate({
   initialConfig,
   accountConnected,
+  accountName: knownAccountName,
   onSkip,
   onConnected,
 }: GitHubOnboardingGateProps) {
   const initialRepo = initialConfig?.repo ?? "";
-  const initialOwner = extractOwner(initialRepo);
+  const initialOwner = knownAccountName?.trim() || extractOwner(initialRepo);
   const [accountName, setAccountName] = useState(initialOwner);
   const [repoName, setRepoName] = useState(() => {
     if (!initialRepo) return "";
@@ -89,6 +91,10 @@ export function GitHubOnboardingGate({
         branch: branch.trim() || "main",
         installationId: installation.installationId,
       };
+
+      if (installation.accountLogin) {
+        setAccountName(installation.accountLogin);
+      }
 
       await testGitHubConnection(config);
 
