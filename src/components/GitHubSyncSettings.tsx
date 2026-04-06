@@ -85,6 +85,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
 
   const isRepoConnected = installationId !== undefined;
   const isAccountConnected = settings.githubAccountConnected === true;
+  const isAutoCheckDisabled = settings.githubAccountAutoCheckDisabled === true;
   const ownerFromInput = extractOwner(repoName);
   const accountName =
     explicitAccountName || ownerFromSettingsRepo || ownerFromAnyKnownRepo || ownerFromInput;
@@ -121,7 +122,8 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   }, [accountName, repoName]);
 
   useEffect(() => {
-    if (isAccountConnected || accountCheckDone || knownRepos.length === 0) return;
+    if (isAccountConnected || isAutoCheckDisabled || accountCheckDone || knownRepos.length === 0)
+      return;
 
     let cancelled = false;
 
@@ -140,6 +142,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
             githubAccountConnected: true,
             githubAccountName:
               installation.accountLogin ?? current.githubAccountName ?? extractOwner(repo),
+            githubAccountAutoCheckDisabled: false,
           };
           await onSettingsChange(next);
           if (cancelled) return;
@@ -157,7 +160,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     return () => {
       cancelled = true;
     };
-  }, [accountCheckDone, isAccountConnected, knownRepos, onSettingsChange]);
+  }, [accountCheckDone, isAccountConnected, isAutoCheckDisabled, knownRepos, onSettingsChange]);
 
   const fullRepo = (() => {
     if (!isAccountConnected) return "";
@@ -196,6 +199,7 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     const next: UserSettings = {
       ...settings,
       githubAccountConnected: true,
+      githubAccountAutoCheckDisabled: false,
     };
     await onSettingsChange(next);
     setSyncStatus({ message: "GitHub account connected. Select a repository.", tone: "success" });
@@ -204,10 +208,13 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   const handleAccountDisconnect = async () => {
     setInstallationId(undefined);
     setRepoName("");
+    setCheckingAccount(false);
+    setAccountCheckDone(true);
     const next: UserSettings = { ...settings };
     delete next.githubSync;
     next.githubAccountConnected = false;
     delete next.githubAccountName;
+    next.githubAccountAutoCheckDisabled = true;
     await onSettingsChange(next);
     setSyncStatus({ message: "Account disconnected.", tone: "success" });
   };
@@ -215,6 +222,14 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   const handleConnect = async () => {
     setConnecting(true);
     try {
+      if (isAutoCheckDisabled || accountCheckDone) {
+        setAccountCheckDone(false);
+        await onSettingsChange({
+          ...settings,
+          githubAccountAutoCheckDisabled: false,
+        });
+      }
+
       const url = await getAppInstallUrl();
       if (!url) {
         setSyncStatus({ message: "Could not reach Gedonus service.", tone: "error" });

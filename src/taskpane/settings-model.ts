@@ -66,6 +66,7 @@ function normalizeUserSettings(stored: UserSettings): UserSettings {
     githubSyncByDocument: normalizeGitHubSyncByDocument(stored.githubSyncByDocument),
     githubAccountConnected: toBoolean(stored.githubAccountConnected),
     githubAccountName: toTrimmedString(stored.githubAccountName),
+    githubAccountAutoCheckDisabled: toBoolean(stored.githubAccountAutoCheckDisabled),
   };
 }
 
