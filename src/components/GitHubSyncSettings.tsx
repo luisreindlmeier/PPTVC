@@ -26,7 +26,7 @@ interface SyncStatus {
 export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSettingsProps) {
   const initialRepo = settings.githubSync?.repo ?? "";
   const fallbackAccountName = initialRepo.includes("/") ? initialRepo.split("/")[0] : "";
-  const accountName = settings.githubAccountName?.trim() || fallbackAccountName;
+  const [accountInput, setAccountInput] = useState(settings.githubAccountName ?? fallbackAccountName);
   const [repoName, setRepoName] = useState(() => {
     if (!initialRepo) return "";
     const parts = initialRepo.split("/");
@@ -46,6 +46,8 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
 
   const isRepoConnected = installationId !== undefined;
   const isAccountConnected = settings.githubAccountConnected === true;
+  const accountName = accountInput.trim();
+  const accountPrefix = accountName || "account";
 
   useEffect(() => {
     const repo = settings.githubSync?.repo ?? "";
@@ -56,6 +58,11 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     const parts = repo.split("/");
     setRepoName(parts.length > 1 ? parts.slice(1).join("/") : parts[0]);
   }, [settings.githubSync?.repo]);
+
+  useEffect(() => {
+    const next = settings.githubAccountName ?? fallbackAccountName;
+    setAccountInput(next);
+  }, [settings.githubAccountName, fallbackAccountName]);
 
   const fullRepo = (() => {
     if (!isAccountConnected || !accountName) return "";
@@ -76,9 +83,8 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     if (cfg.repo) next.githubSync = cfg;
     else delete next.githubSync;
     next.githubAccountConnected = settings.githubAccountConnected;
-    if (accountName) {
-      next.githubAccountName = accountName;
-    }
+    if (accountName) next.githubAccountName = accountName;
+    else delete next.githubAccountName;
     await onSettingsChange(next);
   };
 
@@ -86,10 +92,21 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
     const next: UserSettings = {
       ...settings,
       githubAccountConnected: true,
-      githubAccountName: accountName || settings.githubAccountName,
+      githubAccountName: accountName || settings.githubAccountName || undefined,
     };
     await onSettingsChange(next);
     setSyncStatus({ message: "Account connected. Select a repository.", tone: "success" });
+  };
+
+  const handleAccountDisconnect = async () => {
+    setInstallationId(undefined);
+    setRepoName("");
+    const next: UserSettings = { ...settings };
+    delete next.githubSync;
+    next.githubAccountConnected = false;
+    delete next.githubAccountName;
+    await onSettingsChange(next);
+    setSyncStatus({ message: "Account disconnected.", tone: "success" });
   };
 
   const handleConnect = async () => {
@@ -260,16 +277,45 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
       ) : (
         <>
           <div className="rounded-[var(--radius-xs)] border border-[#bbf7d0] bg-[#f0fdf4] px-2 py-1.5 text-[11px] text-[#166534]">
-            Gedonus connected as <span className="font-medium">{accountName || "your account"}</span>.
+            <div className="flex items-center justify-between gap-2">
+              <span>
+                Gedonus connected as <span className="font-medium">{accountName || "your account"}</span>.
+              </span>
+              <button
+                type="button"
+                onClick={() => void handleAccountDisconnect()}
+                className="shrink-0 text-[#166534] underline hover:no-underline cursor-pointer"
+              >
+                Disconnect account
+              </button>
+            </div>
           </div>
+
+          {!accountName && (
+            <div className="space-y-1.5">
+              <Label htmlFor="gh-account" className="text-[11px] text-[var(--color-text-muted)]">
+                GitHub account
+              </Label>
+              <Input
+                id="gh-account"
+                value={accountInput}
+                onChange={(e) => setAccountInput(e.target.value)}
+                onBlur={() => void persist()}
+                placeholder="your-github-name"
+                autoComplete="off"
+                spellCheck={false}
+                className="h-7 text-[12px] bg-[var(--color-surface-raised)] border-[var(--color-border)]"
+              />
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="gh-repo-name" className="text-[11px] text-[var(--color-text-muted)]">
               Repository
             </Label>
             <div className="flex items-center h-7 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-raised)] overflow-hidden">
-              <span className="px-2 text-[12px] text-[var(--color-text-muted)] border-r border-[var(--color-border)]">
-                {(accountName || "your-account") + "/"}
+              <span className="px-2 text-[12px] text-[var(--color-text-muted)] border-r border-[var(--color-border)] shrink-0 whitespace-nowrap leading-none">
+                {accountPrefix + "/"}
               </span>
               <Input
                 id="gh-repo-name"
@@ -302,7 +348,6 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
 
           {!isRepoConnected ? (
             <div className="pt-1 space-y-1">
-              <p className="text-[11px] text-[var(--color-text-muted)]">Repository connection</p>
               <Button
                 size="sm"
                 onClick={() => void handleConfirm()}
