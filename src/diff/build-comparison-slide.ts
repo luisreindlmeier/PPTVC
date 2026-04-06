@@ -1,6 +1,7 @@
 /* global Blob */
 
 import JSZip from "jszip";
+import { requireZipText } from "./zip-utils";
 
 interface SlideSize {
   cx: number;
@@ -1201,13 +1202,13 @@ export async function buildComparisonSlide(
     JSZip.loadAsync(await fromBlob.arrayBuffer()),
   ]);
 
-  const toPresentationXml = await toZip.file("ppt/presentation.xml")!.async("string");
-  const toRelsXml = await toZip.file("ppt/_rels/presentation.xml.rels")!.async("string");
+  const toPresentationXml = await requireZipText(toZip, "ppt/presentation.xml");
+  const toRelsXml = await requireZipText(toZip, "ppt/_rels/presentation.xml.rels");
   const slideSize = parseSlideSize(toPresentationXml);
   const toSlidePaths = getSlidePaths(toPresentationXml, toRelsXml);
 
-  const fromPresentationXml = await fromZip.file("ppt/presentation.xml")!.async("string");
-  const fromRelsXml = await fromZip.file("ppt/_rels/presentation.xml.rels")!.async("string");
+  const fromPresentationXml = await requireZipText(fromZip, "ppt/presentation.xml");
+  const fromRelsXml = await requireZipText(fromZip, "ppt/_rels/presentation.xml.rels");
   const fromSlidePaths = getSlidePaths(fromPresentationXml, fromRelsXml);
 
   const toSlidePath = toSlidePaths[slideIndex];
@@ -1218,8 +1219,8 @@ export async function buildComparisonSlide(
   }
 
   const [toSlideXml, fromSlideXml] = await Promise.all([
-    toZip.file(toSlidePath)!.async("string"),
-    fromZip.file(fromSlidePath)!.async("string"),
+    requireZipText(toZip, toSlidePath),
+    requireZipText(fromZip, fromSlidePath),
   ]);
 
   const rawOldShapes = extractShapeContent(fromSlideXml);
