@@ -3,7 +3,7 @@
  *
  * Endpoints:
  *   GET  /install-url            → { url }            — GitHub App install page
- *   POST /connect  { repo }      → { installationId } — find installation for a repo
+ *   POST /connect  { repo }      → { installationId, accountLogin } — find installation for a repo
  *   POST /token { installationId } → { token }        — fresh installation access token
  *
  * Secrets (wrangler secret put <NAME>):
@@ -50,7 +50,15 @@ export default {
         if (res.status === 404) return err("App not installed on this repo", 404, origin);
         if (!res.ok) return err(`GitHub API error ${res.status}`, 502, origin);
         const data = await res.json();
-        return ok({ installationId: data.id }, origin);
+        const installationId = data?.id;
+        const accountLogin = data?.account?.login;
+        return ok(
+          {
+            installationId,
+            accountLogin: typeof accountLogin === "string" ? accountLogin : undefined,
+          },
+          origin
+        );
       }
 
       // ── POST /token ───────────────────────────────────────────

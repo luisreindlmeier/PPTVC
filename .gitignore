@@ -6,5 +6,7 @@ lib-amd/
 # GitHub App private keys — never commit
 *.pem
 
+# Local dev notes
+CLAUDE.md
 
 coverage/

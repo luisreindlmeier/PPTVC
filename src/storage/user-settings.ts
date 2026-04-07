@@ -15,15 +15,25 @@ export interface GitHubSyncConfig {
   installationId?: number; // Gedonus GitHub App installation ID for this repo
 }
 
+/** Stores repo-level GitHub sync config per PowerPoint document scope key. */
+export type GitHubSyncByDocument = Record<string, GitHubSyncConfig>;
+
 /** Persisted user preferences. All fields are optional; missing fields fall back to defaults defined in `src/taskpane/settings-model.ts`. */
 export interface UserSettings {
   authorName?: string;
   email?: string;
   maxVersions?: number;
+  /** @deprecated Legacy setting for Office document save handler; no longer used. */
   autoSaveOnDocumentSave?: boolean;
+  /** Automatically syncs newly created taskpane versions to GitHub when repo is connected. */
+  autoSyncOnVersionSave?: boolean;
   namingTemplate?: string;
   customTags?: string[];
   githubSync?: GitHubSyncConfig;
+  githubSyncByDocument?: GitHubSyncByDocument;
+  githubAccountConnected?: boolean;
+  githubAccountName?: string;
+  githubAccountAutoCheckDisabled?: boolean;
 }
 
 function isNotFoundError(error: unknown): boolean {

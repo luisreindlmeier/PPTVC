@@ -24,6 +24,16 @@ export interface SyncResult {
   errors: string[];
 }
 
+export interface RepositoryConnectionHint {
+  isEmpty: boolean;
+  hasGedonusHistory: boolean;
+}
+
+export interface RepositoryInstallationInfo {
+  installationId: number;
+  accountLogin?: string;
+}
+
 // ── Folder naming ──────────────────────────────────────────────
 // Produces a human-readable, date-sortable, deterministic folder name:
 // e.g. "2026-03-23T14-30--final-draft--ab3def"
@@ -208,13 +218,55 @@ export async function getAppInstallUrl(): Promise<string | null> {
 }
 
 /**
- * Finds the Gedonus App installation ID for a repo.
+ * Finds the Gedonus App installation for a repo.
  * Call this after the user has installed the app on their repo.
  * Returns null if the Worker is unreachable or the app is not installed.
  */
-export async function findInstallation(repo: string): Promise<number | null> {
-  const data = await workerPost<{ installationId?: unknown }>("/connect", { repo });
-  return typeof data?.installationId === "number" ? data.installationId : null;
+export async function findInstallation(repo: string): Promise<RepositoryInstallationInfo | null> {
+  const data = await workerPost<{ installationId?: unknown; accountLogin?: unknown }>("/connect", {
+    repo,
+  });
+  if (typeof data?.installationId !== "number") return null;
+  return {
+    installationId: data.installationId,
+    accountLogin: typeof data.accountLogin === "string" ? data.accountLogin : undefined,
+  };
+}
+
+/**
+ * Inspects repository root contents and whether `gedonus-versions/` already exists.
+ * Requires a valid installation on the target repository.
+ */
+export async function inspectRepositoryConnectionHint(
+  config: GitHubSyncConfig
+): Promise<RepositoryConnectionHint> {
+  const [owner, repo] = config.repo.split("/");
+  const token = await resolveWriteToken(config);
+
+  const rootRes = await fetch(
+    `${API_BASE}/repos/${owner}/${repo}/contents?ref=${encodeURIComponent(config.branch)}`,
+    {
+      headers: apiHeaders(token),
+    }
+  );
+
+  if (rootRes.status === 404) {
+    return { isEmpty: true, hasGedonusHistory: false };
+  }
+
+  if (!rootRes.ok) {
+    throw new Error(`GitHub API ${rootRes.status}.`);
+  }
+
+  const entries = (await rootRes.json()) as Array<{ name?: unknown }>;
+  const names = entries
+    .map((entry) => (typeof entry.name === "string" ? entry.name : ""))
+    .filter((name) => name.length > 0);
+
+  return {
+    isEmpty: names.length === 0,
+    hasGedonusHistory: names.includes(SYNC_ROOT),
+  };
 }
 
 /** Fetches a fresh installation access token from the Worker. */

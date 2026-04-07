@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import {
   deleteVersion,
+  getVersionBlob,
   listVersions,
   restoreVersion,
   saveVersion,
@@ -10,6 +11,7 @@ import {
 } from "../versions";
 import type { UserSettings } from "../storage";
 import { getDefaultVersionName } from "../taskpane/settings-model";
+import { pushVersionsToGitHub } from "../sync/github-sync";
 
 /** Manages version list state and all CRUD operations. `pendingTags` accumulates tags selected before a save. */
 export function useVersionManagement(
@@ -63,9 +65,38 @@ export function useVersionManagement(
         authorName: settings.authorName || undefined,
         authorEmail: settings.email || undefined,
       });
+
+      const syncConfig = settings.githubSync;
+      const shouldAutoSync =
+        settings.autoSyncOnVersionSave === true &&
+        syncConfig !== undefined &&
+        syncConfig.repo.trim().length > 0 &&
+        syncConfig.installationId !== undefined;
+
+      if (shouldAutoSync) {
+        try {
+          showStatus("Syncing new version to GitHub...", false);
+          const result = await pushVersionsToGitHub(syncConfig, [version], getVersionBlob, () => {
+            // Keep status noise low during single-version auto-sync.
+          });
+          if (result.errors.length > 0) {
+            showStatus(`Auto-sync failed: ${result.errors[0]}`, true);
+          } else {
+            showStatus(`Saved and synced: ${customName || version.name}`, false);
+          }
+        } catch (error: unknown) {
+          showStatus(
+            error instanceof Error ? `Auto-sync failed: ${error.message}` : "Auto-sync failed.",
+            true
+          );
+        }
+      }
+
       setDisplayedVersionId(version.id);
       setPendingTags([]);
-      showStatus(`Saved: ${customName || version.name}`, false);
+      if (!shouldAutoSync) {
+        showStatus(`Saved: ${customName || version.name}`, false);
+      }
       await enforceMaxVersions();
       await loadVersions();
     },
@@ -84,17 +115,23 @@ export function useVersionManagement(
   const onDelete = useCallback(
     async (id: string) => {
       await deleteVersion(id);
-      setVersions((prev) => {
-        const next = prev.filter((v) => v.id !== id);
-        setDisplayedVersionId((cur) => {
-          if (cur !== id) return cur;
-          return next[0]?.id ?? null;
-        });
-        return next;
-      });
+
+      const wasDisplayed = displayedVersionId === id;
+      const loaded = await loadVersions();
+
+      if (wasDisplayed) {
+        const nextVersion = loaded[0];
+        const nextId = nextVersion?.id ?? null;
+        setDisplayedVersionId(nextId);
+
+        if (nextVersion) {
+          await restoreVersion(nextVersion.id);
+        }
+      }
+
       showStatus("Version deleted.", false);
     },
-    [showStatus]
+    [displayedVersionId, loadVersions, showStatus]
   );
 
   const onUpdateMeta = useCallback(

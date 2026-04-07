@@ -2,6 +2,7 @@
 
 const VERSION_ROOT_PREFIX = "versions";
 const DOCUMENT_SCOPE_SETTING_KEY = "gedonus.documentScopeId";
+const DOCUMENT_HAS_LOCAL_VERSIONING_SETTING_KEY = "gedonus.hasLocalVersioning";
 const LEGACY_DOCUMENT_SCOPE_SETTING_KEY = `${"ppt"}vc.documentScopeId`;
 
 let volatileDocumentScopeId: string | null = null;
@@ -49,6 +50,26 @@ function getDocumentSettings(): Office.Settings | null {
   }
 
   return Office.context?.document?.settings ?? null;
+}
+
+/** Returns the cached hint indicating that this document already has local Gedonus versioning. */
+export function hasLocalVersioningHint(): boolean {
+  const settings = getDocumentSettings();
+  if (!settings) return false;
+  return settings.get(DOCUMENT_HAS_LOCAL_VERSIONING_SETTING_KEY) === true;
+}
+
+/** Persists whether this document has local Gedonus versioning. */
+export async function setLocalVersioningHint(hasVersioning: boolean): Promise<void> {
+  const settings = getDocumentSettings();
+  if (!settings) return;
+
+  settings.set(DOCUMENT_HAS_LOCAL_VERSIONING_SETTING_KEY, hasVersioning);
+  try {
+    await saveSettingsAsync(settings);
+  } catch {
+    // Ignore save errors; the in-memory setting is still updated for this session.
+  }
 }
 
 function saveSettingsAsync(settings: Office.Settings): Promise<void> {
@@ -119,4 +140,9 @@ export async function getVersionRootPath(): Promise<string> {
   }
 
   return `${VERSION_ROOT_PREFIX}/by-session-${getOrCreateVolatileScopeId()}`;
+}
+
+/** Returns the stable scope key used for document-level settings mappings. */
+export async function getDocumentScopeKey(): Promise<string> {
+  return getVersionRootPath();
 }

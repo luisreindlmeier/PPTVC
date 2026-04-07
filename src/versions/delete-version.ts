@@ -1,5 +1,5 @@
 import { createStorageAdapter } from "../storage";
-import { getVersionRootPath } from "./document-scope";
+import { getVersionRootPath, setLocalVersioningHint } from "./document-scope";
 
 /**
  * Removes the entire version directory (snapshot + metadata) from OPFS.
@@ -15,4 +15,7 @@ export async function deleteVersion(id: string): Promise<void> {
   }
 
   await storage.deleteDirectory(`${versionRootPath}/${id}`);
+
+  const remainingVersionIds = await storage.listDirectory(versionRootPath);
+  await setLocalVersioningHint(remainingVersionIds.length > 0);
 }

@@ -68,6 +68,9 @@ export function SettingsPage({
   const [tagInput, setTagInput] = useState("");
 
   const tabIdx = TABS.findIndex((t) => t.id === activeTab);
+  const hasConnectedRepo = Boolean(
+    settings.githubSync?.repo?.trim() && settings.githubSync.installationId
+  );
 
   const update = (patch: Partial<UserSettings>) => {
     const next = { ...settings, ...patch };
@@ -133,27 +136,18 @@ export function SettingsPage({
       <div className="px-3 pt-2 shrink-0">
         <div
           role="tablist"
-          className="relative flex rounded-[var(--radius-sm)] bg-[var(--color-surface)] p-0.5"
+          className="flex rounded-[var(--radius-sm)] bg-[var(--color-surface)] p-0.5"
         >
-          <div
-            className="absolute top-0.5 bottom-0.5 rounded-[var(--radius-xs)] bg-[var(--color-surface-raised)] shadow-[var(--shadow-subtle)] transition-transform duration-200"
-            style={{
-              width: `calc(${100 / TABS.length}% - 2px)`,
-              left: "2px",
-              transform: `translateX(calc(${tabIdx * 100}% + ${tabIdx}px))`,
-            }}
-          />
           {TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
               role="tab"
-              aria-selected={activeTab === tab.id}
               onClick={() => void handleTabClick(tab.id)}
               className={cn(
-                "relative flex-1 z-10 px-1 py-1 text-[10px] rounded-[var(--radius-xs)] transition-colors cursor-pointer",
+                "flex-1 px-1 py-1 text-[10px] rounded-[var(--radius-xs)] transition-colors cursor-pointer",
                 activeTab === tab.id
-                  ? "text-[var(--color-text)]"
+                  ? "bg-[var(--color-surface-raised)] text-[var(--color-text)] shadow-[var(--shadow-subtle)]"
                   : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
               )}
             >
@@ -208,19 +202,25 @@ export function SettingsPage({
 
             <div>
               <SectionHeader
-                label="Auto-Save"
-                tooltip="When enabled, a snapshot is captured each time the presentation is saved."
+                label="GitHub Auto-Sync"
+                tooltip="When enabled, each new version created from the taskpane is synced to the connected GitHub repository."
               />
               <label className="flex items-center gap-2 cursor-pointer">
                 <Switch
-                  checked={settings.autoSaveOnDocumentSave ?? false}
-                  onCheckedChange={(v) => update({ autoSaveOnDocumentSave: v })}
+                  checked={settings.autoSyncOnVersionSave ?? false}
+                  onCheckedChange={(v) => update({ autoSyncOnVersionSave: v })}
+                  disabled={!hasConnectedRepo}
                   className="data-[state=checked]:bg-[var(--color-primary)]"
                 />
                 <span className="text-[12px] text-[var(--color-text)]">
-                  Save snapshot on file save
+                  Auto-sync new versions to GitHub
                 </span>
               </label>
+              {!hasConnectedRepo && (
+                <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+                  Connect a repository first to enable auto-sync.
+                </p>
+              )}
             </div>
 
             <Separator className="bg-[var(--color-border)]" />
