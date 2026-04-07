@@ -145,7 +145,10 @@ export function GitHubOnboardingGate({
             </div>
 
             <div className="mt-4 space-y-1.5">
-              <Label htmlFor="onboarding-repo" className="text-[11px] text-[var(--color-text-muted)]">
+              <Label
+                htmlFor="onboarding-repo"
+                className="text-[11px] text-[var(--color-text-muted)]"
+              >
                 Repository
               </Label>
               {accountName ? (
@@ -177,7 +180,10 @@ export function GitHubOnboardingGate({
             </div>
 
             <div className="mt-3 space-y-1.5">
-              <Label htmlFor="onboarding-branch" className="text-[11px] text-[var(--color-text-muted)]">
+              <Label
+                htmlFor="onboarding-branch"
+                className="text-[11px] text-[var(--color-text-muted)]"
+              >
                 Branch
               </Label>
               <Input

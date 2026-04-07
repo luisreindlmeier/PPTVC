@@ -30,9 +30,7 @@ function extractOwner(repoValue: string): string {
   return owner;
 }
 
-function findKnownOwnerFromDocumentMappings(
-  mapping: UserSettings["githubSyncByDocument"]
-): string {
+function findKnownOwnerFromDocumentMappings(mapping: UserSettings["githubSyncByDocument"]): string {
   if (!mapping) return "";
   for (const config of Object.values(mapping)) {
     const owner = extractOwner(config.repo);
@@ -231,7 +229,8 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
   const handleConnect = async () => {
     setConnecting(true);
     try {
-      const hasExistingConnectionHint = isAccountConnected || accountName.length > 0 || knownRepos.length > 0;
+      const hasExistingConnectionHint =
+        isAccountConnected || accountName.length > 0 || knownRepos.length > 0;
 
       if (hasExistingConnectionHint) {
         await markAccountConnected();
@@ -410,7 +409,11 @@ export function GitHubSyncSettings({ settings, onSettingsChange }: GitHubSyncSet
                 : "border-[var(--color-border)]"
             )}
           >
-            {isShowingAccountCheck ? "Checking account..." : connecting ? "Opening…" : "Connect account"}
+            {isShowingAccountCheck
+              ? "Checking account..."
+              : connecting
+                ? "Opening…"
+                : "Connect account"}
           </Button>
         </div>
       ) : (

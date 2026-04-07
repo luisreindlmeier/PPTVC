@@ -68,7 +68,9 @@ export function SettingsPage({
   const [tagInput, setTagInput] = useState("");
 
   const tabIdx = TABS.findIndex((t) => t.id === activeTab);
-  const hasConnectedRepo = Boolean(settings.githubSync?.repo?.trim() && settings.githubSync.installationId);
+  const hasConnectedRepo = Boolean(
+    settings.githubSync?.repo?.trim() && settings.githubSync.installationId
+  );
 
   const update = (patch: Partial<UserSettings>) => {
     const next = { ...settings, ...patch };
@@ -132,7 +134,10 @@ export function SettingsPage({
 
       {/* Tab bar */}
       <div className="px-3 pt-2 shrink-0">
-        <div role="tablist" className="flex rounded-[var(--radius-sm)] bg-[var(--color-surface)] p-0.5">
+        <div
+          role="tablist"
+          className="flex rounded-[var(--radius-sm)] bg-[var(--color-surface)] p-0.5"
+        >
           {TABS.map((tab) => (
             <button
               key={tab.id}

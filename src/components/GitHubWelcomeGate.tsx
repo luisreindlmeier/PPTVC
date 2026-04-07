@@ -23,7 +23,9 @@ export function GitHubWelcomeGate({
                 alt="Gedonus logo"
                 className="h-12 w-12 animate-[spin_1.1s_linear_infinite]"
               />
-              <p className="text-[12px] text-[var(--color-text-muted)]">Preparing your workspace...</p>
+              <p className="text-[12px] text-[var(--color-text-muted)]">
+                Preparing your workspace...
+              </p>
             </div>
           ) : (
             <div className="w-full space-y-5">

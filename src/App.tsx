@@ -137,7 +137,9 @@ export function App() {
       };
 
       if (documentScopeKey) {
-        const byDocument = { ...(next.githubSyncByDocument ?? settings.githubSyncByDocument ?? {}) };
+        const byDocument = {
+          ...(next.githubSyncByDocument ?? settings.githubSyncByDocument ?? {}),
+        };
         if (normalizedGitHubSync) {
           byDocument[documentScopeKey] = normalizedGitHubSync;
         } else {
@@ -152,7 +154,12 @@ export function App() {
 
       await onSettingsChange(result);
     },
-    [documentScopeKey, onSettingsChange, settings.githubAccountConnected, settings.githubSyncByDocument]
+    [
+      documentScopeKey,
+      onSettingsChange,
+      settings.githubAccountConnected,
+      settings.githubSyncByDocument,
+    ]
   );
 
   const {
@@ -274,7 +281,10 @@ export function App() {
     extractOwnerFromRepo(activeGitHubSync?.repo) ||
     findOwnerFromMappings(settings.githubSyncByDocument);
   const hasExistingLocalVersioning = documentHasLocalVersioningHint || versions.length > 0;
-  const startupReady = appInitialized && documentScopeReady && (documentHasLocalVersioningHint || initialVersionsLoaded);
+  const startupReady =
+    appInitialized &&
+    documentScopeReady &&
+    (documentHasLocalVersioningHint || initialVersionsLoaded);
   const shouldShowGitHubGate =
     startupReady &&
     !settingsOpen &&
@@ -446,7 +456,9 @@ export function App() {
             {/* ── Workflow ─────────────────────────────────────────── */}
             {currentTab === "workflow" && (
               <div className="flex-1 flex items-center justify-center p-4">
-                <p className="text-[var(--color-text-muted)] text-sm">Workflow tools coming soon.</p>
+                <p className="text-[var(--color-text-muted)] text-sm">
+                  Workflow tools coming soon.
+                </p>
               </div>
             )}
 
